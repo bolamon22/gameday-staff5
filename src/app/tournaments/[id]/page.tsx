@@ -833,7 +833,6 @@ export default function GridPage({ params }: { params:{id:string} }) {
           <button onClick={()=>setCollapsedTimes(new Set())} className="text-xs text-slate-400 hover:text-slate-600">Expand all</button>
         </div>
       </div>
-      )}
 
       {/* ── PARKING LOT ── */}
       {viewMode==='grid'&&unscheduledGames.length>0&&(
