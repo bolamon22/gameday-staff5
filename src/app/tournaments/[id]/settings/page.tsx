@@ -8,9 +8,10 @@ import TournamentNav from '../TournamentNav'
 const RATE_FIELDS=[{key:'youth',label:'Referee – Youth Cert'},{key:'hs',label:'Referee – HS Cert'},{key:'college',label:'Referee – College Cert'},{key:'scorekeeper',label:'Scorekeeper'},{key:'athletic_trainer',label:'Athletic Trainer (hourly base)'},{key:'field_ops',label:'Field Ops (hourly base)'},{key:'assigner',label:'Assigner bonus'}]
 
 export default function SettingsPage({ params }: { params:{id:string} }) {
-  const [name,setName]=useState('');const [rates,setRates]=useState<PayRates>(DEFAULT_PAY_RATES);const [divRules,setDivRules]=useState<Record<string,number>>({});const [tName,setTName]=useState('');const [loading,setLoading]=useState(true);const [saving,setSaving]=useState(false);const [newKeyword,setNewKeyword]=useState('');const [newCount,setNewCount]=useState('1')
-  useEffect(()=>{fetch(`/api/tournaments/${params.id}`).then(r=>r.json()).then(t=>{setName(t.name);setTName(t.name);setRates({...DEFAULT_PAY_RATES,...JSON.parse(t.payRates)});setDivRules(JSON.parse(t.divisionRules||'{}'));setLoading(false)})},[params.id])
-  async function save(e:React.FormEvent){e.preventDefault();setSaving(true);const res=await fetch(`/api/tournaments/${params.id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,payRates:rates,divisionRules:divRules})});if(res.ok){toast.success('Saved');setTName(name)}else toast.error('Failed');setSaving(false)}
+  const DEFAULT_PRICING = { tier1: 1495, tier1Max: 3, tier2: 1450, tier2Max: 6, tier3: 1395, sevenVSeven: 1095 }
+  const [name,setName]=useState('');const [rates,setRates]=useState<PayRates>(DEFAULT_PAY_RATES);const [divRules,setDivRules]=useState<Record<string,number>>({});const [pricing,setPricing]=useState(DEFAULT_PRICING);const [tName,setTName]=useState('');const [loading,setLoading]=useState(true);const [saving,setSaving]=useState(false);const [newKeyword,setNewKeyword]=useState('');const [newCount,setNewCount]=useState('1')
+  useEffect(()=>{fetch(`/api/tournaments/${params.id}`).then(r=>r.json()).then(t=>{setName(t.name);setTName(t.name);setRates({...DEFAULT_PAY_RATES,...JSON.parse(t.payRates)});setDivRules(JSON.parse(t.divisionRules||'{}'));try{const p=JSON.parse(t.registrationPricing||'{}');if(p.tier1)setPricing(p)}catch{}setLoading(false)})},[params.id])
+  async function save(e:React.FormEvent){e.preventDefault();setSaving(true);const res=await fetch(`/api/tournaments/${params.id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,payRates:rates,divisionRules:divRules,registrationPricing:JSON.stringify(pricing)})});if(res.ok){toast.success('Saved');setTName(name)}else toast.error('Failed');setSaving(false)}
   function addRule(){if(!newKeyword.trim())return;setDivRules(r=>({...r,[newKeyword.trim()]:parseInt(newCount)||1}));setNewKeyword('');setNewCount('1')}
   function removeRule(k:string){setDivRules(r=>{const n={...r};delete n[k];return n})}
   if(loading)return<div className="text-slate-400 text-center py-12">Loading…</div>
@@ -33,6 +34,31 @@ export default function SettingsPage({ params }: { params:{id:string} }) {
             <div className="flex-1"><label className="label">Division keyword</label><input className="input" value={newKeyword} onChange={e=>setNewKeyword(e.target.value)} placeholder="e.g. 7v7, U8, Lower School"/></div>
             <div className="w-24"><label className="label">Ref count</label><select className="select" value={newCount} onChange={e=>setNewCount(e.target.value)}><option value="1">1 ref</option><option value="2">2 refs</option><option value="3">3 refs</option></select></div>
             <button type="button" onClick={addRule} className="btn-secondary btn-sm mb-0.5">Add</button>
+          </div>
+        </div>
+        <div className="card p-5">
+          <h2 className="font-semibold text-slate-800 mb-1">Registration Fees</h2>
+          <p className="text-xs text-slate-400 mb-4">Default fees apply unless overridden here. These show on the public registration form.</p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm font-medium text-slate-700">1–<input type="number" min="1" max="10" className="input w-14 text-center inline-block mx-1 px-1" value={pricing.tier1Max} onChange={e=>setPricing(p=>({...p,tier1Max:parseInt(e.target.value)||3}))}/> teams (per team)</p>
+              <div className="flex items-center gap-1.5"><span className="text-slate-400 text-sm">$</span><input type="number" min="0" step="1" className="input w-24 text-right" value={pricing.tier1} onChange={e=>setPricing(p=>({...p,tier1:parseFloat(e.target.value)||0}))}/></div>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm font-medium text-slate-700">{pricing.tier1Max+1}–<input type="number" min="1" max="20" className="input w-14 text-center inline-block mx-1 px-1" value={pricing.tier2Max} onChange={e=>setPricing(p=>({...p,tier2Max:parseInt(e.target.value)||6}))}/> teams (per team)</p>
+              <div className="flex items-center gap-1.5"><span className="text-slate-400 text-sm">$</span><input type="number" min="0" step="1" className="input w-24 text-right" value={pricing.tier2} onChange={e=>setPricing(p=>({...p,tier2:parseFloat(e.target.value)||0}))}/></div>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm font-medium text-slate-700">{pricing.tier2Max+1}+ teams (per team)</p>
+              <div className="flex items-center gap-1.5"><span className="text-slate-400 text-sm">$</span><input type="number" min="0" step="1" className="input w-24 text-right" value={pricing.tier3} onChange={e=>setPricing(p=>({...p,tier3:parseFloat(e.target.value)||0}))}/></div>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm font-medium text-slate-700">7v7 teams (per team)</p>
+              <div className="flex items-center gap-1.5"><span className="text-slate-400 text-sm">$</span><input type="number" min="0" step="1" className="input w-24 text-right" value={pricing.sevenVSeven} onChange={e=>setPricing(p=>({...p,sevenVSeven:parseFloat(e.target.value)||0}))}/></div>
+            </div>
+            <div className="pt-2 border-t border-slate-100">
+              <button type="button" onClick={()=>setPricing(DEFAULT_PRICING)} className="text-xs text-slate-400 hover:text-slate-600 underline">Reset to defaults</button>
+            </div>
           </div>
         </div>
         <button type="submit" className="btn-primary w-full btn-lg" disabled={saving}>{saving?'Saving…':'Save Settings'}</button>
