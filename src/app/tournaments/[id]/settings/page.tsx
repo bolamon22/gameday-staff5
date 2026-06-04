@@ -202,15 +202,17 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
                   className="border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium"
                   onClick={() => { if (newDivision.trim()) { setDivisions(d => [...d, newDivision.trim()]); setNewDivision('') } }}>Add</button>
               </div>
-              {divisions.filter(d => !DEFAULT_DIVISIONS.includes(d)).map((d, i) => (
-                <div key={i} className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 mt-2">
-                  <input type="checkbox" checked readOnly className="w-4 h-4 accent-blue-600 flex-shrink-0" />
-                  <input className="flex-1 bg-transparent border-0 text-sm text-gray-800 font-medium focus:outline-none" value={d}
-                    onChange={e => setDivisions(divs => divs.map(v => v === d ? e.target.value : v))} />
-                  <button type="button" onClick={() => setDivisions(divs => divs.filter(v => v !== d))}
-                    className="text-red-400 hover:text-red-600 text-xs">Remove</button>
-                </div>
-              ))}
+              <div className="grid grid-cols-2 gap-1.5 mt-2">
+                {divisions.filter(d => !DEFAULT_DIVISIONS.includes(d)).map((d, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
+                    <input type="checkbox" checked readOnly className="w-4 h-4 accent-blue-600 flex-shrink-0" />
+                    <input className="flex-1 min-w-0 bg-transparent border-0 text-sm text-gray-800 font-medium focus:outline-none" value={d}
+                      onChange={e => setDivisions(divs => divs.map(v => v === d ? e.target.value : v))} />
+                    <button type="button" onClick={() => setDivisions(divs => divs.filter(v => v !== d))}
+                      className="text-red-400 hover:text-red-600 text-xs flex-shrink-0">✕</button>
+                  </div>
+                ))}
+              </div>
             </div>
             <button type="button" onClick={() => setDivisions(DEFAULT_DIVISIONS)}
               className="text-xs text-gray-400 hover:text-gray-600 underline mt-3 block">Reset to defaults</button>
