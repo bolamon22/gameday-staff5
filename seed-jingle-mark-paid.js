@@ -2,7 +2,7 @@
 // Make sure npm run dev is running first
 // Marks ALL team registrations as paid and ALL staff as paid for Jingle Brawl 2025
 
-const BASE = 'http://localhost:3000'
+const BASE = 'https://gameday-staff5.vercel.app'
 const TOURNAMENT_ID = 'cmpykoo4z0000h24blhpsm8nn'
 const TODAY = new Date().toISOString().slice(0, 10)
 

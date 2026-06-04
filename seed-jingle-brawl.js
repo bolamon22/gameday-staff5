@@ -1,7 +1,7 @@
 // Run with: node seed-jingle-brawl.js
 // Make sure npm run dev is running first
 
-const BASE = 'http://localhost:3000'
+const BASE = 'https://gameday-staff5.vercel.app'
 
 const registrations = [
   {
@@ -233,9 +233,14 @@ const registrations = [
   },
 ]
 
+const { getSessionCookie } = require('./seed-auth')
+
 async function run() {
+  const cookie = await getSessionCookie()
+  const headers = { 'Content-Type': 'application/json', 'Cookie': cookie }
+
   // Find Jingle Brawl tournament
-  const res = await fetch(`${BASE}/api/tournaments`)
+  const res = await fetch(`${BASE}/api/tournaments`, { headers })
   const tournaments = await res.json()
   const t = tournaments.find(t => t.name.toLowerCase().includes('jingle'))
   if (!t) { console.error('❌ Could not find a tournament with "Jingle" in the name. Check your tournament list.'); process.exit(1) }
@@ -246,7 +251,7 @@ async function run() {
     const body = { ...reg, tournamentId: t.id, numTeams: reg.teams.length }
     const r = await fetch(`${BASE}/api/registrations`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(body),
     })
     if (r.ok) {

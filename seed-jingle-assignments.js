@@ -1,7 +1,7 @@
 // Run with: node seed-jingle-assignments.js
 // Make sure npm run dev is running first
 
-const BASE = 'http://localhost:3000'
+const BASE = 'https://gameday-staff5.vercel.app'
 
 // ── Worker IDs ──
 const W = {

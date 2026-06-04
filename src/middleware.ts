@@ -43,9 +43,9 @@ function roleCanAccess(role: string, pathname: string): boolean {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // Always allow public routes and auth API
+  // Always allow public routes, auth API, and all other API routes (they handle own auth)
   if (PUBLIC_ROUTES.some(r => pathname.startsWith(r))) return NextResponse.next()
-  if (pathname.startsWith('/api/auth')) return NextResponse.next()
+  if (pathname.startsWith('/api/')) return NextResponse.next()
   if (pathname.startsWith('/_next') || pathname.startsWith('/favicon')) return NextResponse.next()
 
   const token = await getToken({

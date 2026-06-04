@@ -1,7 +1,7 @@
 // Run with: node seed-jingle-roster.js
 // Make sure npm run dev is running first
 
-const BASE = 'http://localhost:3000'
+const BASE = 'https://gameday-staff5.vercel.app'
 const TOURNAMENT_ID = 'cmpykoo4z0000h24blhpsm8nn'
 
 // All refs and scorekeepers working the Jingle Brawl
