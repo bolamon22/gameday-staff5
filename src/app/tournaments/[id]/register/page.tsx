@@ -11,10 +11,11 @@ interface TeamRow {
   coachName: string
   coachPhone: string
   coachEmail: string
+  logoUrl: string
 }
 
 const emptyTeam = (): TeamRow => ({
-  clubName: '', teamName: '', division: '', coachName: '', coachPhone: '', coachEmail: '',
+  clubName: '', teamName: '', division: '', coachName: '', coachPhone: '', coachEmail: '', logoUrl: '',
 })
 
 const DEFAULT_DIVISIONS = [
@@ -27,6 +28,15 @@ const DEFAULT_DIVISIONS = [
 
 const inputCls = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
 const smallInputCls = "w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+
+async function uploadFile(file: File): Promise<string> {
+  const fd = new FormData()
+  fd.append('file', file)
+  const r = await fetch('/api/upload', { method: 'POST', body: fd })
+  if (!r.ok) throw new Error('Upload failed')
+  const data = await r.json()
+  return data.url
+}
 
 export default function RegisterPage() {
   const { id: tournamentId } = useParams()
@@ -47,6 +57,11 @@ export default function RegisterPage() {
   const [notes, setNotes] = useState('')
   const [teams, setTeams] = useState<TeamRow[]>([emptyTeam()])
 
+  // Club logo state
+  const [clubLogoUrl, setClubLogoUrl] = useState('')
+  const [clubLogoUploading, setClubLogoUploading] = useState(false)
+  const [teamLogoUploading, setTeamLogoUploading] = useState<Record<number, boolean>>({})
+
   useEffect(() => {
     fetch(`/api/tournaments/${tournamentId}`)
       .then(r => r.json())
@@ -65,8 +80,33 @@ export default function RegisterPage() {
     setTeams(prev => prev.map((t, idx) => idx === i ? { ...t, [field]: value } : t))
   }
 
-  const addTeam = () => setTeams(prev => [...prev, { ...emptyTeam(), clubName }])
+  const addTeam = () => setTeams(prev => [...prev, { ...emptyTeam(), clubName, logoUrl: clubLogoUrl }])
   const removeTeam = (i: number) => setTeams(prev => prev.filter((_, idx) => idx !== i))
+
+  const handleClubLogoUpload = async (file: File) => {
+    setClubLogoUploading(true)
+    try {
+      const url = await uploadFile(file)
+      setClubLogoUrl(url)
+      // Auto-assign to all teams that don't have their own logo
+      setTeams(prev => prev.map(t => t.logoUrl ? t : { ...t, logoUrl: url }))
+      toast.success('Club logo uploaded!')
+    } catch {
+      toast.error('Logo upload failed')
+    }
+    setClubLogoUploading(false)
+  }
+
+  const handleTeamLogoUpload = async (i: number, file: File) => {
+    setTeamLogoUploading(prev => ({ ...prev, [i]: true }))
+    try {
+      const url = await uploadFile(file)
+      updateTeam(i, 'logoUrl', url)
+    } catch {
+      toast.error('Logo upload failed')
+    }
+    setTeamLogoUploading(prev => ({ ...prev, [i]: false }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -80,7 +120,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           tournamentId, clubName, clubContact, contactEmail, contactPhone,
           clubBasedIn, clubWebsite, numTeams: teams.length,
-          needsHotel, paymentMethod, notes, teams,
+          needsHotel, paymentMethod, notes, teams, clubLogoUrl,
         }),
       })
       if (!res.ok) throw new Error()
@@ -166,13 +206,33 @@ export default function RegisterPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Will your club need hotel rooms? <span className="text-red-500">*</span></label>
-                  <select required value={needsHotel} onChange={e => setNeedsHotel(e.target.value)}
-                    className={inputCls}>
+                  <select required value={needsHotel} onChange={e => setNeedsHotel(e.target.value)} className={inputCls}>
                     <option value="">Select...</option>
                     <option>Yes</option>
                     <option>No</option>
                     <option>Maybe</option>
                   </select>
+                </div>
+
+                {/* Club Logo */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Club Logo</label>
+                  <p className="text-xs text-gray-400 mb-2">Automatically applied to all your teams. You can override per team below.</p>
+                  <div className="flex items-center gap-3">
+                    {clubLogoUrl && (
+                      <img src={clubLogoUrl} alt="Club logo" className="h-12 w-12 object-contain rounded-lg border border-gray-200 flex-shrink-0" />
+                    )}
+                    <label className={`cursor-pointer border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 ${clubLogoUploading ? 'opacity-50' : ''}`}>
+                      {clubLogoUploading ? 'Uploading…' : clubLogoUrl ? 'Change Logo' : 'Upload Logo'}
+                      <input type="file" accept="image/*" className="hidden"
+                        disabled={clubLogoUploading}
+                        onChange={e => e.target.files?.[0] && handleClubLogoUpload(e.target.files[0])} />
+                    </label>
+                    {clubLogoUrl && (
+                      <button type="button" onClick={() => { setClubLogoUrl(''); setTeams(prev => prev.map(t => t.logoUrl === clubLogoUrl ? { ...t, logoUrl: '' } : t)) }}
+                        className="text-xs text-red-400 hover:text-red-600">Remove</button>
+                    )}
+                  </div>
                 </div>
               </div>
             </section>
@@ -184,7 +244,13 @@ export default function RegisterPage() {
                 {teams.map((team, i) => (
                   <div key={i} className="border border-gray-200 rounded-xl p-4 bg-gray-50">
                     <div className="flex justify-between items-center mb-3">
-                      <span className="text-sm font-medium text-gray-600">Team {i + 1}</span>
+                      <div className="flex items-center gap-2">
+                        {(team.logoUrl || clubLogoUrl) && (
+                          <img src={team.logoUrl || clubLogoUrl} alt="logo"
+                            className="h-8 w-8 object-contain rounded-lg border border-gray-200 flex-shrink-0" />
+                        )}
+                        <span className="text-sm font-medium text-gray-600">Team {i + 1}</span>
+                      </div>
                       {teams.length > 1 && (
                         <button type="button" onClick={() => removeTeam(i)}
                           className="text-red-400 hover:text-red-600 text-xs">Remove</button>
@@ -228,6 +294,32 @@ export default function RegisterPage() {
                         <input required type="email" autoComplete="email"
                           value={team.coachEmail} onChange={e => updateTeam(i, 'coachEmail', e.target.value)}
                           className={smallInputCls} />
+                      </div>
+                    </div>
+
+                    {/* Per-team logo override */}
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Team Logo
+                        {clubLogoUrl && !team.logoUrl && <span className="ml-1 text-gray-400 font-normal">(using club logo — upload here to override)</span>}
+                        {team.logoUrl && team.logoUrl !== clubLogoUrl && <span className="ml-1 text-green-600 font-normal">✓ custom logo</span>}
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {team.logoUrl && team.logoUrl !== clubLogoUrl && (
+                          <img src={team.logoUrl} alt="team logo" className="h-8 w-8 object-contain rounded border border-gray-200 flex-shrink-0" />
+                        )}
+                        <label className={`cursor-pointer border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-white ${teamLogoUploading[i] ? 'opacity-50' : ''}`}>
+                          {teamLogoUploading[i] ? 'Uploading…' : team.logoUrl && team.logoUrl !== clubLogoUrl ? 'Change' : 'Upload Custom'}
+                          <input type="file" accept="image/*" className="hidden"
+                            disabled={teamLogoUploading[i]}
+                            onChange={e => e.target.files?.[0] && handleTeamLogoUpload(i, e.target.files[0])} />
+                        </label>
+                        {team.logoUrl && team.logoUrl !== clubLogoUrl && (
+                          <button type="button" onClick={() => updateTeam(i, 'logoUrl', clubLogoUrl)}
+                            className="text-xs text-gray-400 hover:text-gray-600">
+                            {clubLogoUrl ? 'Use club logo' : 'Remove'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

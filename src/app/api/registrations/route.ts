@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   const {
     tournamentId, clubName, clubContact, contactEmail, contactPhone,
     clubBasedIn, clubWebsite, numTeams, needsHotel, paymentMethod, notes, teams,
-    invoiceAmount, discountAmount, discountNote,
+    invoiceAmount, discountAmount, discountNote, clubLogoUrl,
   } = body
 
   if (!tournamentId || !clubContact || !contactEmail || !contactPhone) {
@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
       invoiceAmount: Number(invoiceAmount) || 0,
       discountAmount: Number(discountAmount) || 0,
       discountNote: discountNote || '',
+      clubLogoUrl: clubLogoUrl || '',
       teams: {
         create: (teams || []).map((t: any) => ({
           clubName: t.clubName || '',
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
           coachName: t.coachName || '',
           coachPhone: t.coachPhone || '',
           coachEmail: t.coachEmail || '',
-          logoUrl: t.logoUrl || '',
+          logoUrl: t.logoUrl || (clubLogoUrl || ''),
         })),
       },
     },

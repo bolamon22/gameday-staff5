@@ -107,6 +107,8 @@ export default function RegistrationsPage() {
   const [invoiceAmount, setInvoiceAmount] = useState(0)
   const [discountAmount, setDiscountAmount] = useState(0)
   const [discountNote, setDiscountNote] = useState('')
+  const [clubLogoUrl, setClubLogoUrl] = useState('')
+  const [clubLogoUploading, setClubLogoUploading] = useState(false)
   const [logoUploading, setLogoUploading] = useState<number | null>(null)
 
   const uploadTeamLogo = async (i: number, file: File) => {
@@ -119,6 +121,19 @@ export default function RegistrationsPage() {
       toast.success('Logo uploaded!')
     } catch { toast.error('Upload failed') }
     finally { setLogoUploading(null) }
+
+  const uploadClubLogo = async (file: File) => {
+    setClubLogoUploading(true)
+    try {
+      const fd = new FormData(); fd.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const { url } = await res.json()
+      setClubLogoUrl(url)
+      setTeams(prev => prev.map(t => t.logoUrl ? t : { ...t, logoUrl: url }))
+      toast.success('Club logo uploaded!')
+    } catch { toast.error('Upload failed') }
+    finally { setClubLogoUploading(false) }
+  }
   }
 
   // Import
@@ -186,7 +201,7 @@ export default function RegistrationsPage() {
   const updateTeam = (i: number, f: keyof TeamRow, v: string) =>
     setTeams(prev => prev.map((t, idx) => idx === i ? { ...t, [f]: v } : t))
   const addTeam = () => {
-    const newTeams = [...teams, { ...emptyTeam(), clubName }]
+    const newTeams = [...teams, { ...emptyTeam(), clubName, logoUrl: clubLogoUrl }]
     setTeams(newTeams)
     setInvoiceAmount(calcInvoice(newTeams, pricing))
   }
@@ -204,7 +219,7 @@ export default function RegistrationsPage() {
   const resetForm = () => {
     setEditingId(null); setClubName(''); setClubContact(''); setContactEmail(''); setContactPhone('')
     setClubBasedIn(''); setClubWebsite(''); setNeedsHotel('No'); setPaymentMethod('check')
-    setNotes(''); setTeams([emptyTeam()]); setInvoiceAmount(0); setDiscountAmount(0); setDiscountNote('')
+    setNotes(''); setTeams([emptyTeam()]); setInvoiceAmount(0); setDiscountAmount(0); setDiscountNote(''); setClubLogoUrl('')
   }
 
   const openNew = () => { resetForm(); setShowForm(true) }
@@ -214,6 +229,7 @@ export default function RegistrationsPage() {
     setClubBasedIn(reg.clubBasedIn); setClubWebsite(reg.clubWebsite)
     setNeedsHotel(reg.needsHotel); setPaymentMethod(reg.paymentMethod); setNotes(reg.notes)
     setInvoiceAmount(reg.invoiceAmount); setDiscountAmount(reg.discountAmount); setDiscountNote(reg.discountNote)
+    setClubLogoUrl((reg as any).clubLogoUrl || '')
     setTeams(reg.teams.map(t => ({ clubName: t.clubName, teamName: t.teamName, division: t.division, coachName: t.coachName, coachPhone: t.coachPhone, coachEmail: t.coachEmail, logoUrl: (t as any).logoUrl || '' })))
     setShowForm(true)
   }
@@ -225,7 +241,7 @@ export default function RegistrationsPage() {
       const res = await fetch(url, {
         method: editingId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tournamentId, clubName, clubContact, contactEmail, contactPhone, clubBasedIn, clubWebsite, needsHotel, paymentMethod, notes, teams, invoiceAmount, discountAmount, discountNote }),
+        body: JSON.stringify({ tournamentId, clubName, clubContact, contactEmail, contactPhone, clubBasedIn, clubWebsite, needsHotel, paymentMethod, notes, teams, invoiceAmount, discountAmount, discountNote, clubLogoUrl }),
       })
       if (!res.ok) throw new Error()
       toast.success(editingId ? 'Updated!' : 'Registration added!')
@@ -679,6 +695,21 @@ export default function RegistrationsPage() {
                   <div><label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
                     <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className={inputCls}>
                       <option value="check">Check</option><option value="zelle">Zelle</option><option value="credit_card">Credit Card</option></select></div>
+                </div>
+
+                {/* Club Logo */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Club Logo</h3>
+                  <p className="text-xs text-gray-400 mb-2">Auto-applied to all teams. Each team can have its own logo too.</p>
+                  <div className="flex items-center gap-3">
+                    {clubLogoUrl && <img src={clubLogoUrl} alt="Club logo" className="h-12 w-12 object-contain rounded-lg border border-gray-200" />}
+                    <label className={`cursor-pointer border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 ${clubLogoUploading ? 'opacity-50' : ''}`}>
+                      {clubLogoUploading ? 'Uploading…' : clubLogoUrl ? 'Change Logo' : 'Upload Club Logo'}
+                      <input type="file" accept="image/*" className="hidden" disabled={clubLogoUploading}
+                        onChange={e => e.target.files?.[0] && uploadClubLogo(e.target.files[0])} />
+                    </label>
+                    {clubLogoUrl && <button type="button" onClick={() => { setClubLogoUrl(''); setTeams(prev => prev.map(t => t.logoUrl === clubLogoUrl ? { ...t, logoUrl: '' } : t)) }} className="text-xs text-red-400 hover:text-red-600">Remove</button>}
+                  </div>
                 </div>
 
                 {/* Teams */}
