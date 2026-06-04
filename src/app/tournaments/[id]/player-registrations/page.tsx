@@ -30,6 +30,7 @@ interface PlayerRegistration {
   createdAt: string
 }
 
+const GRADES = ['K','1','2','3','4','5','6','7','8','9','10','11','12']
 const today = () => new Date().toISOString().slice(0, 10)
 
 function downloadCSV(players: PlayerRegistration[], tournamentName: string) {
@@ -64,6 +65,9 @@ export default function PlayerRegistrationsPage() {
   const [players, setPlayers] = useState<PlayerRegistration[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [editing, setEditing] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<Partial<PlayerRegistration>>({})
+  const [saving, setSaving] = useState(false)
   const [tournamentName, setTournamentName] = useState('')
   const [tournamentLogo, setTournamentLogo] = useState('')
   const [search, setSearch] = useState('')
@@ -83,7 +87,6 @@ export default function PlayerRegistrationsPage() {
       setPlayers(regs)
       setTournamentName(t.name || '')
       if (t.logoUrl) setTournamentLogo(t.logoUrl)
-      // Build team name → division map
       const map: Record<string, string> = {}
       teamRegs.forEach((r: { teams: { teamName: string; clubName: string; division: string }[] }) => {
         r.teams.forEach(team => {
@@ -119,7 +122,6 @@ export default function PlayerRegistrationsPage() {
   const allDivisions = Array.from(new Set(players.map(p => getDivision(p)).filter(Boolean))).sort()
   const hasFilters = search || filterGender || filterGrade || filterHotel || filterTeam || filterDivision
 
-  // Stats
   const byGender = players.reduce((acc, p) => { acc[p.gender] = (acc[p.gender] || 0) + 1; return acc }, {} as Record<string, number>)
   const hotelYes = players.filter(p => p.needsHotel === 'Yes').length
   const hotelMaybe = players.filter(p => p.needsHotel === 'Maybe').length
@@ -134,19 +136,61 @@ export default function PlayerRegistrationsPage() {
     } catch { toast.error('Failed to delete.') }
   }
 
+  const startEdit = (p: PlayerRegistration) => {
+    setEditForm({ ...p })
+    setEditing(p.id)
+  }
+
+  const cancelEdit = () => {
+    setEditing(null)
+    setEditForm({})
+  }
+
+  const saveEdit = async () => {
+    setSaving(true)
+    try {
+      const r = await fetch(`/api/player-registrations/${editing}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      })
+      if (!r.ok) throw new Error()
+      toast.success('Saved!')
+      setEditing(null)
+      setEditForm({})
+      load()
+    } catch {
+      toast.error('Failed to save.')
+    }
+    setSaving(false)
+  }
+
+  const setF = (k: keyof PlayerRegistration, v: string | boolean) =>
+    setEditForm(f => ({ ...f, [k]: v }))
+
+  const Field = ({ label, field, type = 'text' }: { label: string; field: keyof PlayerRegistration; type?: string }) => (
+    <div>
+      <label className="block text-xs text-gray-500 mb-0.5">{label}</label>
+      <input
+        type={type}
+        value={String(editForm[field] ?? '')}
+        onChange={e => setF(field, e.target.value)}
+        className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+  )
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <Toaster />
       <div className="max-w-5xl mx-auto">
 
         <TournamentNav id={tournamentId as string} name={tournamentName || 'Tournament'} logoUrl={tournamentLogo} />
-        {/* Header */}
+
         <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Player Registrations</h1>
           </div>
-
-          {/* Stats */}
           <div className="flex gap-2 flex-wrap">
             {[
               { label: 'Total', value: players.length, color: 'text-blue-600' },
@@ -163,7 +207,6 @@ export default function PlayerRegistrationsPage() {
           </div>
         </div>
 
-        {/* Action bar */}
         <div className="mb-4 flex gap-2 flex-wrap items-center">
           <button
             onClick={() => downloadCSV(filtered, tournamentName)}
@@ -178,7 +221,6 @@ export default function PlayerRegistrationsPage() {
           </Link>
         </div>
 
-        {/* Filters */}
         {!loading && players.length > 0 && (
           <div className="mb-4 flex gap-2 flex-wrap items-center">
             <input type="search" placeholder="Search name, club…"
@@ -222,7 +264,6 @@ export default function PlayerRegistrationsPage() {
           </div>
         )}
 
-        {/* List */}
         {loading ? (
           <div className="text-center py-20 text-gray-400">Loading…</div>
         ) : players.length === 0 ? (
@@ -237,7 +278,6 @@ export default function PlayerRegistrationsPage() {
           <div className="space-y-2">
             {filtered.map((p, i) => (
               <div key={p.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                {/* Row */}
                 <div className="px-5 py-4 flex items-center gap-3">
                   <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
                     {i + 1}
@@ -265,53 +305,150 @@ export default function PlayerRegistrationsPage() {
                   </div>
                 </div>
 
-                {/* Expanded detail */}
                 {expanded === p.id && (
-                  <div className="border-t border-gray-100 bg-gray-50 px-5 py-5 space-y-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm">
-                      <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-2 font-semibold">Player</p>
-                        <div className="space-y-1">
-                          <div><span className="text-gray-500">Email: </span>{p.playerEmail || '—'}</div>
-                          <div><span className="text-gray-500">US Lacrosse #: </span>{p.usLacrosseNumber}</div>
-                          <div><span className="text-gray-500">DOB: </span>{p.dob || '—'}</div>
-                          <div><span className="text-gray-500">Grade: </span>{p.grade}</div>
-                          <div><span className="text-gray-500">Gender: </span>{p.gender}</div>
-                          <div><span className="text-gray-500">Club: </span>{p.teamClubName}</div>
-                          <div><span className="text-gray-500">Jersey #: </span>{p.jerseyNumber || '—'}</div>
+                  <div className="border-t border-gray-100 bg-gray-50 px-5 py-5">
+                    {editing === p.id ? (
+                      /* ── EDIT MODE ── */
+                      <div className="space-y-5">
+                        <div>
+                          <p className="text-xs text-gray-400 uppercase tracking-wide mb-3 font-semibold">Player</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <Field label="Player Name" field="playerName" />
+                            <Field label="Player Email" field="playerEmail" type="email" />
+                            <Field label="US Lacrosse #" field="usLacrosseNumber" />
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-0.5">Gender</label>
+                              <select value={editForm.gender || ''} onChange={e => setF('gender', e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Select…</option>
+                                <option>Male</option>
+                                <option>Female</option>
+                              </select>
+                            </div>
+                            <Field label="Date of Birth" field="dob" type="date" />
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-0.5">Grade</label>
+                              <select value={editForm.grade || ''} onChange={e => setF('grade', e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Select…</option>
+                                {GRADES.map(g => <option key={g} value={g}>Grade {g}</option>)}
+                              </select>
+                            </div>
+                            <Field label="Team / Club" field="teamClubName" />
+                            <Field label="Jersey #" field="jerseyNumber" />
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-2 font-semibold">Parent / Guardian</p>
-                        <div className="space-y-1">
-                          <div><span className="text-gray-500">Name: </span>{p.parentName}</div>
-                          <div><span className="text-gray-500">Email: </span>{p.parentEmail}</div>
-                          <div><span className="text-gray-500">Phone: </span>{p.parentPhone}</div>
-                          {p.parent2Name && <>
-                            <div className="pt-1 text-xs text-gray-400 font-medium">Parent 2</div>
-                            <div><span className="text-gray-500">Name: </span>{p.parent2Name}</div>
-                            {p.parent2Email && <div><span className="text-gray-500">Email: </span>{p.parent2Email}</div>}
-                            {p.parent2Phone && <div><span className="text-gray-500">Phone: </span>{p.parent2Phone}</div>}
-                          </>}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-2 font-semibold">Emergency &amp; Other</p>
-                        <div className="space-y-1">
-                          <div><span className="text-gray-500">Emergency Contact: </span>{p.emergencyContactName}</div>
-                          <div><span className="text-gray-500">Emergency Phone: </span>{p.emergencyContactPhone}</div>
-                          <div className="pt-1"><span className="text-gray-500">Hotel: </span>{p.needsHotel || 'No'}</div>
-                          <div><span className="text-gray-500">Wants Updates: </span>{p.wantsUpdates ? 'Yes' : 'No'}</div>
-                          <div><span className="text-gray-500">Submitted: </span>{new Date(p.createdAt).toLocaleString()}</div>
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* Waiver signature */}
-                    <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-                      <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-1">Waiver Signature</p>
-                      <p className="text-sm italic text-gray-700">"{p.waiverSignature}"</p>
-                    </div>
+                        <div>
+                          <p className="text-xs text-gray-400 uppercase tracking-wide mb-3 font-semibold">Parent / Guardian</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <Field label="Parent Name" field="parentName" />
+                            <Field label="Parent Email" field="parentEmail" type="email" />
+                            <Field label="Parent Phone" field="parentPhone" type="tel" />
+                            <Field label="Parent 2 Name" field="parent2Name" />
+                            <Field label="Parent 2 Email" field="parent2Email" type="email" />
+                            <Field label="Parent 2 Phone" field="parent2Phone" type="tel" />
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-gray-400 uppercase tracking-wide mb-3 font-semibold">Emergency &amp; Other</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <Field label="Emergency Contact Name" field="emergencyContactName" />
+                            <Field label="Emergency Contact Phone" field="emergencyContactPhone" type="tel" />
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-0.5">Needs Hotel</label>
+                              <select value={editForm.needsHotel || ''} onChange={e => setF('needsHotel', e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="No">No</option>
+                                <option value="Yes">Yes</option>
+                                <option value="Maybe">Maybe</option>
+                              </select>
+                            </div>
+                            <div className="flex items-center gap-2 pt-5">
+                              <input type="checkbox" id={`updates-${p.id}`}
+                                checked={!!editForm.wantsUpdates}
+                                onChange={e => setF('wantsUpdates', e.target.checked)}
+                                className="rounded" />
+                              <label htmlFor={`updates-${p.id}`} className="text-sm text-gray-700">Wants Updates</label>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-0.5">Waiver Signature</label>
+                          <input
+                            type="text"
+                            value={String(editForm.waiverSignature ?? '')}
+                            onChange={e => setF('waiverSignature', e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+
+                        <div className="flex gap-2 pt-1">
+                          <button onClick={saveEdit} disabled={saving}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+                            {saving ? 'Saving…' : 'Save Changes'}
+                          </button>
+                          <button onClick={cancelEdit}
+                            className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* ── VIEW MODE ── */
+                      <div className="space-y-5">
+                        <div className="flex justify-end">
+                          <button onClick={() => startEdit(p)}
+                            className="border border-blue-300 text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium">
+                            ✏️ Edit
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm">
+                          <div>
+                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-2 font-semibold">Player</p>
+                            <div className="space-y-1">
+                              <div><span className="text-gray-500">Email: </span>{p.playerEmail || '—'}</div>
+                              <div><span className="text-gray-500">US Lacrosse #: </span>{p.usLacrosseNumber}</div>
+                              <div><span className="text-gray-500">DOB: </span>{p.dob || '—'}</div>
+                              <div><span className="text-gray-500">Grade: </span>{p.grade}</div>
+                              <div><span className="text-gray-500">Gender: </span>{p.gender}</div>
+                              <div><span className="text-gray-500">Club: </span>{p.teamClubName}</div>
+                              <div><span className="text-gray-500">Jersey #: </span>{p.jerseyNumber || '—'}</div>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-2 font-semibold">Parent / Guardian</p>
+                            <div className="space-y-1">
+                              <div><span className="text-gray-500">Name: </span>{p.parentName}</div>
+                              <div><span className="text-gray-500">Email: </span>{p.parentEmail}</div>
+                              <div><span className="text-gray-500">Phone: </span>{p.parentPhone}</div>
+                              {p.parent2Name && <>
+                                <div className="pt-1 text-xs text-gray-400 font-medium">Parent 2</div>
+                                <div><span className="text-gray-500">Name: </span>{p.parent2Name}</div>
+                                {p.parent2Email && <div><span className="text-gray-500">Email: </span>{p.parent2Email}</div>}
+                                {p.parent2Phone && <div><span className="text-gray-500">Phone: </span>{p.parent2Phone}</div>}
+                              </>}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-2 font-semibold">Emergency &amp; Other</p>
+                            <div className="space-y-1">
+                              <div><span className="text-gray-500">Emergency Contact: </span>{p.emergencyContactName}</div>
+                              <div><span className="text-gray-500">Emergency Phone: </span>{p.emergencyContactPhone}</div>
+                              <div className="pt-1"><span className="text-gray-500">Hotel: </span>{p.needsHotel || 'No'}</div>
+                              <div><span className="text-gray-500">Wants Updates: </span>{p.wantsUpdates ? 'Yes' : 'No'}</div>
+                              <div><span className="text-gray-500">Submitted: </span>{new Date(p.createdAt).toLocaleString()}</div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+                          <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-1">Waiver Signature</p>
+                          <p className="text-sm italic text-gray-700">"{p.waiverSignature}"</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
