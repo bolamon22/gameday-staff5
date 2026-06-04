@@ -382,44 +382,13 @@ export default function RegisterPage() {
               </div>
             </section>
 
-            {/* Pricing Matrix */}
+            {/* Estimated Total */}
             <section>
-              <h2 className="text-lg font-semibold text-gray-800 mb-3">Registration Fees</h2>
-              <div className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden mb-4">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-100 text-gray-600 text-xs uppercase tracking-wide">
-                      <th className="text-left px-4 py-2">Teams</th>
-                      <th className="text-right px-4 py-2">Price per Team</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-t border-gray-200">
-                      <td className="px-4 py-2 text-gray-700">1–{pricing.tier1Max} teams</td>
-                      <td className="px-4 py-2 text-right font-medium text-gray-800">{fmt(pricing.tier1)}</td>
-                    </tr>
-                    <tr className="border-t border-gray-200">
-                      <td className="px-4 py-2 text-gray-700">{pricing.tier1Max + 1}–{pricing.tier2Max} teams</td>
-                      <td className="px-4 py-2 text-right font-medium text-gray-800">{fmt(pricing.tier2)}</td>
-                    </tr>
-                    <tr className="border-t border-gray-200">
-                      <td className="px-4 py-2 text-gray-700">{pricing.tier2Max + 1}+ teams</td>
-                      <td className="px-4 py-2 text-right font-medium text-gray-800">{fmt(pricing.tier3)}</td>
-                    </tr>
-                    <tr className="border-t border-gray-200 bg-blue-50">
-                      <td className="px-4 py-2 text-gray-700">7v7 teams</td>
-                      <td className="px-4 py-2 text-right font-medium text-gray-800">{fmt(pricing.sevenVSeven)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Estimated Total */}
               {teams.length > 0 && calcInvoice(teams, pricing) > 0 && (
                 <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-blue-800">Estimated Total</p>
-                    <p className="text-xs text-blue-600 mt-0.5">{teams.length} team{teams.length !== 1 ? 's' : ''} · based on current fee tier</p>
+                    <p className="text-xs text-blue-600 mt-0.5">{teams.length} team{teams.length !== 1 ? 's' : ''} · volume discounts apply for 4+ teams</p>
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-blue-800">{fmt(calcInvoice(teams, pricing))}</p>
