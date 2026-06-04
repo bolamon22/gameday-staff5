@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
 
 interface TeamRow {
@@ -40,10 +40,12 @@ async function uploadFile(file: File): Promise<string> {
 
 export default function RegisterPage() {
   const { id: tournamentId } = useParams()
+  const searchParams = useSearchParams()
   const [tournamentName, setTournamentName] = useState('')
   const [tournamentLogo, setTournamentLogo] = useState('')
   const [divisions, setDivisions] = useState<string[]>(DEFAULT_DIVISIONS)
   const [submitted, setSubmitted] = useState(false)
+  const paid = searchParams.get('paid') === '1'
   const [loading, setLoading] = useState(false)
 
   const [clubName, setClubName] = useState('')
@@ -124,6 +126,28 @@ export default function RegisterPage() {
         }),
       })
       if (!res.ok) throw new Error()
+      const registration = await res.json()
+
+      // Redirect to Stripe if paying by credit card
+      if (paymentMethod === 'credit_card' && registration.invoiceAmount > 0) {
+        const stripeRes = await fetch('/api/stripe/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: registration.invoiceAmount,
+            tournamentName,
+            clubName,
+            registrationId: registration.id,
+            successUrl: `${window.location.origin}/tournaments/${tournamentId}/register?paid=1`,
+            cancelUrl: window.location.href,
+          }),
+        })
+        const { url, error } = await stripeRes.json()
+        if (error) throw new Error(error)
+        window.location.href = url
+        return
+      }
+
       setSubmitted(true)
     } catch {
       toast.error('Submission failed. Please try again.')
@@ -132,14 +156,14 @@ export default function RegisterPage() {
     }
   }
 
-  if (submitted) {
+  if (submitted || paid) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="bg-white rounded-2xl shadow p-10 max-w-lg text-center">
           {tournamentLogo && <img src={tournamentLogo} alt="logo" className="h-20 w-20 object-contain mx-auto mb-4 rounded-xl" />}
           <div className="text-5xl mb-4">✅</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Registration Received!</h2>
-          <p className="text-gray-600">Thank you for registering for <strong>{tournamentName}</strong>. We'll be in touch soon with confirmation details.</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">{paid ? 'Payment Complete!' : 'Registration Received!'}</h2>
+          <p className="text-gray-600">Thank you for registering for <strong>{tournamentName}</strong>. {paid ? 'Your payment was successful and ' : ''}We'll be in touch soon with confirmation details.</p>
         </div>
       </div>
     )
