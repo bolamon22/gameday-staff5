@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
             currency: 'usd',
             product_data: {
               name: `Team Registration — ${tournamentName}`,
-              description: clubName ? `Club: ${clubName}` : undefined,
+              description: `${clubName ? `Club: ${clubName} · ` : ''}Includes 3% credit card processing fee`,
             },
             unit_amount: Math.round(amount * 100),
           },

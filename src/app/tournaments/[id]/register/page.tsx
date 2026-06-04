@@ -130,15 +130,17 @@ export default function RegisterPage() {
 
       // Redirect to Stripe if paying by credit card
       if (paymentMethod === 'credit_card' && registration.invoiceAmount > 0) {
+        const baseAmount = registration.invoiceAmount
+        const amountWithFee = Math.round(baseAmount * 1.03 * 100) / 100 // +3% to offset Stripe fees
         const stripeRes = await fetch('/api/stripe/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            amount: registration.invoiceAmount,
+            amount: amountWithFee,
             tournamentName,
             clubName,
             registrationId: registration.id,
-            successUrl: `${window.location.origin}/tournaments/${tournamentId}/register?paid=1`,
+            successUrl: 'https://sunshineeventsgroup.com',
             cancelUrl: window.location.href,
           }),
         })
