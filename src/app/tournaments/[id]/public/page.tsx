@@ -33,7 +33,7 @@ function calcStandings(games:Game[],division:string,pool?:string):Standing[] {
   return Object.values(map).sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga))
 }
 
-function PoolCard({division,pool,standings,followedTeams,onScheduleClick}:{division:string;pool:string;standings:Standing[];followedTeams:string[];onScheduleClick:()=>void}) {
+function PoolCard({division,pool,standings,followedTeams,onScheduleClick,onTeamClick}:{division:string;pool:string;standings:Standing[];followedTeams:string[];onScheduleClick:()=>void;onTeamClick:(team:string)=>void}) {
   const [pview,setPview]=useState<'grid'|'list'>('list')
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
@@ -54,7 +54,10 @@ function PoolCard({division,pool,standings,followedTeams,onScheduleClick}:{divis
           {standings.map((s,i)=>(
             <div key={s.team} className="flex flex-col items-center py-5 px-3 gap-2">
               <TeamAvatar name={s.team}/>
-              <div className="text-center"><div className="text-xs text-gray-400 mb-0.5">{i+1}</div><div className="text-xs font-bold text-gray-800 uppercase leading-tight">{s.team}</div></div>
+              <button onClick={()=>onTeamClick(s.team)} className="text-center hover:opacity-75 transition-opacity cursor-pointer">
+                <div className="text-xs text-gray-400 mb-0.5">{i+1}</div>
+                <div className="text-xs font-bold text-blue-700 uppercase leading-tight underline decoration-dotted">{s.team}</div>
+              </button>
             </div>
           ))}
         </div>
@@ -99,6 +102,8 @@ type DivTab = 'standings'|'schedule'|'bracket'
 
 function DivisionView({division,games,followedTeams,toggleFollow}:{division:string;games:Game[];followedTeams:string[];toggleFollow:(t:string)=>void}) {
   const [divTab,setDivTab]=useState<DivTab>('standings')
+  const [selectedTeam,setSelectedTeam]=useState<string|null>(null)
+  const handleTeamClick=(team:string)=>{setSelectedTeam(team);setDivTab('schedule')}
   const divGames=games.filter(g=>g.division===division&&!g.isCanceled)
   const pools=Array.from(new Set(divGames.map(g=>g.pool).filter(Boolean))).sort() as string[]
   const scheduleGames=divGames.filter(g=>!g.isChampionship).sort((a,b)=>a.date!==b.date?(a.date<b.date?-1:1):a.startTime<b.startTime?-1:1)
@@ -124,17 +129,23 @@ function DivisionView({division,games,followedTeams,toggleFollow}:{division:stri
           {pools.length>0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {pools.map(pool=>(
-                <PoolCard key={pool} division={division} pool={pool} standings={calcStandings(games,division,pool)} followedTeams={followedTeams} onScheduleClick={()=>setDivTab('schedule')}/>
+                <PoolCard key={pool} division={division} pool={pool} standings={calcStandings(games,division,pool)} followedTeams={followedTeams} onScheduleClick={()=>setDivTab('schedule')} onTeamClick={handleTeamClick}/>
               ))}
             </div>
-          ) : <PoolCard division={division} pool="" standings={calcStandings(games,division)} followedTeams={followedTeams} onScheduleClick={()=>setDivTab('schedule')}/>}
+          ) : <PoolCard division={division} pool="" standings={calcStandings(games,division)} followedTeams={followedTeams} onScheduleClick={()=>setDivTab('schedule')} onTeamClick={handleTeamClick}/>}
         </div>
       )}
 
       {divTab==='schedule' && (
         <div className="space-y-2">
-          {scheduleGames.length===0 && <div className="text-center py-12 text-gray-400">No games scheduled yet.</div>}
-          {scheduleGames.map(g=>{
+          {selectedTeam && (
+            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-3">
+              <span className="text-sm font-semibold text-blue-700">📋 {selectedTeam}</span>
+              <button onClick={()=>setSelectedTeam(null)} className="ml-auto text-xs text-blue-500 hover:text-blue-700 font-medium">✕ Show all</button>
+            </div>
+          )}
+          {scheduleGames.filter(g=>!selectedTeam||g.team1===selectedTeam||g.team2===selectedTeam).length===0 && <div className="text-center py-12 text-gray-400">No games found.</div>}
+          {scheduleGames.filter(g=>!selectedTeam||g.team1===selectedTeam||g.team2===selectedTeam).map(g=>{
             const hasScore=g.score1!==null&&g.score2!==null
             const isHL=followedTeams.includes(g.team1)||followedTeams.includes(g.team2)
             return (
