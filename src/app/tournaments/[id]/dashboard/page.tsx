@@ -109,6 +109,10 @@ export default function DashboardPage() {
             <NavTile href={`/tournaments/${id}/financials`} icon="📊" label="Financials" sub="P&L" color="hover:border-green-300 hover:bg-green-50" />
             <NavTile href={`/tournaments/${id}/settings`} icon="⚙️" label="Settings" sub="Rates & rules" />
             <NavTile href={`/tournaments/${id}/public`} icon="🌐" label="Public View" sub="Fan-facing page" color="hover:border-rose-300 hover:bg-rose-50" />
+            <NavTile href={`/tournaments/${id}/staff-view`} icon="👤" label="Staff View" sub="Dark schedule" color="hover:border-slate-400 hover:bg-slate-50" />
+            <NavTile href={`/tournaments/${id}/scores`} icon="🎯" label="Post Scores" sub="Quick entry" color="hover:border-blue-300 hover:bg-blue-50" />
+            <NavTile href={`/tournaments/${id}/assignments`} icon="📌" label="Assignments" sub="By game or staff" />
+            <NavTile href={`/tournaments/${id}/builder`} icon="🏗" label="Builder" sub="Tournament setup" color="hover:border-indigo-300 hover:bg-indigo-50" />
           </div>
         </section>
 

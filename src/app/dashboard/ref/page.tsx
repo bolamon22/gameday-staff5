@@ -107,6 +107,12 @@ export default function RefDashboard() {
               </div>
               {g.role && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full capitalize">{g.role}</span>}
               {g.payRate && <span className="text-xs text-gray-500">${g.payRate}</span>}
+              {g.role === 'scorekeeper' && !g.isCanceled && (
+                <a href={`/tournaments/${g.tournamentId}/games/${g.id}/scorekeeper`}
+                  className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1 rounded-lg transition-colors">
+                  Score →
+                </a>
+              )}
               {myGameIds.has(g.id) && view === 'all' && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">My game</span>}
             </div>
           ))
