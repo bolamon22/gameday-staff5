@@ -381,6 +381,7 @@ export default function HomePage() {
                   <Link href={`/tournaments/${t.id}/registrations`} className="btn-secondary btn-sm text-purple-600 border-purple-200 hover:bg-purple-50">📋 Registrations</Link>
                   <Link href={`/tournaments/${t.id}/player-registrations`} className="btn-secondary btn-sm text-teal-600 border-teal-200 hover:bg-teal-50">🏃 Players</Link>
                   <Link href={`/tournaments/${t.id}/pay-summary`} className="btn-secondary btn-sm">Pay Report</Link>
+                  <Link href={`/tournaments/${t.id}/builder`} className="btn-secondary btn-sm text-blue-600 border-blue-200 hover:bg-blue-50">🏗 Builder</Link>
                 </div>
               </div>
             )
