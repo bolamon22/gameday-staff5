@@ -445,16 +445,18 @@ export default function GridPage({ params }: { params:{id:string} }) {
       <div className="bg-[#0f1f3d] -mx-6 px-6 pt-4 pb-0 mb-6">
         <div className="flex items-center justify-between gap-4 pb-4">
           <div className="flex items-center gap-3">
-            {tournament.logoUrl
-              ? <img src={tournament.logoUrl} alt="logo" className="h-11 w-11 object-contain rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />
-              : null}
+            <Link href={`/tournaments/${params.id}/dashboard`} className="flex-shrink-0">
+              {tournament.logoUrl
+                ? <img src={tournament.logoUrl} alt="logo" className="h-11 w-11 object-contain rounded-xl border border-white/10 bg-white/5 hover:border-white/30 transition-colors" />
+                : null}
+            </Link>
             <div>
               <div className="text-[11px] text-slate-400 mb-0.5">
                 <Link href="/" className="hover:text-teal-400 transition-colors">Tournaments</Link>
                 <span className="mx-1 opacity-40">/</span>
               </div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-white leading-tight">{tournament.name}</h1>
+                <Link href={`/tournaments/${params.id}/dashboard`} className="text-lg font-bold text-white leading-tight hover:text-teal-300 transition-colors">{tournament.name}</Link>
                 <span className="text-[10px] font-semibold bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded-full tracking-wide">ASSIGNER</span>
               </div>
               <div className="flex items-center gap-2 mt-1">
