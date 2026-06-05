@@ -104,33 +104,48 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-slate-50">
 
       {/* ── Header ────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-200">
-        <div className="max-w-5xl mx-auto px-6 py-5">
-          <div className="flex items-center justify-between gap-4">
+      <div className="bg-[#0f1f3d]">
+        <div className="max-w-5xl mx-auto px-6 pt-5 pb-0">
+          <div className="flex items-center justify-between gap-4 pb-4">
             <div className="flex items-center gap-4">
-              {t.logoUrl && <img src={t.logoUrl} alt="logo" className="h-16 w-16 object-contain rounded-xl border border-slate-200 bg-slate-50 flex-shrink-0" />}
+              {t.logoUrl && <img src={t.logoUrl} alt="logo" className="h-14 w-14 object-contain rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />}
               <div>
                 <div className="text-xs text-slate-400 mb-0.5">
-                  <Link href="/" className="hover:text-sky-600">Tournaments</Link> /
+                  <Link href="/" className="hover:text-teal-400 transition-colors">Tournaments</Link>
+                  <span className="mx-1 opacity-40">/</span>
                 </div>
-                <h1 className="text-2xl font-bold text-slate-900">{t.name}</h1>
-                <div className="flex items-center gap-3 mt-0.5 text-sm text-slate-500 flex-wrap">
-                  {t.sport && <span className="text-emerald-600 font-medium">{t.sport}</span>}
+                <h1 className="text-xl font-bold text-white leading-tight">{t.name}</h1>
+                <div className="flex items-center gap-2 mt-1 text-xs text-slate-300 flex-wrap">
+                  {t.sport && <span className="bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded-full font-medium">{t.sport}</span>}
                   {dateStr && <span>{dateStr}</span>}
-                  {t.location && <span className="truncate">📍 {t.location}</span>}
+                  {t.location && <span className="opacity-70">📍 {t.location}</span>}
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <Link href={`/tournaments/${id}/public`} target="_blank"
-                className="text-sm text-slate-500 hover:text-slate-700 border border-slate-200 hover:border-slate-300 px-3 py-2 rounded-lg transition-colors">
+                className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
                 🌐 Public page
               </Link>
               <Link href={`/tournaments/${id}`}
-                className="btn-secondary btn-sm">
-                Open Schedule →
+                className="bg-teal-500 hover:bg-teal-400 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+                📅 Open Schedule
               </Link>
             </div>
+          </div>
+          {/* Nav tabs */}
+          <div className="flex gap-0 overflow-x-auto">
+            {[
+              { href: `/tournaments/${id}/dashboard`,     label: 'Overview'      },
+              { href: `/tournaments/${id}/registrations`, label: 'Registrations' },
+              { href: `/tournaments/${id}/financials`,    label: 'Financials'    },
+              { href: `/tournaments/${id}/settings`,      label: 'Settings'      },
+            ].map(tab => (
+              <Link key={tab.href} href={tab.href}
+                className="px-4 py-3 text-sm font-medium text-slate-400 hover:text-white whitespace-nowrap border-b-2 border-transparent hover:border-white/20 transition-colors">
+                {tab.label}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
