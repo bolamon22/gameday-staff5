@@ -105,33 +105,40 @@ export default function DashboardPage() {
 
       {/* ── Header ────────────────────────────────────────────────────── */}
       <div className="bg-[#0f1f3d]">
-        <div className="max-w-5xl mx-auto px-6 pt-5 pb-0">
-          <div className="flex items-center justify-between gap-4 pb-4">
-            <div className="flex items-center gap-4">
-              {t.logoUrl && <img src={t.logoUrl} alt="logo" className="h-14 w-14 object-contain rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />}
-              <div>
-                <div className="text-xs text-slate-400 mb-0.5">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 sm:pt-5 pb-0">
+
+          {/* Top row: logo + name + public link */}
+          <div className="flex items-start justify-between gap-3 pb-3">
+            <div className="flex items-center gap-3 min-w-0">
+              {t.logoUrl && (
+                <img src={t.logoUrl} alt="logo"
+                  className="h-10 w-10 sm:h-12 sm:w-12 object-contain rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />
+              )}
+              <div className="min-w-0">
+                <div className="text-[10px] text-slate-500 mb-0.5">
                   <Link href="/" className="hover:text-teal-400 transition-colors">Tournaments</Link>
                   <span className="mx-1 opacity-40">/</span>
                 </div>
-                <h1 className="text-xl font-bold text-white leading-tight">{t.name}</h1>
-                <div className="flex items-center gap-2 mt-1 text-xs text-slate-300 flex-wrap">
-                  {t.sport && <span className="bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded-full font-medium">{t.sport}</span>}
-                  {dateStr && <span>{dateStr}</span>}
-                  {t.location && <span className="opacity-70">📍 {t.location}</span>}
+                <h1 className="text-base sm:text-xl font-bold text-white leading-tight truncate">{t.name}</h1>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  {t.sport && (
+                    <span className="text-[10px] bg-teal-500/20 text-teal-300 px-1.5 py-0.5 rounded-full font-medium">{t.sport}</span>
+                  )}
+                  {dateStr && <span className="text-[10px] text-slate-400">{dateStr}</span>}
+                  {t.location && (
+                    <span className="text-[10px] text-slate-500 hidden sm:inline truncate max-w-[200px]">📍 {t.location}</span>
+                  )}
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Link href={`/tournaments/${id}/public`} target="_blank"
-                className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
-                🌐 Public page
-              </Link>
-
-            </div>
+            <Link href={`/tournaments/${id}/public`} target="_blank"
+              className="flex-shrink-0 text-[10px] text-slate-400 hover:text-white border border-white/10 hover:border-white/25 px-2.5 py-1.5 rounded-lg transition-colors mt-0.5">
+              🌐 Public
+            </Link>
           </div>
+
           {/* Nav tabs */}
-          <div className="flex gap-0 overflow-x-auto">
+          <div className="flex gap-0 overflow-x-auto scrollbar-hide -mx-1 px-1">
             {[
               { href: `/tournaments/${id}/dashboard`,     label: 'Overview'      },
               { href: `/tournaments/${id}/registrations`, label: 'Registrations' },
@@ -139,7 +146,7 @@ export default function DashboardPage() {
               { href: `/tournaments/${id}/settings`,      label: 'Settings'      },
             ].map(tab => (
               <Link key={tab.href} href={tab.href}
-                className="px-4 py-3 text-sm font-medium text-slate-400 hover:text-white whitespace-nowrap border-b-2 border-transparent hover:border-white/20 transition-colors">
+                className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-slate-400 hover:text-white whitespace-nowrap border-b-2 border-transparent hover:border-white/20 transition-colors">
                 {tab.label}
               </Link>
             ))}
@@ -147,12 +154,12 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-6 sm:space-y-8">
 
         {/* ── Game Day strip ────────────────────────────────────────────── */}
         <section>
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Game Day</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
 
             <Link href={`/tournaments/${id}/scores`}
               className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 hover:border-teal-300 hover:bg-teal-50 transition-colors group">
@@ -191,7 +198,7 @@ export default function DashboardPage() {
         {/* ── Admin Hubs ────────────────────────────────────────────────── */}
         <section>
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Admin</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
 
             <Hub icon="🏆" label="Competition" count={3} accent="bg-violet-100 text-violet-600">
               <HubItem href={`/tournaments/${id}/builder`}  icon="🏗"  label="Bracket builder" />
@@ -229,7 +236,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                 <StatCard label="Clubs Registered" value={reg.clubs} color="text-purple-600" />
                 <StatCard label="Teams Registered" value={reg.teams} color="text-blue-600" />
                 <StatCard label="Paid in Full" value={reg.paidInFull} sub={`${reg.outstanding} outstanding`} color="text-green-600" />
@@ -298,7 +305,7 @@ export default function DashboardPage() {
         {/* ── Games & Staff ─────────────────────────────────────────────── */}
         <section>
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Schedule & Staff</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             <StatCard label="Total Games" value={games.active} sub={games.canceled > 0 ? `${games.canceled} canceled` : undefined} color="text-sky-600" />
             <StatCard label="Divisions" value={games.divisions} color="text-slate-700" />
             <StatCard label="Assignments" value={games.assigned} sub={`~${assignPct}% filled`} color="text-blue-600" />
