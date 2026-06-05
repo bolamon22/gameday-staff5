@@ -17,12 +17,17 @@ const RATE_FIELDS = [
 const DEFAULT_PRICING = { tier1: 1495, tier1Max: 3, tier2: 1450, tier2Max: 6, tier3: 1395, sevenVSeven: 1095 }
 
 const DEFAULT_DIVISIONS = [
-  'Boys High School A', 'Boys High School B', 'Boys High School B2',
-  'Boys U14 A and B', 'Boys U12 A and B',
-  'Boys U10 A and B (7v7)', 'Boys U10 A and B (10v10)', 'Boys U8 (7v7)',
-  'Girls High School A', 'Girls High School B', 'Girls High School B2',
-  'Girls Middle School A', 'Girls Middle School B (No 2030s)',
-  'Girls Lower School A (7v7)', 'Girls Lower School B (7v7 - No 2033s)',
+  'Boys U8',
+  'Boys U10',
+  'Boys U12',
+  'Boys U14',
+  'Boys High School B',
+  'Boys High School A',
+  'Girls Lower School',
+  'Girls Middle School B',
+  'Girls Middle School A',
+  'Girls High School B',
+  'Girls High School A',
 ]
 
 interface TimeSlot { start: string; end: string }
@@ -68,7 +73,7 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
   const [rates, setRates] = useState<PayRates>(DEFAULT_PAY_RATES)
   const [divRules, setDivRules] = useState<Record<string, number>>({})
   const [pricing, setPricing] = useState(DEFAULT_PRICING)
-  const [divisions, setDivisions] = useState<string[]>(DEFAULT_DIVISIONS)
+  const [divisions, setDivisions] = useState<string[]>([])
   const [newDivision, setNewDivision] = useState('')
   const [venues, setVenues] = useState<Venue[]>([])
   const [newVenueName, setNewVenueName] = useState('')

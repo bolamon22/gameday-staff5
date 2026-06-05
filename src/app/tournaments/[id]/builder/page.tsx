@@ -30,9 +30,13 @@ const DEFAULT_DIVISIONS = [
 interface DivisionItem { def: string; display: string; abbr: string; checked: boolean }
 function toDivItems(stored: string[]): DivisionItem[] {
   return DEFAULT_DIVISIONS.map(def => {
-    const match = stored.find(s => s === def) ?? stored.find(s => s.toLowerCase().startsWith(def.toLowerCase().slice(0, 8)))
-    return { def, display: match ?? def, abbr: divAbbr(match ?? def), checked: !!match }
+    const match = stored.find(s => s === def)
+    return { def, display: def, abbr: divAbbr(def), checked: !!match }
   })
+}
+function isLegacyDivision(s: string): boolean {
+  // Filter out old year-based divisions like "Boys 2030", "HS Boys JV", etc.
+  return /20\d{2}/.test(s) || /^HS (Boys|Girls)/.test(s)
 }
 function fromDivItems(items: DivisionItem[], customs: string[]): string[] {
   return [...items.filter(i => i.checked).map(i => i.display), ...customs]
@@ -195,10 +199,12 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
       setOfficialsConfig({ ...DEFAULT_OFFICIALS_CONFIG, ...staffParsed.officialsConfig, rules: loadedRules })
       try { const p = JSON.parse(t.registrationPricing || '{}'); if (p.tier1) setPricing(p) } catch {}
       try {
-        const d = JSON.parse(t.registrationDivisions || '[]')
+        const d: string[] = JSON.parse(t.registrationDivisions || '[]')
         if (d.length) {
           setDivItems(toDivItems(d))
-          setCustomDivisions(d.filter((s: string) => !DEFAULT_DIVISIONS.some(def => def === s || s.toLowerCase().startsWith(def.toLowerCase().slice(0, 8)))))
+          // Only carry over custom divisions that aren't old legacy year-based ones
+          const customs = d.filter(s => !DEFAULT_DIVISIONS.includes(s) && !isLegacyDivision(s))
+          setCustomDivisions(customs)
         }
       } catch {}
       // Build date list
