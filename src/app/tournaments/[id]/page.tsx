@@ -494,13 +494,9 @@ export default function GridPage({ params }: { params:{id:string} }) {
               <span className="text-white/20">·</span>
               <span className="text-[11px] text-emerald-300 font-medium">{assignedSKs} Scorekeepers</span>
             </div>
-            <Link href="/staff"
-              className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
-              👥 Staff Pool
-            </Link>
             <Link href={`/tournaments/${params.id}/roster`}
               className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
-              📋 Roster
+              👥 Staff Roster
             </Link>
             <Link href={`/tournaments/${params.id}/pay-summary`}
               className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
