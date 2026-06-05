@@ -453,7 +453,10 @@ export default function GridPage({ params }: { params:{id:string} }) {
                 <Link href="/" className="hover:text-teal-400 transition-colors">Tournaments</Link>
                 <span className="mx-1 opacity-40">/</span>
               </div>
-              <h1 className="text-lg font-bold text-white leading-tight">{tournament.name}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-bold text-white leading-tight">{tournament.name}</h1>
+                <span className="text-[10px] font-semibold bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded-full tracking-wide">ASSIGNER</span>
+              </div>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-[11px] text-slate-400">{games.length} games</span>
                 <span className="text-slate-600">·</span>
