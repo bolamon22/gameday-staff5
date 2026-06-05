@@ -116,3 +116,26 @@ export function resetDivisionColors() {
   divColorCache.clear()
   divColorIndex = 0
 }
+
+// Parses payRates from either v1 (legacy) or v2 (new builder) format
+// Always returns a PayRates-compatible object so existing routes keep working
+export function parsePayRates(raw: string): PayRates {
+  try {
+    const parsed = JSON.parse(raw || '{}')
+    if (parsed._v !== 2) return { ...DEFAULT_PAY_RATES, ...parsed }
+    // v2 format — extract rates from roles array by id
+    const roles: { id: string; rate: number }[] = parsed.roles || []
+    const get = (id: string, fallback: number) => roles.find(r => r.id === id)?.rate ?? fallback
+    return {
+      youth:            get('off_youth',   DEFAULT_PAY_RATES.youth),
+      hs:               get('off_hs',      DEFAULT_PAY_RATES.hs),
+      college:          get('off_college', DEFAULT_PAY_RATES.college),
+      scorekeeper:      get('scorekeeper', DEFAULT_PAY_RATES.scorekeeper),
+      athletic_trainer: get('atc',         DEFAULT_PAY_RATES.athletic_trainer),
+      field_ops:        get('field_ops',   DEFAULT_PAY_RATES.field_ops),
+      assigner:         get('assigner',    DEFAULT_PAY_RATES.assigner),
+    }
+  } catch {
+    return { ...DEFAULT_PAY_RATES }
+  }
+}

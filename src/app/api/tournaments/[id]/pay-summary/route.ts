@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
-import { PayRates, roleLabel } from '@/lib/utils'
+import { parsePayRates, roleLabel } from '@/lib/utils'
 
 function calcHours(e:{clockIn:string|null;clockOut:string|null;hoursManual:number|null}):number {
   if(e.hoursManual!=null)return e.hoursManual
@@ -11,7 +11,7 @@ function calcHours(e:{clockIn:string|null;clockOut:string|null;hoursManual:numbe
 export async function GET(_: Request, { params }: { params:{id:string} }) {
   const tournament = await prisma.tournament.findUnique({ where:{id:params.id} })
   if (!tournament) return NextResponse.json({ error:'Not found' }, { status:404 })
-  const payRates: PayRates = JSON.parse(tournament.payRates)
+  const payRates = parsePayRates(tournament.payRates)
   const assignments = await prisma.assignment.findMany({ where:{game:{tournamentId:params.id}}, include:{worker:true,game:{select:{gameNumber:true,date:true,startTime:true,division:true,location:true}}}, orderBy:[{game:{date:'asc'}},{game:{startTime:'asc'}}] })
   const timeEntries = await prisma.timeEntry.findMany({ where:{tournamentId:params.id}, include:{worker:true}, orderBy:[{date:'asc'},{clockIn:'asc'}] })
   const map=new Map<string,{worker:{id:string;name:string;certLevel:string;defaultRole:string;hourlyRate:number|null;payMethod:string;payHandle:string|null};games:unknown[];timeEntries:unknown[];totalPay:number}>()
