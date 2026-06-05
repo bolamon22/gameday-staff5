@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@libsql/client": "^0.8.0",
+    "@vercel/blob": "^0.27.0",
     "@prisma/adapter-libsql": "^5.14.0",
     "@prisma/client": "^5.14.0",
     "@types/bcryptjs": "^2.4.6",
