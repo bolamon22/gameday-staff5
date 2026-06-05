@@ -471,6 +471,18 @@ export default function GridPage({ params }: { params:{id:string} }) {
               className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
               ← Dashboard
             </Link>
+            <Link href="/staff"
+              className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
+              👥 Staff Pool
+            </Link>
+            <Link href={`/tournaments/${params.id}/roster`}
+              className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
+              📋 Roster
+            </Link>
+            <Link href={`/tournaments/${params.id}/pay-summary`}
+              className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
+              💰 Pay
+            </Link>
             <button
               onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/tournaments/${params.id}/public`);toast.success('Link copied!')}}
               className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
