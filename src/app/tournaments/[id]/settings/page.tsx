@@ -205,10 +205,11 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
   const checkedCount = divisions.filter(d => DEFAULT_DIVISIONS.includes(d)).length + divisions.filter(d => !DEFAULT_DIVISIONS.includes(d)).length
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 pb-16">
+      <div className="max-w-2xl mx-auto">
       <Toaster />
       <TournamentNav id={params.id} name={tName} />
-      <div className="max-w-2xl mx-auto px-4 pt-6">
+      <div className="pt-4">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Settings</h1>
