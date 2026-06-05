@@ -26,8 +26,8 @@ model Tournament {
   individualRegEnabled     Boolean  @default(false)
   individualRegDescription String   @default("")
   individualRegTiers       String   @default("[]")
-  individualRegPositions   String   @default('["Attack","Midfield","Defense","Goalie","Utility/Other"]')
-  individualRegSizes       String   @default('["YS","YM","YL","S","M","L","XL","XXL"]')
+  individualRegPositions   String   @default("[]")
+  individualRegSizes       String   @default("[]")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
