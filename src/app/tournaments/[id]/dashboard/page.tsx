@@ -39,29 +39,39 @@ function StatCard({ label, value, sub, color = 'text-slate-800' }: { label: stri
 }
 
 // ── Hub component ─────────────────────────────────────────────────────────────
-function Hub({ icon, label, count, accent, children }: {
-  icon: string; label: string; count: number; accent: string; children: React.ReactNode
+function Hub({ icon, label, count, accent, children, solid = false }: {
+  icon: string; label: string; count: number; accent: string; children: React.ReactNode; solid?: boolean
 }) {
   const [open, setOpen] = useState(false)
+  const isSolid = accent.includes('teal-500') || solid
+
   return (
-    <div className={`bg-white border rounded-xl overflow-hidden transition-colors ${open ? 'border-slate-300' : 'border-slate-200'}`}>
+    <div className={`rounded-xl overflow-hidden transition-all border ${
+      isSolid
+        ? open ? 'border-teal-400' : 'border-teal-500'
+        : open ? 'border-slate-300' : 'border-slate-200'
+    } ${isSolid ? 'bg-teal-500' : 'bg-white'}`}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-slate-50 transition-colors text-left"
+        className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 transition-colors text-left ${
+          isSolid ? 'hover:bg-teal-400' : 'hover:bg-slate-50'
+        }`}
       >
         <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0 ${accent}`}>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0 ${
+            isSolid ? 'bg-white/20 text-white' : accent
+          }`}>
             {icon}
           </div>
           <div>
-            <div className="text-sm font-semibold text-slate-700">{label}</div>
-            <div className="text-xs text-slate-400">{count} sections</div>
+            <div className={`text-sm font-semibold ${isSolid ? 'text-white' : 'text-slate-700'}`}>{label}</div>
+            <div className={`text-xs ${isSolid ? 'text-teal-100' : 'text-slate-400'}`}>{count} sections</div>
           </div>
         </div>
-        <span className={`text-slate-400 text-xs transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>▾</span>
+        <span className={`text-xs transition-transform duration-200 ${open ? 'rotate-180' : ''} ${isSolid ? 'text-white/70' : 'text-slate-400'}`}>▾</span>
       </button>
       {open && (
-        <div className="border-t border-slate-100">
+        <div className={`border-t ${isSolid ? 'border-teal-400 bg-white' : 'border-slate-100'}`}>
           {children}
         </div>
       )}
@@ -202,11 +212,11 @@ export default function DashboardPage() {
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Admin</h2>
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
 
-            <Hub icon="🏆" label="Competition" count={4} accent="bg-violet-100 text-violet-600">
-              <HubItem href={`/tournaments/${id}/builder`}    icon="🏗"  label="Tournament builder" />
+            <Hub icon="🏗" label="Tournament Builder" count={4} accent="bg-teal-500 text-white">
+              <HubItem href={`/tournaments/${id}/builder`}    icon="⚙️"  label="Tournament Setup" />
               <HubItem href={`/tournaments/${id}/divisions`}  icon="🏅"  label="Divisions & Teams" />
               <HubItem href={`/tournaments/${id}`}            icon="📅"  label="Assigner Schedule" />
-              <HubItem href={`/tournaments/${id}/scores`}     icon="🎯"  label="Score input" />
+              <HubItem href={`/tournaments/${id}/scores`}     icon="🎯"  label="Score Input" />
             </Hub>
 
             <Hub icon="👥" label="Participants" count={2} accent="bg-rose-100 text-rose-600">
