@@ -852,7 +852,7 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
 
   // ─── Layout ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <Toaster />
 
       <TournamentNav id={params.id} name={name || 'Tournament Builder'} logoUrl={logoUrl || undefined} />

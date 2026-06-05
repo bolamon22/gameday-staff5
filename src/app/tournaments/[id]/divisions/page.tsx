@@ -195,7 +195,7 @@ if (loading) return (
   )
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <TournamentNav id={id} name={tournament?.name ?? ''} logoUrl={tournament?.logoUrl} />
 
       <div className="max-w-6xl mx-auto px-6 pb-12">

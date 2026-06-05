@@ -111,7 +111,8 @@ export default function DashboardPage() {
 
   return (
     <>
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+      <div className="max-w-5xl mx-auto">
 
       <TournamentNav id={String(id)} name={t.name} logoUrl={t.logoUrl} />
 
@@ -399,6 +400,7 @@ export default function DashboardPage() {
           )
         })()}
 
+      </div>
       </div>
     </div>
     <ChatWidget tournamentId={String(id)} tournamentName={t.name} />

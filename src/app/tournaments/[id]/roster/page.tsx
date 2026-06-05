@@ -43,7 +43,8 @@ function EditForm({ form, setForm, onSubmit, onCancel, saving }: {
 
   return (
     <form onSubmit={onSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div><label className="label">Name *</label><input className="input" value={String(form.name??'')} onChange={e=>setForm(f=>({...f,name:e.target.value}))} required autoFocus/></div>
+      <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+      <div className="max-w-5xl mx-auto"><label className="label">Name *</label><input className="input" value={String(form.name??'')} onChange={e=>setForm(f=>({...f,name:e.target.value}))} required autoFocus/></div>
       <div><label className="label">Email</label><input className="input" type="email" value={String(form.email??'')} onChange={e=>setForm(f=>({...f,email:e.target.value}))}/></div>
       <div><label className="label">Phone</label><input className="input" type="tel" value={String(form.phone??'')} onChange={e=>setForm(f=>({...f,phone:e.target.value}))}/></div>
 
@@ -490,6 +491,7 @@ export default function RosterPage({ params }: { params:{id:string} }) {
           <Link href="/staff" className="text-sky-600 hover:underline text-sm mt-1 block">Add staff first →</Link>
         </div>
       )}
+      </div>
     </div>
   )
 }

@@ -72,7 +72,7 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
     : (() => { try { return JSON.parse(meta?.dates || '[]').map(fmtDate).join(' · ') } catch { return '' } })()
 
   return (
-    <div className="bg-[#0f1f3d] mb-6">
+    <div className="bg-[#0f1f3d] mb-6 rounded-xl overflow-hidden">
       <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-0">
 
         {/* Header row */}
