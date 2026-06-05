@@ -302,6 +302,15 @@ export default function DivisionsPage() {
                 {/* ── POOLS TAB ── */}
                 {activeTab === 'pools' && (
                   <div className="space-y-4">
+                    {/* Assign teams button */}
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs text-slate-400">{teams.filter(t => !t.pool).length > 0 ? `${teams.filter(t => !t.pool).length} teams unassigned` : 'All teams assigned'}</p>
+                      <Link href={`/tournaments/${id}/divisions/${encodeURIComponent(activeDiv!)}/assign-pools`}
+                        className="btn-primary btn-sm">
+                        Assign Teams to Pools →
+                      </Link>
+                    </div>
+
                     {/* Add pool */}
                     <div className="bg-white rounded-xl border border-slate-200 px-5 py-4 flex items-center gap-3">
                       <input className="input flex-1 text-sm" placeholder="Pool name (e.g. Pool A, Pool 1)"
