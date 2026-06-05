@@ -105,16 +105,21 @@ export default function ScorekeeperPage({ params }: { params: { id: string; game
       <Toaster position="top-center" toastOptions={{ style: { background: '#1f2937', color: '#fff', border: '1px solid #374151' } }} />
 
       {/* Top info bar */}
-      <div className="bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between">
-        <div>
-          <p className="text-xs text-gray-500">{game.division}</p>
-          <p className="text-xs text-gray-400">Game #{game.gameNumber} · {game.location}</p>
+      <div className="bg-gray-900 border-b border-gray-800 px-4 py-3">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="inline-flex items-center gap-1 bg-emerald-900/50 text-emerald-400 border border-emerald-800/40 rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide">
+            📋 Scorekeeper View
+          </span>
+          {game.isChampionship && <span className="text-xs bg-amber-900/50 text-amber-400 px-2 py-1 rounded-full">🏆 Championship</span>}
+          <button onClick={saveScore} disabled={saving}
+            className={`text-sm font-semibold px-4 py-1.5 rounded-xl transition-colors ${saved ? 'bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-500 text-white'} disabled:opacity-50`}>
+            {saving ? '…' : saved ? '✓ Saved' : 'Save'}
+          </button>
         </div>
-        {game.isChampionship && <span className="text-xs bg-amber-900/50 text-amber-400 px-2 py-1 rounded-full">🏆 Championship</span>}
-        <button onClick={saveScore} disabled={saving}
-          className={`text-sm font-semibold px-4 py-1.5 rounded-xl transition-colors ${saved ? 'bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-500 text-white'} disabled:opacity-50`}>
-          {saving ? '…' : saved ? '✓ Saved' : 'Save'}
-        </button>
+        <div>
+          <p className="text-xs text-gray-400 font-medium">{game.division} · Game #{game.gameNumber}</p>
+          <p className="text-xs text-gray-500">{game.location}</p>
+        </div>
       </div>
 
       {/* Clock */}

@@ -135,6 +135,22 @@
       "label": "Club Dir: Billing Tab",
       "group": "Club Director",
       "routes": []
+    },
+    {
+      "key": "tournament_scores",
+      "label": "Post Scores",
+      "group": "Tournaments",
+      "routes": [
+        "/tournaments/*/scores"
+      ]
+    },
+    {
+      "key": "game_scorekeeper",
+      "label": "Scorekeeper (Live Game)",
+      "group": "Tournaments",
+      "routes": [
+        "/tournaments/*/games/*/scorekeeper"
+      ]
     }
   ],
   "roles": {
@@ -156,7 +172,9 @@
       "cd_overview": false,
       "cd_players": false,
       "cd_schedule": false,
-      "cd_billing": false
+      "cd_billing": false,
+      "tournament_scores": true,
+      "game_scorekeeper": true
     },
     "assigner": {
       "tournaments_list": true,
@@ -176,7 +194,9 @@
       "cd_overview": false,
       "cd_players": false,
       "cd_schedule": false,
-      "cd_billing": false
+      "cd_billing": false,
+      "tournament_scores": true,
+      "game_scorekeeper": true
     },
     "coach": {
       "tournaments_list": false,
@@ -196,7 +216,9 @@
       "cd_overview": false,
       "cd_players": false,
       "cd_schedule": false,
-      "cd_billing": false
+      "cd_billing": false,
+      "tournament_scores": false,
+      "game_scorekeeper": false
     },
     "ref": {
       "tournaments_list": false,
@@ -216,7 +238,9 @@
       "cd_overview": false,
       "cd_players": false,
       "cd_schedule": false,
-      "cd_billing": false
+      "cd_billing": false,
+      "tournament_scores": false,
+      "game_scorekeeper": false
     },
     "scorekeeper": {
       "tournaments_list": false,
@@ -236,7 +260,9 @@
       "cd_overview": false,
       "cd_players": false,
       "cd_schedule": false,
-      "cd_billing": false
+      "cd_billing": false,
+      "tournament_scores": false,
+      "game_scorekeeper": true
     },
     "parent": {
       "tournaments_list": false,
@@ -256,7 +282,9 @@
       "cd_overview": false,
       "cd_players": false,
       "cd_schedule": false,
-      "cd_billing": false
+      "cd_billing": false,
+      "tournament_scores": false,
+      "game_scorekeeper": false
     },
     "viewer": {
       "tournaments_list": false,
@@ -276,7 +304,9 @@
       "cd_overview": false,
       "cd_players": false,
       "cd_schedule": false,
-      "cd_billing": false
+      "cd_billing": false,
+      "tournament_scores": false,
+      "game_scorekeeper": false
     },
     "club_director": {
       "tournaments_list": false,
@@ -296,7 +326,9 @@
       "cd_overview": true,
       "cd_players": true,
       "cd_schedule": true,
-      "cd_billing": true
+      "cd_billing": true,
+      "tournament_scores": false,
+      "game_scorekeeper": false
     }
   }
 }

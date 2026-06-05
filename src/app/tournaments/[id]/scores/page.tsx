@@ -109,7 +109,11 @@ export default function PostScoresPage({ params }: { params: { id: string } }) {
       return true
     })
     .sort((a, b) => {
-      if (sortBy === 'time') return `${a.date}${a.startTime}` < `${b.date}${b.startTime}` ? -1 : 1
+      if (sortBy === 'time') {
+        const aKey = `${a.date}T${a.startTime}`
+        const bKey = `${b.date}T${b.startTime}`
+        return aKey < bKey ? -1 : aKey > bKey ? 1 : 0
+      }
       return a.gameNumber.localeCompare(b.gameNumber, undefined, { numeric: true })
     })
 
@@ -160,6 +164,24 @@ export default function PostScoresPage({ params }: { params: { id: string } }) {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Toaster />
       <TournamentNav id={params.id} name={tName} logoUrl={tLogo} />
+
+      {/* Page header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Post Scores</h1>
+            <p className="text-xs text-gray-500 mt-0.5">
+              <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-2.5 py-0.5 font-medium">
+                🏆 Tournament Director &amp; Schedule Manager
+              </span>
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-bold text-gray-900">{totalScored}<span className="text-gray-400 font-normal text-lg">/{totalGames}</span></p>
+            <p className="text-xs text-gray-400">games scored</p>
+          </div>
+        </div>
+      </div>
 
       {/* Top toolbar */}
       <div className="bg-white border-b border-gray-200 px-6 py-2.5 flex items-center justify-between gap-4">
