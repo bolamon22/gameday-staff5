@@ -24,9 +24,12 @@ const fmtDate = (d: string) => { if (!d) return ''; const [y,m,day] = d.split('-
 function calcStandings(games: Game[], division: string): Standing[] {
   const map: Record<string, Standing> = {}
   const ensure = (t: string) => { if (!map[t]) map[t] = { team: t, w: 0, l: 0, t: 0, gf: 0, ga: 0, pts: 0 } }
+  // Seed all teams in this division so they appear even before scoring starts
+  games.filter(g => g.division === division && !g.isCanceled && !g.isChampionship)
+    .forEach(g => { ensure(g.team1); ensure(g.team2) })
+  // Apply results for scored games
   games.filter(g => g.division === division && !g.isCanceled && !g.isChampionship && g.score1 !== null && g.score2 !== null)
     .forEach(g => {
-      ensure(g.team1); ensure(g.team2)
       const s1 = g.score1!, s2 = g.score2!
       map[g.team1].gf += s1; map[g.team1].ga += s2
       map[g.team2].gf += s2; map[g.team2].ga += s1
