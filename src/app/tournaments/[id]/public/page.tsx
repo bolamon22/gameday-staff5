@@ -273,6 +273,21 @@ export default function PublicTournamentPage() {
     setNotifySent(true)
   }
 
+  const sportIcon = (() => {
+    const s = (tournament?.sport || '').toLowerCase()
+    if (s.includes('lacrosse')) return '🥍'
+    if (s.includes('football') && s.includes('flag')) return '🏈'
+    if (s.includes('football')) return '🏈'
+    if (s.includes('soccer')) return '⚽'
+    if (s.includes('basketball')) return '🏀'
+    if (s.includes('baseball')) return '⚾'
+    if (s.includes('softball')) return '🥎'
+    if (s.includes('hockey')) return '🏒'
+    if (s.includes('volleyball')) return '🏐'
+    if (s.includes('rugby')) return '🏉'
+    return '🏆'
+  })()
+
   if(loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-gray-400">Loading…</div></div>
 
   return (
@@ -325,7 +340,7 @@ export default function PublicTournamentPage() {
 
       {/* Sport header bar */}
       <div className="bg-[#0f1f3d] text-white px-4 py-2.5 flex items-center gap-2">
-        <span className="text-sm">🏈</span>
+        <span className="text-sm">{sportIcon}</span>
         <span className="text-xs font-bold uppercase tracking-widest text-gray-300">{tournament?.sport||'Flag Football'}</span>
       </div>
 
@@ -335,7 +350,7 @@ export default function PublicTournamentPage() {
           {tournament?.logoUrl ? (
             <img src={tournament.logoUrl} alt="logo" className="w-20 h-20 object-contain rounded-xl border border-gray-100 flex-shrink-0"/>
           ) : (
-            <div className="w-20 h-20 rounded-xl bg-gray-100 flex items-center justify-center text-3xl flex-shrink-0">🏈</div>
+            <div className="w-20 h-20 rounded-xl bg-gray-100 flex items-center justify-center text-3xl flex-shrink-0">{sportIcon}</div>
           )}
           <div className="flex-1 min-w-0">
             <h1 className="text-xl sm:text-2xl font-black text-gray-900 leading-tight">{tournament?.name}</h1>
