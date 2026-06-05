@@ -3,12 +3,12 @@ import { prisma } from '@/lib/db'
 import { Resend } from 'resend'
 import crypto from 'crypto'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 const APP_URL = process.env.NEXTAUTH_URL || 'https://gameday-staff5.vercel.app'
 const FROM_EMAIL = process.env.INVITE_FROM_EMAIL || 'invites@gamedaystaff.com'
 
 export async function POST(req: NextRequest) {
   try {
+    const resend = new Resend(process.env.RESEND_API_KEY)
     const { email, name, tournamentId } = await req.json()
     if (!email) return NextResponse.json({ error: 'Email is required' }, { status: 400 })
 
