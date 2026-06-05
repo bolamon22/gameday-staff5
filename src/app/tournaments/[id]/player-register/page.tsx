@@ -371,7 +371,6 @@ export default function PlayerRegisterPage() {
           </form>
         </div>
       </div>
-    </div>
       </div>
     </div>
   )

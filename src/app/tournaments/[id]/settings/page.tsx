@@ -682,12 +682,7 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
                 💡 You can enable both — teams register their players and free agents register individually.
               </div>
 
-            <div className="space-y-4">
-              <label className="flex items-center gap-3 cursor-pointer" style={{display:'none'}}>
-                <input type="checkbox" checked={indivRegEnabled} onChange={e => setIndivRegEnabled(e.target.checked)} className="accent-teal-500 w-4 h-4" />
-                <span className="text-sm font-medium text-gray-700">Enable individual player registration for this tournament</span>
-              </label>
-              {indivRegEnabled && (
+            {indivRegEnabled && (
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Registration Description</label>
@@ -726,7 +721,7 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
                     Share this link with players: <strong>{typeof window !== 'undefined' ? window.location.origin : ''}/tournaments/{params.id}/individual-register</strong>
                   </div>
                 </>
-              )}
+            )}
             </div>
           </SectionCard>
 
