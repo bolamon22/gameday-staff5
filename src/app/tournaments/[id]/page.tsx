@@ -441,40 +441,75 @@ export default function GridPage({ params }: { params:{id:string} }) {
       )}
 
       {/* Tournament Nav */}
-      <TournamentNav
-        id={params.id}
-        name={tournament.name}
-        logoUrl={tournament.logoUrl}
-        stats={{ games: games.length, assigned: assignedCount, pct: Math.round(assignedCount / Math.max(games.length, 1) * 100) }}
-      />
+      {/* ── Assigner header ────────────────────────────────────────── */}
+      <div className="bg-[#0f1f3d] -mx-6 px-6 pt-4 pb-0 mb-6">
+        <div className="flex items-center justify-between gap-4 pb-4">
+          <div className="flex items-center gap-3">
+            {tournament.logoUrl
+              ? <img src={tournament.logoUrl} alt="logo" className="h-11 w-11 object-contain rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />
+              : null}
+            <div>
+              <div className="text-[11px] text-slate-400 mb-0.5">
+                <Link href="/" className="hover:text-teal-400 transition-colors">Tournaments</Link>
+                <span className="mx-1 opacity-40">/</span>
+              </div>
+              <h1 className="text-lg font-bold text-white leading-tight">{tournament.name}</h1>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[11px] text-slate-400">{games.length} games</span>
+                <span className="text-slate-600">·</span>
+                <span className="text-[11px] text-sky-400">{assignedCount} assigned</span>
+                {games.length > 0 && (
+                  <span className={`text-[11px] font-semibold ${Math.round(assignedCount/Math.max(games.length,1)*100) >= 90 ? 'text-emerald-400' : Math.round(assignedCount/Math.max(games.length,1)*100) >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
+                    {Math.round(assignedCount / Math.max(games.length, 1) * 100)}%
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Link href={`/tournaments/${params.id}/dashboard`}
+              className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
+              ← Dashboard
+            </Link>
+            <button
+              onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/tournaments/${params.id}/public`);toast.success('Link copied!')}}
+              className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
+              🔗 Share
+            </button>
+          </div>
+        </div>
 
-      {/* Schedule toolbar */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        {/* Day tabs — inside header */}
+        {dates.length > 0 && viewMode !== 'staff' && (
+          <div className="flex gap-0">
+            {dates.map(d => (
+              <button key={d} onClick={() => setActiveDay(d)}
+                className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${activeDay === d ? 'border-teal-400 text-teal-300' : 'border-transparent text-slate-400 hover:text-white hover:border-white/20'}`}>
+                {formatDate(d)}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Control bar: views + actions ────────────────────────────── */}
+      <div className="flex items-center gap-2 mb-5 flex-wrap">
+        {games.length > 0 && (
+          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+            {(['grid','list','division','staff'] as const).map(v => (
+              <button key={v} onClick={() => setViewMode(v)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === v ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                {v === 'grid' ? '⊞ Grid' : v === 'list' ? '≡ List' : v === 'division' ? '⬡ Division' : '👤 Staff'}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex-1" />
-        <button
-          onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/tournaments/${params.id}/public`);toast.success('Link copied!')}}
-          className="btn-secondary btn-sm text-emerald-600 border-emerald-200 hover:bg-emerald-50">
-          🔗 Share
-        </button>
-        {dayGames.length>0&&<button onClick={()=>{setShowAutoAssign(true);setAutoResult(null)}} className="btn-secondary btn-sm text-purple-600 border-purple-200 hover:bg-purple-50">⚡ Auto-Assign</button>}
-        {dayGames.length>0&&<button onClick={()=>{setShowClear(true);setClearConfirm('');setClearName('')}} className="btn-secondary btn-sm text-red-500 border-red-200 hover:bg-red-50">🗑 Clear</button>}
+        {dayGames.length > 0 && <button onClick={() => { setShowAutoAssign(true); setAutoResult(null) }} className="btn-secondary btn-sm text-purple-600 border-purple-200 hover:bg-purple-50">⚡ Auto-Assign</button>}
+        {dayGames.length > 0 && <button onClick={() => { setShowClear(true); setClearConfirm(''); setClearName('') }} className="btn-secondary btn-sm text-red-500 border-red-200 hover:bg-red-50">🗑 Clear</button>}
         <button onClick={openAddGame} className="btn-secondary btn-sm">+ Game</button>
         <label className="btn-primary btn-sm cursor-pointer">↑ Import<input type="file" ref={fileRef} accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileSelect}/></label>
       </div>
-
-      {/* View switcher */}
-      {games.length>0&&(
-        <div className="flex items-center gap-1 mb-4">
-          {(['grid','list','division','staff'] as const).map(v=>(
-            <button key={v} onClick={()=>setViewMode(v)} className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${viewMode===v?'bg-sky-600 text-white':'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-              {v==='grid'?'⊞ Grid':v==='list'?'≡ List':v==='division'?'⬡ Division':'👤 Staff'}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Day tabs */}
-      {dates.length>0&&viewMode!=='staff'&&<div className="flex gap-1 mb-5 border-b border-slate-200">{dates.map(d=><button key={d} onClick={()=>setActiveDay(d)} className={`px-5 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeDay===d?'border-sky-600 text-sky-700':'border-transparent text-slate-500 hover:text-slate-700'}`}>{formatDate(d)}</button>)}</div>}
 
       {/* ── LIST VIEW ── */}
       {viewMode==='list'&&games.length>0&&(()=>{
