@@ -22,6 +22,11 @@ model Tournament {
   registrationPricing   String @default("{\"tier1\":1495,\"tier1Max\":3,\"tier2\":1450,\"tier2Max\":6,\"tier3\":1395,\"sevenVSeven\":1095}")
   registrationDivisions String @default("[\"Boys 2030\",\"Boys 2029\",\"Boys 2028\",\"Boys 2027\",\"Boys 2026\",\"Boys 2025\",\"Boys 2024\",\"Boys 2023\",\"Girls 2030\",\"Girls 2029\",\"Girls 2028\",\"Girls 2027\",\"Girls 2026\",\"Girls 2025\",\"Girls 2024\",\"Girls 2023\",\"HS Boys JV\",\"HS Boys Varsity\",\"HS Girls JV\",\"HS Girls Varsity\"]")
   divisionRules     String   @default("{}")
+  individualRegEnabled     Boolean  @default(false)
+  individualRegDescription String   @default("")
+  individualRegTiers       String   @default("[]")
+  individualRegPositions   String   @default('["Attack","Midfield","Defense","Goalie","Utility/Other"]')
+  individualRegSizes       String   @default('["YS","YM","YL","S","M","L","XL","XXL"]')
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -32,6 +37,7 @@ model Tournament {
   teamRegistrations   TeamRegistration[]
   playerRegistrations PlayerRegistration[]
   transactions        TournamentTransaction[]
+  individualRegistrations IndividualRegistration[]
 }
 
 model Game {
@@ -411,4 +417,40 @@ model BracketGame {
   bracket Bracket @relation(fields: [bracketId], references: [id], onDelete: Cascade)
 
   @@index([bracketId])
+}
+
+model IndividualRegistration {
+  id                   String   @id @default(cuid())
+  tournamentId         String
+  firstName            String
+  lastName             String
+  email                String
+  phone                String   @default("")
+  position             String
+  numberRequest        String   @default("")
+  jerseySize           String
+  shortsSize           String
+  usLacrosseNumber     String   @default("")
+  dateOfBirth          String   @default("")
+  guardianName         String   @default("")
+  guardianPhone        String   @default("")
+  guardianEmail        String   @default("")
+  emergencyContactName  String  @default("")
+  emergencyContactPhone String  @default("")
+  emergencyRelationship String  @default("")
+  medicalNotes         String   @default("")
+  waiverSigned         Boolean  @default(false)
+  waiverSignature      String   @default("")
+  feeTierId            String
+  feeTierName          String
+  feeTierAmount        Float
+  paymentStatus        String   @default("pending")
+  stripePaymentIntent  String?
+  stripeSessionId      String?
+  createdAt            DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId])
+  @@index([email])
 }

@@ -87,6 +87,13 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
   const [saving, setSaving] = useState(false)
   const [newKeyword, setNewKeyword] = useState('')
   const [newCount, setNewCount] = useState('1')
+  // Individual registration
+  const [indivRegEnabled, setIndivRegEnabled] = useState(false)
+  const [indivRegDesc, setIndivRegDesc] = useState('')
+  const [indivRegTiers, setIndivRegTiers] = useState<{id:string;name:string;price:number;description:string}[]>([])
+  const [newTierName, setNewTierName] = useState('')
+  const [newTierPrice, setNewTierPrice] = useState('')
+  const [newTierDesc, setNewTierDesc] = useState('')
   const [open, setOpen] = useState<Section>('general')
 
   const toggle = (s: Section) => setOpen(o => o === s ? ('' as any) : s)
@@ -110,7 +117,10 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
       try { const p = JSON.parse(t.registrationPricing || '{}'); if (p.tier1) setPricing(p) } catch {}
       try { const d = JSON.parse(t.registrationDivisions || '[]'); if (d.length > 0) setDivisions(d) } catch {}
       try { const v = JSON.parse(t.venues || '[]'); setVenues(v) } catch {}
-      setLoading(false)
+      setIndivRegEnabled(Boolean(d.individualRegEnabled))
+    setIndivRegDesc(d.individualRegDescription || '')
+    try { setIndivRegTiers(JSON.parse(d.individualRegTiers || '[]')) } catch {}
+    setLoading(false)
     })
     fetch(`/api/venues/${params.id}`).then(r => r.json()).then(data => {
       if (Array.isArray(data)) { setVenues(data) } // legacy
@@ -130,6 +140,9 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
           name, payRates: rates, divisionRules: divRules,
           registrationPricing: JSON.stringify(pricing),
           registrationDivisions: JSON.stringify(divisions),
+          individualRegEnabled: indivRegEnabled,
+          individualRegDescription: indivRegDesc,
+          individualRegTiers: JSON.stringify(indivRegTiers),
         })
       }),
       fetch(`/api/venues/${params.id}`, {
@@ -627,6 +640,57 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
               </div>
               <button type="button" onClick={addRule}
                 className="border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium mb-0.5">Add</button>
+            </div>
+          </SectionCard>
+
+          {/* Individual Player Registration */}
+          <SectionCard title="Individual Player Registration" description="Charge players individually to register" icon="🏃"
+            open={false} onToggle={() => {}} badge={indivRegEnabled ? 'Enabled' : undefined}>
+            <div className="space-y-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" checked={indivRegEnabled} onChange={e => setIndivRegEnabled(e.target.checked)} className="accent-teal-500 w-4 h-4" />
+                <span className="text-sm font-medium text-gray-700">Enable individual player registration for this tournament</span>
+              </label>
+              {indivRegEnabled && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Registration Description</label>
+                    <textarea className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none" rows={3}
+                      value={indivRegDesc} onChange={e => setIndivRegDesc(e.target.value)}
+                      placeholder="Describe what's included (e.g. uniforms, housing, tourney fees...)" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Fee Tiers</label>
+                    <div className="space-y-2 mb-3">
+                      {indivRegTiers.map((tier, i) => (
+                        <div key={tier.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
+                          <div className="flex-1">
+                            <span className="text-sm font-medium text-gray-800">{tier.name}</span>
+                            {tier.description && <span className="text-xs text-gray-500 ml-2">{tier.description}</span>}
+                          </div>
+                          <span className="text-sm font-bold text-teal-700">${tier.price.toFixed(2)}</span>
+                          <button type="button" onClick={() => setIndivRegTiers(t => t.filter((_, j) => j !== i))}
+                            className="text-red-400 hover:text-red-600 text-xs">Remove</button>
+                        </div>
+                      ))}
+                      {indivRegTiers.length === 0 && <p className="text-xs text-gray-400">No tiers yet. Add one below.</p>}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <input className="border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Tier name" value={newTierName} onChange={e => setNewTierName(e.target.value)} />
+                      <input className="border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Price (e.g. 400)" type="number" value={newTierPrice} onChange={e => setNewTierPrice(e.target.value)} />
+                      <input className="border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Description (optional)" value={newTierDesc} onChange={e => setNewTierDesc(e.target.value)} />
+                    </div>
+                    <button type="button" onClick={() => {
+                      if (!newTierName.trim() || !newTierPrice) return
+                      setIndivRegTiers(t => [...t, { id: Date.now().toString(), name: newTierName.trim(), price: parseFloat(newTierPrice), description: newTierDesc.trim() }])
+                      setNewTierName(''); setNewTierPrice(''); setNewTierDesc('')
+                    }} className="mt-2 text-sm text-teal-600 hover:text-teal-700 font-medium">+ Add Tier</button>
+                  </div>
+                  <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 text-xs text-teal-700">
+                    Share this link with players: <strong>{typeof window !== 'undefined' ? window.location.origin : ''}/tournaments/{params.id}/individual-register</strong>
+                  </div>
+                </>
+              )}
             </div>
           </SectionCard>
 
