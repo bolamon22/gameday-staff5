@@ -19,6 +19,12 @@ interface TournamentMeta {
   logoUrl: string
 }
 
+function fmtDate(d: string) {
+  if (!d) return ''
+  const [y, m, day] = d.split('-')
+  return `${parseInt(m)}/${parseInt(day)}/${y.slice(2)}`
+}
+
 export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
   const pathname = usePathname()
   const base = `/tournaments/${id}`
@@ -60,8 +66,10 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
 
   const logo = meta?.logoUrl || logoUrl
   const dateStr = meta?.startDate
-    ? (meta.endDate && meta.endDate !== meta.startDate ? `${meta.startDate} – ${meta.endDate}` : meta.startDate)
-    : (() => { try { return JSON.parse(meta?.dates || '[]').join(' · ') } catch { return '' } })()
+    ? (meta.endDate && meta.endDate !== meta.startDate
+        ? `${fmtDate(meta.startDate)} – ${fmtDate(meta.endDate)}`
+        : fmtDate(meta.startDate))
+    : (() => { try { return JSON.parse(meta?.dates || '[]').map(fmtDate).join(' · ') } catch { return '' } })()
 
   return (
     <div className="bg-[#0f1f3d] mb-6">

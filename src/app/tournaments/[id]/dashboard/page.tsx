@@ -25,6 +25,12 @@ interface DashData {
   playerCount: number
 }
 
+const fmtDate = (d: string) => {
+  if (!d) return ''
+  const [y, m, day] = d.split('-')
+  return `${parseInt(m)}/${parseInt(day)}/${y.slice(2)}`
+}
+
 const fmt = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const payLabel = (m: string) => m === 'credit_card' ? 'Credit Card' : m === 'zelle' ? 'Zelle' : 'Check'
 
@@ -106,8 +112,10 @@ export default function DashboardPage() {
   const { tournament: t, games, staff, registrations: reg, financials: fin } = data
   const dates: string[] = JSON.parse(t.dates || '[]')
   const dateStr = t.startDate
-    ? (t.endDate && t.endDate !== t.startDate ? `${t.startDate} – ${t.endDate}` : t.startDate)
-    : dates.join(' · ')
+    ? (t.endDate && t.endDate !== t.startDate
+        ? `${fmtDate(t.startDate)} – ${fmtDate(t.endDate)}`
+        : fmtDate(t.startDate))
+    : dates.map(fmtDate).join(' · ')
   const assignPct = games.active > 0 ? Math.round((games.assigned / (games.active * 2)) * 100) : 0
 
   const countdown = (() => {
