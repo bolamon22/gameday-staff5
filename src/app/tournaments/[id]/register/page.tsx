@@ -196,17 +196,23 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
+    <div className="min-h-screen bg-gray-50">
       <Toaster />
+      {/* Public header */}
+      <div className="bg-[#0f1f3d] px-4 py-4">
+        <div className="max-w-3xl mx-auto flex items-center gap-3">
+          {tournamentLogo && (
+            <img src={tournamentLogo} alt="logo" className="h-11 w-11 object-contain rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />
+          )}
+          <div>
+            <h1 className="text-base font-bold text-white leading-tight">{tournamentName}</h1>
+            <p className="text-[11px] text-teal-300 mt-0.5 font-medium">Team Registration</p>
+          </div>
+        </div>
+      </div>
+      <div className="py-8 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-2xl shadow p-8">
-          <div className="flex items-center gap-4 mb-4">
-            {tournamentLogo && <img src={tournamentLogo} alt="logo" className="h-16 w-16 object-contain rounded-xl border border-gray-100 flex-shrink-0" />}
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">{tournamentName} — Team Registration</h1>
-              <p className="text-gray-500 text-sm mt-0.5">Reserve your team spots today</p>
-            </div>
-          </div>
 
           <form onSubmit={handleSubmit} className="space-y-8" autoComplete="on">
             {/* Club Info */}
