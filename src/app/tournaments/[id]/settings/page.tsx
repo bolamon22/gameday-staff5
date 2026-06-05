@@ -90,20 +90,28 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
       try { const v = JSON.parse(t.venues || '[]'); setVenues(v) } catch {}
       setLoading(false)
     })
+    fetch(`/api/venues/${params.id}`).then(r => r.json()).then(v => {
+      if (Array.isArray(v)) setVenues(v)
+    }).catch(() => {})
   }, [params.id])
 
   async function save(e: React.FormEvent) {
     e.preventDefault(); setSaving(true)
-    const res = await fetch(`/api/tournaments/${params.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name, payRates: rates, divisionRules: divRules,
-        registrationPricing: JSON.stringify(pricing),
-        registrationDivisions: JSON.stringify(divisions),
-        venues: JSON.stringify(venues),
-      })
-    })
-    if (res.ok) { toast.success('Settings saved!'); setTName(name) } else toast.error('Failed to save')
+    const [res, venueRes] = await Promise.all([
+      fetch(`/api/tournaments/${params.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name, payRates: rates, divisionRules: divRules,
+          registrationPricing: JSON.stringify(pricing),
+          registrationDivisions: JSON.stringify(divisions),
+        })
+      }),
+      fetch(`/api/venues/${params.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ venues }),
+      }),
+    ])
+    if (res.ok && venueRes.ok) { toast.success('Settings saved!'); setTName(name) } else toast.error('Failed to save')
     setSaving(false)
   }
 
