@@ -52,13 +52,13 @@ function PoolCard({division,pool,standings,followedTeams,onScheduleClick,onTeamC
       {pview==='grid' && (
         <div className="grid grid-cols-2 divide-x divide-y divide-gray-100 bg-white">
           {standings.map((s,i)=>(
-            <div key={s.team} className="flex flex-col items-center py-5 px-3 gap-2">
+            <button key={s.team} onClick={()=>onTeamClick(s.team)} className="flex flex-col items-center py-5 px-3 gap-2 hover:bg-blue-50 transition-colors w-full cursor-pointer" title={`View ${s.team} schedule`}>
               <TeamAvatar name={s.team}/>
-              <button onClick={()=>onTeamClick(s.team)} className="text-center hover:opacity-75 transition-opacity cursor-pointer">
+              <div className="text-center">
                 <div className="text-xs text-gray-400 mb-0.5">{i+1}</div>
-                <div className="text-xs font-bold text-blue-700 uppercase leading-tight underline decoration-dotted">{s.team}</div>
-              </button>
-            </div>
+                <div className="text-xs font-bold text-gray-800 uppercase leading-tight">{s.team}</div>
+              </div>
+            </button>
           ))}
         </div>
       )}
