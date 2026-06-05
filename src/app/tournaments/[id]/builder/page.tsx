@@ -8,7 +8,7 @@ import { DEFAULT_PAY_RATES, PayRates } from '@/lib/utils'
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface TimeSlot { start: string; end: string }
 interface DayAvailability { date: string; slots: TimeSlot[] }
-interface Field { id: string; name: string; availStart?: string; availEnd?: string; divRestrictions?: string[] }
+interface Field { id: string; name: string; abbr: string; availStart?: string; availEnd?: string; divRestrictions?: string[] }
 interface Venue { id: string; name: string; fields: Field[] }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -28,11 +28,11 @@ const DEFAULT_DIVISIONS = [
   'Girls High School A',
 ]
 
-interface DivisionItem { def: string; display: string; checked: boolean }
+interface DivisionItem { def: string; display: string; abbr: string; checked: boolean }
 function toDivItems(stored: string[]): DivisionItem[] {
   return DEFAULT_DIVISIONS.map(def => {
     const match = stored.find(s => s === def) ?? stored.find(s => s.toLowerCase().startsWith(def.toLowerCase().slice(0, 8)))
-    return { def, display: match ?? def, checked: !!match }
+    return { def, display: match ?? def, abbr: divAbbr(match ?? def), checked: !!match }
   })
 }
 function fromDivItems(items: DivisionItem[], customs: string[]): string[] {
@@ -61,6 +61,23 @@ const SECTIONS = [
 ]
 
 function uid() { return Math.random().toString(36).slice(2, 10) }
+
+function fieldAbbr(name: string): string {
+  // "Field 1" → "F1", "Field 2A" → "F2A", "North" → "N", "Stadium" → "STD"
+  const stripped = name.replace(/^field\s+/i, 'F').replace(/\s+/g, '')
+  if (stripped.length <= 4) return stripped.toUpperCase()
+  return name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 5)
+}
+
+function divAbbr(name: string): string {
+  return name
+    .replace(/Boys/gi, 'B').replace(/Girls/gi, 'G')
+    .replace(/High School/gi, 'HS').replace(/Middle School/gi, 'MS')
+    .replace(/Lower School/gi, 'LS')
+    .replace(/\s+/g, '')
+    .toUpperCase()
+    .slice(0, 6)
+}
 function fmtDate(d: string) {
   if (!d) return ''
   const dt = new Date(d + 'T12:00:00')
@@ -88,7 +105,7 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
   const [breakLength, setBreakLength] = useState('10')
 
   // Divisions
-  const [divItems, setDivItems]         = useState<DivisionItem[]>(DEFAULT_DIVISIONS.map(d => ({ def: d, display: d, checked: false })))
+  const [divItems, setDivItems]         = useState<DivisionItem[]>(DEFAULT_DIVISIONS.map(d => ({ def: d, display: d, abbr: divAbbr(d), checked: false })))
   const [customDivisions, setCustomDivisions] = useState<string[]>([])
   const [newDivision, setNewDivision]  = useState('')
 
@@ -187,14 +204,14 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
   function removeVenue(id: string) { setVenues(v => v.filter(x => x.id !== id)) }
   function addField(venueId: string) {
     const n = (newFieldNames[venueId] || '').trim(); if (!n) return
-    setVenues(v => v.map(x => x.id === venueId ? { ...x, fields: [...x.fields, { id: uid(), name: n }] } : x))
+    setVenues(v => v.map(x => x.id === venueId ? { ...x, fields: [...x.fields, { id: uid(), name: n, abbr: fieldAbbr(n) }] } : x))
     setNewFieldNames(f => ({ ...f, [venueId]: '' }))
   }
   function bulkAddFields(venueId: string) {
     const count = parseInt(bulkFieldCounts[venueId] || '0')
     if (!count || count < 1 || count > 50) return
     const existing = venues.find(v => v.id === venueId)?.fields.length || 0
-    const newFields = Array.from({ length: count }, (_, i) => ({ id: uid(), name: String(existing + i + 1) }))
+    const newFields = Array.from({ length: count }, (_, i) => { const n = `Field ${existing + i + 1}`; return { id: uid(), name: n, abbr: fieldAbbr(n) } })
     setVenues(v => v.map(x => x.id === venueId ? { ...x, fields: [...x.fields, ...newFields] } : x))
     setBulkFieldCounts(f => ({ ...f, [venueId]: '' }))
   }
@@ -332,6 +349,7 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (newDivision.trim()) { setCustomDivisions(p => [...p, newDivision.trim()]); setNewDivision('') } } }} />
             <button type="button" className="btn-secondary"
               onClick={() => { if (newDivision.trim()) { setCustomDivisions(p => [...p, newDivision.trim()]); setNewDivision('') } }}>Add</button>
+            <p className="text-xs text-gray-400 mt-2">Custom division abbreviations can be edited after adding.</p>
           </div>
         </div>
 
@@ -415,8 +433,15 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
                   <div key={field.id}>
                     <div className="flex items-center gap-2 px-4 py-2.5">
                       <span className="text-xs text-gray-400 w-5 text-right">{idx + 1}</span>
-                      <input className="flex-1 text-sm text-gray-700 border border-transparent focus:border-gray-300 focus:outline-none rounded px-2 py-1 focus:ring-1 focus:ring-blue-400"
-                        value={field.name} onChange={e => updateFieldName(venue.id, field.id, e.target.value)} />
+                      <input className="flex-1 min-w-0 text-sm text-gray-700 border border-transparent focus:border-gray-300 focus:outline-none rounded px-2 py-1 focus:ring-1 focus:ring-blue-400"
+                        value={field.name} onChange={e => updateFieldName(venue.id, field.id, e.target.value)} placeholder="Field name" />
+                      <input
+                        className="w-16 text-xs text-center font-mono text-blue-700 bg-blue-50 border border-blue-100 focus:border-blue-400 focus:outline-none rounded-lg px-1 py-1"
+                        value={field.abbr || ''}
+                        onChange={e => updateField(venue.id, field.id, { abbr: e.target.value.toUpperCase().slice(0, 6) })}
+                        placeholder="Abbr"
+                        title="Field abbreviation"
+                      />
                       <button type="button" onClick={() => setExpandedFields(e => ({ ...e, [field.id]: !e[field.id] }))}
                         className={`text-xs px-2 py-1 rounded-lg border transition-colors whitespace-nowrap ${expandedFields[field.id] ? 'bg-blue-50 border-blue-200 text-blue-600' : 'border-gray-200 text-gray-400 hover:text-gray-600'}`}>
                         {expandedFields[field.id] ? '▲ Availability' : '▼ Availability'}
