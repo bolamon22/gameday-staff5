@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.81",
+    "@anthropic-ai/sdk": "^0.101.0",
     "@libsql/client": "^0.8.0",
     "@prisma/adapter-libsql": "^5.14.0",
     "@prisma/client": "^5.14.0",
