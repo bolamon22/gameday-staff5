@@ -198,17 +198,63 @@ function SeedPanel({ teamCount, seeds, divisionParam, tournamentId, onClose, onS
   async function loadFromPools() {
     setLoadingPools(true)
     try {
-      const res = await fetch(`/api/tournaments/${tournamentId}/divisions/${divisionParam}/pools`)
-      if (!res.ok) throw new Error()
-      const pools: Array<{ name: string; teamNames: string[] }> = await res.json()
-      const allTeams: string[] = []
-      const sorted = [...pools].sort((a, b) => a.name.localeCompare(b.name))
-      sorted.forEach(p => { if (Array.isArray(p.teamNames)) allTeams.push(...p.teamNames) })
+      const [poolsRes, gamesRes] = await Promise.all([
+        fetch(`/api/tournaments/${tournamentId}/divisions/${divisionParam}/pools`),
+        fetch(`/api/tournaments/${tournamentId}/divisions/${divisionParam}/pool-games`),
+      ])
+      if (!poolsRes.ok) throw new Error('Could not load pools')
+      const pools: Array<{ name: string; teamNames: string[] }> = await poolsRes.json()
+      const poolGames: Array<{ team1: string; team2: string; score1: number | null; score2: number | null }> =
+        gamesRes.ok ? await gamesRes.json() : []
+
+      // Compute per-team stats from completed games
+      const stats: Record<string, { W: number; L: number; T: number; GF: number; GA: number }> = {}
+      for (const pool of pools) {
+        for (const t of (pool.teamNames || [])) stats[t] = { W: 0, L: 0, T: 0, GF: 0, GA: 0 }
+      }
+      for (const g of poolGames) {
+        if (g.score1 === null || g.score2 === null) continue
+        const [t1, t2] = [g.team1, g.team2]
+        if (!stats[t1]) stats[t1] = { W: 0, L: 0, T: 0, GF: 0, GA: 0 }
+        if (!stats[t2]) stats[t2] = { W: 0, L: 0, T: 0, GF: 0, GA: 0 }
+        stats[t1].GF += g.score1; stats[t1].GA += g.score2
+        stats[t2].GF += g.score2; stats[t2].GA += g.score1
+        if (g.score1 > g.score2)      { stats[t1].W++; stats[t2].L++ }
+        else if (g.score2 > g.score1) { stats[t2].W++; stats[t1].L++ }
+        else                          { stats[t1].T++; stats[t2].T++ }
+      }
+
+      const pts   = (t: string) => (stats[t]?.W ?? 0) * 3 + (stats[t]?.T ?? 0)
+      const gdiff = (t: string) => (stats[t]?.GF ?? 0) - (stats[t]?.GA ?? 0)
+      const gfor  = (t: string) =>  stats[t]?.GF ?? 0
+
+      // Rank teams within each pool by pts -> GD -> GF
+      const rankedPools = [...pools]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(p => ({
+          name: p.name,
+          teams: [...(p.teamNames || [])].sort((a, b) => {
+            const dp = pts(b) - pts(a);    if (dp !== 0) return dp
+            const dd = gdiff(b) - gdiff(a); if (dd !== 0) return dd
+            return gfor(b) - gfor(a)
+          }),
+        }))
+
+      // Interleave seeds: 1st from each pool, then 2nd from each pool, etc.
+      const maxFinish = Math.max(0, ...rankedPools.map(p => p.teams.length))
+      const seeded: string[] = []
+      for (let rank = 0; rank < maxFinish && seeded.length < teamCount; rank++) {
+        for (const pool of rankedPools) {
+          if (rank < pool.teams.length && seeded.length < teamCount) seeded.push(pool.teams[rank])
+        }
+      }
+
       const newSeeds: Record<string, string> = {}
-      allTeams.slice(0, teamCount).forEach((t, i) => { newSeeds[String(i + 1)] = t })
+      seeded.forEach((t, i) => { newSeeds[String(i + 1)] = t })
       setLocal(newSeeds)
-      toast.success(`${Object.keys(newSeeds).length} teams loaded`)
-    } catch { toast.error('Could not load teams from pools') }
+      const hasScores = poolGames.some(g => g.score1 !== null && g.score2 !== null)
+      toast.success(`${seeded.length} teams seeded by ${hasScores ? 'standings' : 'pool order'}`)
+    } catch { toast.error('Could not load standings') }
     setLoadingPools(false)
   }
 
