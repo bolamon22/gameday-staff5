@@ -203,7 +203,7 @@ export default function DashboardPage() {
             <Hub icon="🏆" label="Competition" count={4} accent="bg-violet-100 text-violet-600">
               <HubItem href={`/tournaments/${id}/builder`}    icon="🏗"  label="Tournament builder" />
               <HubItem href={`/tournaments/${id}/divisions`}  icon="🏅"  label="Divisions & Teams" />
-              <HubItem href={`/tournaments/${id}`}            icon="📅"  label="Master schedule" />
+              <HubItem href={`/tournaments/${id}`}            icon="📅"  label="Assigner Schedule" />
               <HubItem href={`/tournaments/${id}/scores`}     icon="🎯"  label="Score input" />
             </Hub>
 
