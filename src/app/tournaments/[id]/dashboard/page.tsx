@@ -37,12 +37,42 @@ function StatCard({ label, value, sub, color = 'text-slate-800' }: { label: stri
   )
 }
 
-function NavTile({ href, icon, label, sub, color = 'hover:border-blue-300 hover:bg-blue-50' }: { href: string; icon: string; label: string; sub?: string; color?: string }) {
+// ── Hub component ─────────────────────────────────────────────────────────────
+function Hub({ icon, label, count, accent, children }: {
+  icon: string; label: string; count: number; accent: string; children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
   return (
-    <Link href={href} className={`bg-white border border-slate-200 rounded-xl p-3 flex flex-col items-center text-center gap-1 transition-colors ${color} group`}>
-      <span className="text-xl">{icon}</span>
-      <div className="font-semibold text-slate-700 group-hover:text-slate-900 text-xs leading-tight">{label}</div>
-      {sub && <div className="text-xs text-slate-400 leading-tight">{sub}</div>}
+    <div className={`bg-white border rounded-xl overflow-hidden transition-colors ${open ? 'border-slate-300' : 'border-slate-200'}`}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-slate-50 transition-colors text-left"
+      >
+        <div className="flex items-center gap-3">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0 ${accent}`}>
+            {icon}
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-slate-700">{label}</div>
+            <div className="text-xs text-slate-400">{count} sections</div>
+          </div>
+        </div>
+        <span className={`text-slate-400 text-xs transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>▾</span>
+      </button>
+      {open && (
+        <div className="border-t border-slate-100">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function HubItem({ href, icon, label }: { href: string; icon: string; label: string }) {
+  return (
+    <Link href={href} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-b border-slate-100 last:border-b-0 transition-colors">
+      <span className="text-slate-400 text-base w-5 text-center flex-shrink-0">{icon}</span>
+      {label}
     </Link>
   )
 }
@@ -72,7 +102,8 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
+
+      {/* ── Header ────────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-5xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between gap-4">
@@ -90,33 +121,92 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-            <Link href={`/tournaments/${id}`} className="btn-secondary btn-sm flex-shrink-0">Open Schedule →</Link>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Link href={`/tournaments/${id}/public`} target="_blank"
+                className="text-sm text-slate-500 hover:text-slate-700 border border-slate-200 hover:border-slate-300 px-3 py-2 rounded-lg transition-colors">
+                🌐 Public page
+              </Link>
+              <Link href={`/tournaments/${id}`}
+                className="btn-secondary btn-sm">
+                Open Schedule →
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
 
-        {/* Quick nav */}
+        {/* ── Game Day strip ────────────────────────────────────────────── */}
         <section>
-          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Quick Access</h2>
-          <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-            <NavTile href={`/tournaments/${id}`} icon="📅" label="Schedule" sub={`${games.active} games`} />
-            <NavTile href={`/tournaments/${id}/registrations`} icon="📋" label="Team Reg" sub={`${reg.clubs} clubs`} color="hover:border-purple-300 hover:bg-purple-50" />
-            <NavTile href={`/tournaments/${id}/player-registrations`} icon="📄" label="Players" sub={data.playerCount ? `${data.playerCount} registered` : `View entries`} color="hover:border-teal-300 hover:bg-teal-50" />
-            <NavTile href={`/tournaments/${id}/roster`} icon="👥" label="Staff" sub={`${staff.onRoster} rostered`} />
-            <NavTile href={`/tournaments/${id}/pay-summary`} icon="💰" label="Pay" sub="Staff pay" color="hover:border-amber-300 hover:bg-amber-50" />
-            <NavTile href={`/tournaments/${id}/financials`} icon="📊" label="Financials" sub="P&L" color="hover:border-green-300 hover:bg-green-50" />
-            <NavTile href={`/tournaments/${id}/settings`} icon="⚙️" label="Settings" sub="Rates & rules" />
-            <NavTile href={`/tournaments/${id}/public`} icon="🌐" label="Public View" sub="Fan-facing page" color="hover:border-rose-300 hover:bg-rose-50" />
-            <NavTile href={`/tournaments/${id}/staff-view`} icon="👤" label="Staff View" sub="Dark schedule" color="hover:border-slate-400 hover:bg-slate-50" />
-            <NavTile href={`/tournaments/${id}/scores`} icon="🎯" label="Post Scores" sub="Quick entry" color="hover:border-blue-300 hover:bg-blue-50" />
-            <NavTile href={`/tournaments/${id}/assignments`} icon="📌" label="Assignments" sub="By game or staff" />
-            <NavTile href={`/tournaments/${id}/builder`} icon="🏗" label="Builder" sub="Tournament setup" color="hover:border-indigo-300 hover:bg-indigo-50" />
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Game Day</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+            <Link href={`/tournaments/${id}/scores`}
+              className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 hover:border-teal-300 hover:bg-teal-50 transition-colors group">
+              <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center text-xl flex-shrink-0">🎯</div>
+              <div>
+                <div className="font-semibold text-slate-700 group-hover:text-teal-800">Post Scores</div>
+                <div className="text-xs text-slate-400">Quick entry</div>
+              </div>
+            </Link>
+
+            <Link href={`/tournaments/${id}/assignments`}
+              className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 hover:border-blue-300 hover:bg-blue-50 transition-colors group">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-xl flex-shrink-0">📌</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-slate-700 group-hover:text-blue-800">Assignments</div>
+                <div className="text-xs text-slate-400">By game or staff</div>
+              </div>
+              {games.active > 0 && (
+                <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full flex-shrink-0">
+                  ~{assignPct}% filled
+                </span>
+              )}
+            </Link>
+
+            <Link href={`/tournaments/${id}/staff-view`}
+              className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 hover:border-slate-400 hover:bg-slate-100 transition-colors group">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-xl flex-shrink-0">👤</div>
+              <div>
+                <div className="font-semibold text-slate-700">Staff View</div>
+                <div className="text-xs text-slate-400">What staff sees</div>
+              </div>
+            </Link>
           </div>
         </section>
 
-        {/* Registration summary */}
+        {/* ── Admin Hubs ────────────────────────────────────────────────── */}
+        <section>
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Admin</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+
+            <Hub icon="🏆" label="Competition" count={3} accent="bg-violet-100 text-violet-600">
+              <HubItem href={`/tournaments/${id}/builder`}  icon="🏗"  label="Bracket builder" />
+              <HubItem href={`/tournaments/${id}`}          icon="📅"  label="Master schedule" />
+              <HubItem href={`/tournaments/${id}/scores`}   icon="🎯"  label="Score input" />
+            </Hub>
+
+            <Hub icon="👥" label="Participants" count={2} accent="bg-rose-100 text-rose-600">
+              <HubItem href={`/tournaments/${id}/registrations`}        icon="📋" label="Team registrations" />
+              <HubItem href={`/tournaments/${id}/player-registrations`} icon="📄" label="Player rosters" />
+            </Hub>
+
+            <Hub icon="🏁" label="Workforce" count={3} accent="bg-emerald-100 text-emerald-600">
+              <HubItem href={`/tournaments/${id}/roster`}      icon="👥" label="Staff directory" />
+              <HubItem href={`/tournaments/${id}/assignments`} icon="📌" label="Field assignments" />
+              <HubItem href={`/tournaments/${id}/pay-summary`} icon="💰" label="Payroll" />
+            </Hub>
+
+            <Hub icon="⚙️" label="Management" count={2} accent="bg-slate-100 text-slate-600">
+              <HubItem href={`/tournaments/${id}/financials`} icon="📊" label="Financials" />
+              <HubItem href={`/tournaments/${id}/settings`}   icon="⚙️" label="Tournament settings" />
+            </Hub>
+
+          </div>
+        </section>
+
+        {/* ── Registration summary ─────────────────────────────────────── */}
         <section>
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Team Registrations</h2>
           {reg.clubs === 0 ? (
@@ -153,8 +243,6 @@ export default function DashboardPage() {
                     <div className="text-xs text-slate-500 mt-0.5">Balance Due</div>
                   </div>
                 </div>
-
-                {/* Progress bar */}
                 {reg.invoiced > 0 && (
                   <div className="mt-4">
                     <div className="flex justify-between text-xs text-slate-500 mb-1">
@@ -166,8 +254,6 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 )}
-
-                {/* Payment method breakdown */}
                 {Object.keys(reg.byMethod).length > 0 && (
                   <div className="mt-4 flex gap-3 flex-wrap">
                     {Object.entries(reg.byMethod).map(([method, count]) => (
@@ -197,7 +283,7 @@ export default function DashboardPage() {
           )}
         </section>
 
-        {/* Games & Staff */}
+        {/* ── Games & Staff ─────────────────────────────────────────────── */}
         <section>
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Schedule & Staff</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -208,7 +294,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* P&L */}
+        {/* ── P&L ───────────────────────────────────────────────────────── */}
         {(reg.invoiced > 0 || staff.totalStaffExpense > 0 || fin.otherIncome > 0 || fin.otherExpenses > 0) && (() => {
           const revenue = reg.invoiced + fin.otherIncome
           const received = reg.received + fin.otherIncome
@@ -222,7 +308,6 @@ export default function DashboardPage() {
             <section>
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Profit & Loss</h2>
               <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                {/* Summary bar */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-slate-100">
                   <div className="p-5 text-center">
                     <div className="text-2xl font-bold text-slate-800">{fmt(revenue)}</div>
@@ -245,10 +330,7 @@ export default function DashboardPage() {
                     <div className="text-xs text-slate-400 mt-0.5">collected − paid out</div>
                   </div>
                 </div>
-
-                {/* Detail rows */}
                 <div className="border-t border-slate-100 px-6 py-4 space-y-3 text-sm">
-                  {/* Revenue detail */}
                   <div>
                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Revenue Breakdown</p>
                     <div className="space-y-1.5">
@@ -258,11 +340,11 @@ export default function DashboardPage() {
                       </div>
                       {fin.otherIncome > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-slate-600">Other income (vendor fees, merch, etc.)</span>
+                          <span className="text-slate-600">Other income</span>
                           <span className="font-semibold text-slate-800">{fmt(fin.otherIncome)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between text-slate-400 border-t border-slate-100 pt-1.5">
+                      <div className="flex justify-between border-t border-slate-100 pt-1.5">
                         <span className="font-semibold text-slate-700">Total Revenue</span>
                         <span className="font-bold text-slate-800">{fmt(revenue)}</span>
                       </div>
@@ -276,10 +358,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-
                   <div className="border-t border-slate-100" />
-
-                  {/* Expense detail */}
                   <div>
                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Expense Breakdown</p>
                     <div className="space-y-1.5">
@@ -295,11 +374,11 @@ export default function DashboardPage() {
                       )}
                       <div className="flex justify-between">
                         <span className="text-slate-600">Scorekeeper pay ({staff.skCount} assignments)</span>
-                        <span className="font-semibold text-slate-800">{fmt(staff.totalStaffExpense - staff.refPayTotal - staff.hourlyPayTotal)}</span>
+                        <span className="font-semibold text-slate-800">{fmt(Math.max(0, staff.totalStaffExpense - staff.refPayTotal - staff.hourlyPayTotal))}</span>
                       </div>
                       {fin.otherExpenses > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-slate-600">Other expenses (rentals, supplies, awards, etc.)</span>
+                          <span className="text-slate-600">Other expenses</span>
                           <span className="font-semibold text-slate-800">{fmt(fin.otherExpenses)}</span>
                         </div>
                       )}
@@ -317,10 +396,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-
                   <div className="border-t border-slate-100" />
-
-                  {/* Bottom line */}
                   <div className="flex justify-between items-center pt-1">
                     <span className="font-bold text-slate-800">Gross Profit (Revenue − Expenses)</span>
                     <span className={`text-xl font-bold ${profitColor}`}>{fmt(grossProfit)}</span>
@@ -331,7 +407,7 @@ export default function DashboardPage() {
                         <span>Expenses as % of revenue</span>
                         <span>{Math.min(100, Math.round((expense / revenue) * 100))}%</span>
                       </div>
-                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                         <div className="h-full bg-red-400 rounded-l-full" style={{ width: `${Math.min(100, Math.round((expense / revenue) * 100))}%` }} />
                       </div>
                     </div>
