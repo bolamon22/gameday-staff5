@@ -218,8 +218,19 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
       setLoading(false)
     })
     fetch(`/api/venues/${params.id}`).then(r => r.json()).then(data => {
-      if (Array.isArray(data)) { setVenues(data) }
-      else { if (data.venues) setVenues(data.venues); if (data.defaultAvailability) setDefaultAvailability(data.defaultAvailability) }
+      const normalizeFields = (v: Venue[]): Venue[] =>
+        v.map(venue => ({
+          ...venue,
+          fields: venue.fields.map(f => {
+            const name = /^\d+$/.test(f.name) ? `Field ${f.name}` : f.name
+            return { ...f, name, abbr: f.abbr || fieldAbbr(name) }
+          })
+        }))
+      if (Array.isArray(data)) { setVenues(normalizeFields(data)) }
+      else {
+        if (data.venues) setVenues(normalizeFields(data.venues))
+        if (data.defaultAvailability) setDefaultAvailability(data.defaultAvailability)
+      }
     }).catch(() => {})
   }, [params.id])
 
