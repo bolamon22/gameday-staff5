@@ -487,12 +487,14 @@ export default function GridPage({ params }: { params:{id:string} }) {
             </Link>
             {/* Staff assignment counts */}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5">
-              <span className="text-[11px] text-sky-300 font-medium">{assignedBoysRefs} Boys Refs</span>
+              <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Assigned</span>
               <span className="text-white/20">·</span>
-              <span className="text-[11px] text-pink-300 font-medium">{assignedGirlsRefs} Girls Refs</span>
-              {assignedBothRefs > 0 && <><span className="text-white/20">·</span><span className="text-[11px] text-slate-300 font-medium">{assignedBothRefs} Both</span></>}
+              <span className="text-[11px] text-sky-300 font-semibold">{assignedBoysRefs} Boys Refs</span>
               <span className="text-white/20">·</span>
-              <span className="text-[11px] text-emerald-300 font-medium">{assignedSKs} Scorekeepers</span>
+              <span className="text-[11px] text-pink-300 font-semibold">{assignedGirlsRefs} Girls Refs</span>
+              {assignedBothRefs > 0 && <><span className="text-white/20">·</span><span className="text-[11px] text-slate-300 font-semibold">{assignedBothRefs} Both</span></>}
+              <span className="text-white/20">·</span>
+              <span className="text-[11px] text-emerald-300 font-semibold">{assignedSKs} Scorekeepers</span>
             </div>
             <Link href={`/tournaments/${params.id}/roster`}
               className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
