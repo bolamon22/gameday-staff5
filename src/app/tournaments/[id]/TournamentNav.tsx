@@ -32,16 +32,18 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
         {/* Header row */}
         <div className="flex items-center justify-between gap-4 pb-4">
           <div className="flex items-center gap-3">
-            {logoUrl
-              ? <img src={logoUrl} alt="logo" className="h-11 w-11 object-contain rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />
-              : <div className="h-11 w-11 rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />
-            }
+            <Link href={`${base}/dashboard`} className="flex-shrink-0">
+              {logoUrl
+                ? <img src={logoUrl} alt="logo" className="h-11 w-11 object-contain rounded-xl border border-white/10 bg-white/5 hover:border-white/30 transition-colors" />
+                : <div className="h-11 w-11 rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />
+              }
+            </Link>
             <div>
               <div className="text-[11px] text-slate-400 mb-0.5">
                 <Link href="/" className="hover:text-teal-400 transition-colors">Tournaments</Link>
                 <span className="mx-1 opacity-40">/</span>
               </div>
-              <h1 className="text-lg font-bold text-white leading-tight">{name}</h1>
+              <Link href={`${base}/dashboard`} className="text-lg font-bold text-white leading-tight hover:text-teal-300 transition-colors block">{name}</Link>
               {stats && (
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-[11px] text-slate-400">{stats.games} games</span>
