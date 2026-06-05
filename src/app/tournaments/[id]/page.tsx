@@ -311,6 +311,15 @@ export default function GridPage({ params }: { params:{id:string} }) {
   const assignedCount=games.filter(g=>g.assignments.length>0).length
   const unscheduledGames=games.filter(g=>!g.startTime||!g.location)
 
+  // Staff counts for active day
+  const workerMap=new Map(workers.map(w=>[w.id,w]))
+  const refRoles=new Set(['ref1','ref2','ref3'])
+  const dayAssignments=dayGames.flatMap(g=>g.assignments)
+  const assignedBoysRefs=new Set(dayAssignments.filter(a=>refRoles.has(a.role)&&workerMap.get(a.workerId)?.gender==='boys').map(a=>a.workerId)).size
+  const assignedGirlsRefs=new Set(dayAssignments.filter(a=>refRoles.has(a.role)&&workerMap.get(a.workerId)?.gender==='girls').map(a=>a.workerId)).size
+  const assignedBothRefs=new Set(dayAssignments.filter(a=>refRoles.has(a.role)&&workerMap.get(a.workerId)?.gender==='both').map(a=>a.workerId)).size
+  const assignedSKs=new Set(dayAssignments.filter(a=>a.role==='scorekeeper').map(a=>a.workerId)).size
+
   // Live conflict detection for the edit modal
   const editConflicts=(()=>{
     if(!editGame&&!showAddGame)return null
@@ -476,6 +485,15 @@ export default function GridPage({ params }: { params:{id:string} }) {
               className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
               ← Dashboard
             </Link>
+            {/* Staff assignment counts */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5">
+              <span className="text-[11px] text-sky-300 font-medium">{assignedBoysRefs}B</span>
+              <span className="text-white/20 text-xs">·</span>
+              <span className="text-[11px] text-pink-300 font-medium">{assignedGirlsRefs}G</span>
+              {assignedBothRefs > 0 && <><span className="text-white/20 text-xs">·</span><span className="text-[11px] text-slate-300 font-medium">{assignedBothRefs}±</span></>}
+              <span className="text-white/20 text-xs">·</span>
+              <span className="text-[11px] text-emerald-300 font-medium">{assignedSKs} SK</span>
+            </div>
             <Link href="/staff"
               className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
               👥 Staff Pool
