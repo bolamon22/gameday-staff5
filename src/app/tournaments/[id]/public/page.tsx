@@ -219,6 +219,10 @@ export default function PublicTournamentPage() {
   const [loading,setLoading]=useState(true)
   const [selectedDiv,setSelectedDiv]=useState<string|null>(null)
   const [followedTeams,setFollowedTeams]=useState<string[]>([])
+  const [teamSearch,setTeamSearch]=useState('')
+  const [showNotifyModal,setShowNotifyModal]=useState(false)
+  const [notifyEmail,setNotifyEmail]=useState('')
+  const [notifySent,setNotifySent]=useState(false)
 
   useEffect(()=>{
     Promise.all([
@@ -239,6 +243,16 @@ export default function PublicTournamentPage() {
   const divisions=useMemo(()=>Array.from(new Set(games.filter(g=>!g.isCanceled).map(g=>g.division))).sort(),[games])
 
   // Per-division: last updated time and champion
+  const allTeamsWithMeta=useMemo(()=>{
+    const seen=new Set<string>()
+    const teams:{name:string;division:string;pool:string|null}[]=[]
+    games.filter(g=>!g.isCanceled).forEach(g=>{
+      if(!seen.has(g.team1+g.division)){seen.add(g.team1+g.division);teams.push({name:g.team1,division:g.division,pool:g.pool})}
+      if(!seen.has(g.team2+g.division)){seen.add(g.team2+g.division);teams.push({name:g.team2,division:g.division,pool:g.pool})}
+    })
+    return teams.sort((a,b)=>a.name.localeCompare(b.name))
+  },[games])
+
   const divMeta=useMemo(()=>{
     const meta:Record<string,{lastUpdated:string;champion:string|null}>={}
     divisions.forEach(div=>{
@@ -252,10 +266,63 @@ export default function PublicTournamentPage() {
     return meta
   },[games,divisions])
 
+  const submitNotify = () => {
+    if (!notifyEmail) return
+    // Store preference locally and show confirmation
+    try { localStorage.setItem(`notify-${id}`, JSON.stringify({ email: notifyEmail, teams: followedTeams })) } catch {}
+    setNotifySent(true)
+  }
+
   if(loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-gray-400">Loading…</div></div>
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Notification modal */}
+      {showNotifyModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={()=>setShowNotifyModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm" onClick={e=>e.stopPropagation()}>
+            {notifySent ? (
+              <div className="text-center py-4">
+                <div className="text-4xl mb-3">✅</div>
+                <h3 className="text-lg font-bold text-gray-800 mb-1">You're all set!</h3>
+                <p className="text-sm text-gray-500 mb-4">We'll notify you at <strong>{notifyEmail}</strong> when your teams play.</p>
+                <button onClick={()=>{setShowNotifyModal(false);setNotifySent(false)}} className="bg-blue-600 text-white font-semibold text-sm px-6 py-2.5 rounded-lg w-full">Done</button>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800">🔔 Get Notified</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">Get score updates for your followed teams</p>
+                  </div>
+                  <button onClick={()=>setShowNotifyModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                </div>
+                {followedTeams.length > 0 && (
+                  <div className="mb-4 bg-yellow-50 rounded-xl p-3">
+                    <p className="text-xs font-semibold text-gray-500 mb-2">Following {followedTeams.length} team{followedTeams.length!==1?'s':''}:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {followedTeams.map(t=><span key={t} className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-medium">⭐ {t}</span>)}
+                    </div>
+                  </div>
+                )}
+                {followedTeams.length === 0 && <p className="text-sm text-gray-500 mb-4">Follow some teams first, then sign up for updates.</p>}
+                <input
+                  type="email"
+                  value={notifyEmail}
+                  onChange={e=>setNotifyEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 mb-3"
+                />
+                <button onClick={submitNotify} disabled={!notifyEmail||followedTeams.length===0}
+                  className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold text-sm py-3 rounded-xl transition-colors">
+                  Notify Me
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Sport header bar */}
       <div className="bg-gray-800 text-white px-4 py-2.5 flex items-center gap-2">
         <span className="text-sm">🏈</span>
@@ -310,6 +377,75 @@ export default function PublicTournamentPage() {
         {/* Division grid overview */}
         {!selectedDiv && (
           <>
+            {/* Search bar */}
+            <div className="relative mb-4">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+              <input
+                type="text"
+                value={teamSearch}
+                onChange={e => setTeamSearch(e.target.value)}
+                placeholder="Search for a team…"
+                className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+              />
+              {teamSearch && <button onClick={()=>setTeamSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">✕</button>}
+            </div>
+
+            {/* Search results */}
+            {teamSearch.length > 1 && (
+              <div className="mb-5 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                {allTeamsWithMeta.filter(t => t.name.toLowerCase().includes(teamSearch.toLowerCase())).length === 0 ? (
+                  <div className="px-4 py-6 text-center text-gray-400 text-sm">No teams found for "{teamSearch}"</div>
+                ) : (
+                  allTeamsWithMeta.filter(t => t.name.toLowerCase().includes(teamSearch.toLowerCase())).map(t => (
+                    <div key={t.name} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
+                      <TeamAvatar name={t.name} size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <button onClick={()=>{setSelectedDiv(t.division);setTeamSearch('')}} className="font-semibold text-sm text-blue-700 hover:underline text-left">{t.name}</button>
+                        <div className="text-xs text-gray-400">{t.division}{t.pool ? ` · Pool ${t.pool}` : ''}</div>
+                      </div>
+                      <button onClick={()=>toggleFollow(t.name)}
+                        className={`flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${followedTeams.includes(t.name) ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-700'}`}>
+                        {followedTeams.includes(t.name) ? '⭐ Following' : '☆ Follow'}
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* My Teams section */}
+            {followedTeams.length > 0 && !teamSearch && (
+              <div className="mb-5">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">⭐ My Teams</h2>
+                  <button onClick={()=>setShowNotifyModal(true)}
+                    className="text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1">
+                    🔔 Get Notified
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {followedTeams.map(team => {
+                    const nextGame = games.filter(g=>!g.isCanceled&&(g.team1===team||g.team2===team)).sort((a,b)=>a.date!==b.date?(a.date<b.date?-1:1):a.startTime<b.startTime?-1:1)[0]
+                    const teamMeta = allTeamsWithMeta.find(t=>t.name===team)
+                    return (
+                      <div key={team} className="bg-white border border-yellow-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                        <TeamAvatar name={team} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <button onClick={()=>teamMeta&&setSelectedDiv(teamMeta.division)} className="font-bold text-sm text-gray-800 hover:text-blue-700 hover:underline text-left truncate block">{team}</button>
+                          {nextGame ? (
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              Next: <span className="font-medium">{fmtDate(nextGame.date)} {nextGame.startTime}</span> vs <span className="font-medium">{nextGame.team1===team?nextGame.team2:nextGame.team1}</span> · {nextGame.location}
+                            </div>
+                          ) : <div className="text-xs text-gray-400">No upcoming games</div>}
+                        </div>
+                        <button onClick={()=>toggleFollow(team)} className="text-gray-300 hover:text-red-400 text-lg transition-colors" title="Unfollow">✕</button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {divisions.length===0 && <div className="text-center py-16 text-gray-400"><div className="text-4xl mb-3">📅</div><p>No games scheduled yet.</p></div>}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {divisions.map(div=>{
