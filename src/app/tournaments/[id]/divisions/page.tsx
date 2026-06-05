@@ -95,6 +95,11 @@ export default function DivisionsPage() {
       body: JSON.stringify({ name: newPoolName.trim() }),
     })
     const pool = await res.json()
+    if (!res.ok) {
+      toast.error(pool.error ?? 'Failed to create pool')
+      setAddingPool(false)
+      return
+    }
     setPools(p => [...p, pool])
     setDivisions(d => d.map(div => div.name === activeDiv ? { ...div, poolCount: div.poolCount + 1 } : div))
     setNewPoolName('')
