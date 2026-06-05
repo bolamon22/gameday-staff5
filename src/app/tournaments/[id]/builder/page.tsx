@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
+import TournamentNav from '../TournamentNav'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface TimeSlot { start: string; end: string }
@@ -854,21 +855,16 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
     <div className="min-h-screen bg-gray-50">
       <Toaster />
 
-      {/* Top bar */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href={`/tournaments/${params.id}/dashboard`} className="text-sm text-gray-400 hover:text-gray-600">← Back to tournament</Link>
-          <span className="text-gray-200">|</span>
-          <span className="text-sm font-semibold text-gray-700">Tournament Builder</span>
-          {name && <span className="text-sm text-gray-400">— {name}</span>}
-        </div>
+      <TournamentNav id={params.id} name={name || 'Tournament Builder'} logoUrl={logoUrl || undefined} />
+
+      <div className="max-w-6xl mx-auto px-4 pt-0 pb-2 flex justify-end">
         <button onClick={save} disabled={saving}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold px-5 py-2 rounded-xl text-sm transition-colors">
+          className="bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-white font-semibold px-5 py-2 rounded-xl text-sm transition-colors">
           {saving ? 'Saving…' : '💾 Save Changes'}
         </button>
       </div>
 
-      <div className="flex max-w-6xl mx-auto py-8 px-4 gap-6">
+      <div className="flex max-w-6xl mx-auto py-4 px-4 gap-6">
 
         {/* Sidebar */}
         <div className="w-56 flex-shrink-0">
