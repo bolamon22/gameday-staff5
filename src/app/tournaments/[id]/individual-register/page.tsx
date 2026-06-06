@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
+import { loadStripe } from '@stripe/stripe-js'
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 
 interface FeeTier { id: string; name: string; price: number; description: string }
 interface TournamentInfo {
@@ -22,14 +24,102 @@ function calcFee(amount: number) {
 const inputCls = "w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
 const labelCls = "block text-sm font-medium text-gray-700 mb-1"
 
+// ── Card Payment Form (must be inside <Elements>) ──────────────────────────
+function CardPayForm({
+  clientSecret, total, firstName, lastName, email,
+  registrationId, tournamentId, onSuccess,
+}: {
+  clientSecret: string; total: number; firstName: string; lastName: string; email: string
+  registrationId: string; tournamentId: string; onSuccess: () => void
+}) {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [paying, setPaying] = useState(false)
+  const [cardError, setCardError] = useState('')
+
+  async function handlePay(e: React.FormEvent) {
+    e.preventDefault()
+    if (!stripe || !elements) return
+    setPaying(true)
+    setCardError('')
+
+    const card = elements.getElement(CardElement)!
+    const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+      payment_method: {
+        card,
+        billing_details: { name: `${firstName} ${lastName}`, email },
+      },
+    })
+
+    if (error) {
+      setCardError(error.message || 'Payment failed')
+      setPaying(false)
+      return
+    }
+
+    if (paymentIntent?.status === 'succeeded') {
+      try {
+        await fetch(`/api/tournaments/${tournamentId}/individual-reg/${registrationId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentStatus: 'paid' }),
+        })
+      } catch {}
+      onSuccess()
+    }
+
+    setPaying(false)
+  }
+
+  return (
+    <form onSubmit={handlePay} className="space-y-4">
+      <div>
+        <label className={labelCls}>Card Details</label>
+        <div className="border border-gray-200 rounded-xl px-4 py-3.5 bg-white">
+          <CardElement options={{
+            style: {
+              base: {
+                fontSize: '15px',
+                color: '#374151',
+                fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
+                '::placeholder': { color: '#9CA3AF' },
+                iconColor: '#6B7280',
+              },
+              invalid: { color: '#EF4444' },
+            },
+          }} />
+        </div>
+        {cardError && <p className="text-red-500 text-sm mt-1.5">{cardError}</p>}
+      </div>
+      <button
+        type="submit"
+        disabled={paying || !stripe || !elements}
+        className="w-full bg-teal-500 hover:bg-teal-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-2xl text-base transition-colors shadow-sm"
+      >
+        {paying ? 'Processing...' : `Pay $${total.toFixed(2)}`}
+      </button>
+      <p className="text-center text-xs text-gray-400">
+        🔒 Secured by Stripe. Your card is never stored on our servers.
+      </p>
+    </form>
+  )
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────
 export default function IndividualRegPage() {
   const { id } = useParams<{ id: string }>()
   const searchParams = useSearchParams()
-  const success = searchParams.get('success')
+  const successParam = searchParams.get('success')
 
   const [tournament, setTournament] = useState<TournamentInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+
+  // Multi-step state
+  const [step, setStep] = useState<'form' | 'payment' | 'success'>('form')
+  const [stripePromise, setStripePromise] = useState<ReturnType<typeof loadStripe> | null>(null)
+  const [clientSecret, setClientSecret] = useState('')
+  const [registrationId, setRegistrationId] = useState('')
 
   // Form state
   const [firstName, setFirstName]   = useState('')
@@ -45,7 +135,7 @@ export default function IndividualRegPage() {
   const [guardianName, setGuardianName]   = useState('')
   const [guardianPhone, setGuardianPhone] = useState('')
   const [guardianEmail, setGuardianEmail] = useState('')
-  const [ecName, setEcName]       = useState('')
+  const [ecName, setecName]       = useState('')
   const [ecPhone, setEcPhone]     = useState('')
   const [ecRel, setEcRel]         = useState('')
   const [medNotes, setMedNotes]   = useState('')
@@ -66,7 +156,11 @@ export default function IndividualRegPage() {
       })
   }, [id])
 
-  async function handleSubmit(e: React.FormEvent) {
+  const processingFee = selectedTier ? calcFee(selectedTier.price) : 0
+  const total = selectedTier ? selectedTier.price + processingFee : 0
+  const isMinor = dob ? (new Date().getFullYear() - new Date(dob).getFullYear()) < 18 : false
+
+  async function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!selectedTier) { toast.error('Please select a registration option'); return }
     if (!waiverSigned || !waiverSig.trim()) { toast.error('Please sign the waiver'); return }
@@ -84,23 +178,31 @@ export default function IndividualRegPage() {
     }
 
     try {
-      const res = await fetch(`/api/tournaments/${id}/individual-reg/checkout`, {
+      const res = await fetch(`/api/tournaments/${id}/individual-reg/create-intent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ regData, tierId: selectedTier.id, tierName: selectedTier.name, tierAmount: selectedTier.price }),
       })
       const data = await res.json()
-      if (res.ok && data.url) {
-        window.location.href = data.url
+
+      if (res.ok && data.clientSecret) {
+        const sp = loadStripe(data.publishableKey, data.accountId ? { stripeAccount: data.accountId } : undefined)
+        setStripePromise(sp)
+        setClientSecret(data.clientSecret)
+        setRegistrationId(data.registrationId)
+        setStep('payment')
+        window.scrollTo({ top: 0, behavior: 'smooth' })
       } else {
         toast.error(data.error || 'Something went wrong')
       }
     } catch {
       toast.error('Network error — please try again')
     }
+
     setSubmitting(false)
   }
 
+  // ── Loading / Error states ─────────────────────────────────────────────
   if (loading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <p className="text-gray-400 animate-pulse">Loading…</p>
@@ -123,7 +225,8 @@ export default function IndividualRegPage() {
     </div>
   )
 
-  if (success) return (
+  // ── Success ────────────────────────────────────────────────────────────
+  if (successParam || step === 'success') return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="bg-white rounded-2xl shadow p-10 max-w-md text-center">
         <div className="text-4xl mb-3">🎉</div>
@@ -136,10 +239,74 @@ export default function IndividualRegPage() {
     </div>
   )
 
-  const processingFee = selectedTier ? calcFee(selectedTier.price) : 0
-  const total = selectedTier ? selectedTier.price + processingFee : 0
-  const isMinor = dob ? (new Date().getFullYear() - new Date(dob).getFullYear()) < 18 : false
+  // ── Payment Step ──────────────────────────────────────────────────────
+  if (step === 'payment' && stripePromise && clientSecret) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Toaster />
+        {/* Header */}
+        <div className="bg-[#0f1f3d] px-4 py-4">
+          <div className="max-w-2xl mx-auto flex items-center gap-3">
+            {tournament.logoUrl && (
+              <img src={tournament.logoUrl} alt="logo" className="h-11 w-11 object-contain rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />
+            )}
+            <div>
+              <h1 className="text-base font-bold text-white leading-tight">{tournament.name}</h1>
+              <p className="text-[11px] text-teal-300 mt-0.5 font-medium">Individual Player Registration</p>
+            </div>
+          </div>
+        </div>
 
+        <div className="max-w-2xl mx-auto px-4 py-8 space-y-4">
+          {/* Order Summary */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h2 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">Order Summary</h2>
+            <div className="text-sm text-gray-500 mb-3">{firstName} {lastName} · {email}</div>
+            <div className="space-y-1.5 text-sm">
+              <div className="flex justify-between text-gray-600">
+                <span>{selectedTier?.name}</span>
+                <span>${selectedTier?.price.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-gray-400 text-xs">
+                <span>Processing fee</span>
+                <span>+${processingFee.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-gray-800 border-t border-gray-200 pt-2 mt-2">
+                <span>Total due</span>
+                <span>${total.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Form */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h2 className="text-base font-bold text-gray-800 mb-5 pb-2 border-b border-gray-100">Payment</h2>
+            <Elements stripe={stripePromise}>
+              <CardPayForm
+                clientSecret={clientSecret}
+                total={total}
+                firstName={firstName}
+                lastName={lastName}
+                email={email}
+                registrationId={registrationId}
+                tournamentId={id}
+                onSuccess={() => setStep('success')}
+              />
+            </Elements>
+          </div>
+
+          <button
+            onClick={() => setStep('form')}
+            className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
+          >
+            ← Edit registration
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Form Step ──────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster />
@@ -164,7 +331,7 @@ export default function IndividualRegPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleFormSubmit} className="space-y-6">
 
           {/* ── Player Info ── */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -249,7 +416,6 @@ export default function IndividualRegPage() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">Playing Details</h2>
 
-            {/* Position */}
             <div className="mb-4">
               <label className={labelCls}>Position *</label>
               <div className="flex flex-wrap gap-2">
@@ -351,7 +517,7 @@ export default function IndividualRegPage() {
           {/* ── Submit ── */}
           <button type="submit" disabled={submitting || !selectedTier || !waiverSigned}
             className="w-full bg-teal-500 hover:bg-teal-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-2xl text-base transition-colors shadow-sm">
-            {submitting ? 'Redirecting to payment…' : `Pay $${total.toFixed(2)} & Complete Registration`}
+            {submitting ? 'Preparing payment...' : `Continue to Payment →`}
           </button>
           <p className="text-center text-xs text-gray-400">Secured by Stripe. Your payment info is never stored on our servers.</p>
         </form>
