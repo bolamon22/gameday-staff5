@@ -304,6 +304,7 @@ export default function PostScoresPage({ params }: { params: { id: string } }) {
                       <p className="text-xs text-gray-400">{grpGames.filter(g => g.score1 != null).length}/{grpGames.length} scored</p>
                     </div>
                   )}
+                  <div className="overflow-x-auto">
                   {/* Column headers */}
                   <div className="grid grid-cols-12 gap-2 px-5 py-2 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[600px]">
                     <div className="col-span-3">Game</div>
@@ -370,6 +371,7 @@ export default function PostScoresPage({ params }: { params: { id: string } }) {
                       </div>
                     )
                   })}
+                  </div>{/* end overflow-x-auto */}
                 </div>
               ))}
             </div>
