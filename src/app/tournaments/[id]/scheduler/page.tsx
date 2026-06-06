@@ -196,6 +196,45 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   const cellMap: Record<string, Game> = {}
   dayGames.forEach(g => { cellMap[`${g.startTime}|${g.location}`] = g })
 
+  // ── Conflict detection ──────────────────────────────────────────────────
+  // Build a map: team → list of { date, startTime, gameId } for scheduled games
+  const scheduledGames = games.filter(g => g.date && g.startTime)
+
+  function slotIndex(time: string) {
+    const [h, m] = time.split(':').map(Number)
+    return h * 60 + m
+  }
+
+  const conflictIds = new Set<string>()   // same team, same date+time
+  const backToBackIds = new Set<string>() // same team, same date, consecutive slot
+
+  // Group scheduled games by team
+  const teamGames: Record<string, Game[]> = {}
+  scheduledGames.forEach(g => {
+    ;[g.team1, g.team2].forEach(team => {
+      if (!team || team === 'TBD') return
+      teamGames[team] = teamGames[team] ?? []
+      teamGames[team].push(g)
+    })
+  })
+
+  Object.values(teamGames).forEach(tg => {
+    for (let i = 0; i < tg.length; i++) {
+      for (let j = i + 1; j < tg.length; j++) {
+        const a = tg[i], b = tg[j]
+        if (a.date !== b.date) continue
+        const diff = Math.abs(slotIndex(a.startTime) - slotIndex(b.startTime))
+        if (diff === 0) {
+          conflictIds.add(a.id)
+          conflictIds.add(b.id)
+        } else if (diff === increment) {
+          backToBackIds.add(a.id)
+          backToBackIds.add(b.id)
+        }
+      }
+    }
+  })
+
   if (loading) return (
     <div className="min-h-screen bg-slate-50">
       <TournamentNav id={params.id} />
@@ -272,14 +311,22 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
               </p>
             ) : filtered.map(g => {
               const color = divColor(g.division, divisions)
+              const hasConflict = conflictIds.has(g.id)
+              const hasB2B = !hasConflict && backToBackIds.has(g.id)
               return (
                 <div
                   key={g.id}
                   draggable
                   onDragStart={e => handleDragStart(e, g.id)}
                   onDragEnd={handleDragEnd}
-                  className={`${color} rounded-lg px-3 py-2 cursor-grab active:cursor-grabbing text-white text-xs font-medium whitespace-nowrap select-none flex-shrink-0 shadow transition-opacity ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'}`}
+                  className={`relative ${color} rounded-lg px-3 py-2 cursor-grab active:cursor-grabbing text-white text-xs font-medium whitespace-nowrap select-none flex-shrink-0 shadow transition-opacity ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'}`}
                 >
+                  {hasConflict && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title="Same-time conflict">⚠</span>
+                  )}
+                  {hasB2B && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title="Back-to-back game">↔</span>
+                  )}
                   <div className="font-bold text-[11px] opacity-80">{g.gameNumber}</div>
                   <div className="font-semibold">{g.team1}</div>
                   <div className="opacity-80">vs {g.team2}</div>
@@ -349,45 +396,4 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                   <td className="sticky left-0 z-10 bg-white border border-slate-200 px-2 py-1 text-xs text-slate-500 font-medium text-center whitespace-nowrap w-20">
                     {fmtTime(slot)}
                   </td>
-                  {/* Field cells */}
-                  {fields.map(f => {
-                    const cellKey = `${slot}|${f.fullName}`
-                    const game = cellMap[cellKey]
-                    const isOver = overCell === cellKey
-                    return (
-                      <td
-                        key={f.fullName}
-                        className={`border border-slate-200 p-1 align-top h-16 transition-colors ${isOver ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'}`}
-                        onDragOver={e => { e.preventDefault(); setOverCell(cellKey) }}
-                        onDragLeave={() => setOverCell(null)}
-                        onDrop={e => handleDropCell(e, slot, f.fullName)}
-                      >
-                        {game ? (
-                          <div
-                            draggable
-                            onDragStart={e => handleDragStart(e, game.id)}
-                            onDragEnd={handleDragEnd}
-                            className={`${divColor(game.division, divisions)} rounded-md px-2 py-1 cursor-grab active:cursor-grabbing h-full min-h-[52px] flex flex-col justify-between transition-opacity ${dragId === game.id ? 'opacity-30' : 'hover:brightness-110'}`}
-                          >
-                            <div>
-                              <div className="text-white text-[10px] font-bold opacity-75">{game.gameNumber}</div>
-                              <div className="text-white text-xs font-semibold leading-tight truncate">{game.team1}</div>
-                              <div className="text-white/70 text-[10px] truncate">vs {game.team2}</div>
-                            </div>
-                            <div className="text-white/50 text-[9px] truncate">{game.division}</div>
-                          </div>
-                        ) : (
-                          <div className={`h-full min-h-[52px] rounded-md border-2 border-dashed transition-colors ${isOver ? 'border-blue-400 bg-blue-50' : 'border-transparent'}`} />
-                        )}
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  )
-}
+                 
