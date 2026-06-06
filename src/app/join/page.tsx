@@ -4,41 +4,41 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 const ROLES = [
-  { value: 'ref',              label: 'Referee',          icon: '🏃', desc: 'Officiate games on the field' },
-  { value: 'scorekeeper',      label: 'Scorekeeper',      icon: '📋', desc: 'Track scores and game stats'  },
-  { value: 'field_ops',        label: 'Field Ops',        icon: '🏗',  desc: 'Field setup and operations'  },
-  { value: 'athletic_trainer', label: 'Athletic Trainer', icon: '🩺', desc: 'Player health and safety'     },
+  { value: 'ref', label: 'Referee', icon: '🏃', desc: 'Officiate games on the field' },
+  { value: 'scorekeeper', label: 'Scorekeeper', icon: '📋', desc: 'Track scores and game stats' },
+  { value: 'field_ops', label: 'Field Ops', icon: '🏗', desc: 'Field setup and operations' },
+  { value: 'athletic_trainer', label: 'Athletic Trainer', icon: '🩺', desc: 'Player health and safety' },
 ]
 
 const GENDERS = [
-  { value: 'boys',  label: 'Boys games'        },
-  { value: 'girls', label: 'Girls games'        },
-  { value: 'both',  label: 'Both boys & girls'  },
+  { value: 'boys', label: 'Boys' },
+  { value: 'girls', label: 'Girls' },
+  { value: 'both', label: 'Both' },
 ]
 
 const CERT_LEVELS = [
-  { value: 'youth',   label: 'Youth'       },
-  { value: 'hs',      label: 'High School' },
-  { value: 'college', label: 'College'     },
-  { value: 'none',    label: 'N/A'         },
+  { value: 'youth', label: 'Youth' },
+  { value: 'hs', label: 'High School' },
+  { value: 'college', label: 'College' },
+  { value: 'none', label: 'N/A' },
 ]
 
 export default function JoinStaffPage() {
-  const [name, setName]           = useState('')
-  const [email, setEmail]         = useState('')
-  const [phone, setPhone]         = useState('')
-  const [role, setRole]           = useState('')
-  const [gender, setGender]       = useState('both')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [role, setRole] = useState('')
+  const [gender, setGender] = useState('both')
   const [certLevel, setCertLevel] = useState('youth')
-  const [password, setPassword]   = useState('')
-  const [confirm, setConfirm]     = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError]         = useState('')
-  const [done, setDone]           = useState(false)
+  const [error, setError] = useState('')
+  const [done, setDone] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!role)               { setError('Please select your role'); return }
+    if (!role) { setError('Please select your role'); return }
     if (password.length < 6) { setError('Password must be at least 6 characters'); return }
     if (password !== confirm) { setError('Passwords do not match'); return }
 
@@ -47,7 +47,6 @@ export default function JoinStaffPage() {
 
     const roles = JSON.stringify([role])
 
-    // Create worker
     const wRes = await fetch('/api/workers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -56,7 +55,6 @@ export default function JoinStaffPage() {
     const wData = await wRes.json()
     if (!wRes.ok) { setError(wData.error || 'Could not create profile'); setSubmitting(false); return }
 
-    // Create user account
     const uRes = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -70,7 +68,7 @@ export default function JoinStaffPage() {
 
   if (done) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-10 max-w-sm w-full text-center">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 sm:p-10 max-w-sm w-full text-center">
         <div className="text-4xl mb-4">🎉</div>
         <h1 className="text-xl font-bold text-slate-800 mb-2">You're all set!</h1>
         <p className="text-sm text-slate-500 mb-6">Your staff profile has been created. Sign in to see your schedule and availability.</p>
@@ -93,24 +91,24 @@ export default function JoinStaffPage() {
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
 
-          {/* Name + Email */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Name + Phone */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">Full name *</label>
               <input className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                value={name} onChange={e => setName(e.target.value)} placeholder="Your name" required />
+                value={name} onChange={e => setName(e.target.value)} placeholder="Your name" required autoComplete="name" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">Phone</label>
               <input className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                value={phone} onChange={e => setPhone(e.target.value)} type="tel" placeholder="(555) 000-0000" />
+                value={phone} onChange={e => setPhone(e.target.value)} type="tel" placeholder="(555) 000-0000" autoComplete="tel" />
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">Email address *</label>
             <input className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-              value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="you@example.com" required />
+              value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="you@example.com" required autoComplete="email" />
           </div>
 
           {/* Role picker */}
@@ -135,10 +133,10 @@ export default function JoinStaffPage() {
             <>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">Which games can you officiate?</label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {GENDERS.map(g => (
                     <button key={g.value} type="button" onClick={() => setGender(g.value)}
-                      className={`flex-1 py-2 text-xs font-semibold rounded-xl border transition-all ${gender === g.value ? 'border-teal-400 bg-teal-50 text-teal-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                      className={`py-2 text-xs font-semibold rounded-xl border transition-all ${gender === g.value ? 'border-teal-400 bg-teal-50 text-teal-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
                       {g.label}
                     </button>
                   ))}
@@ -146,10 +144,10 @@ export default function JoinStaffPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">Certification level</label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {CERT_LEVELS.map(c => (
                     <button key={c.value} type="button" onClick={() => setCertLevel(c.value)}
-                      className={`flex-1 py-2 text-xs font-semibold rounded-xl border transition-all ${certLevel === c.value ? 'border-teal-400 bg-teal-50 text-teal-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                      className={`py-2 text-xs font-semibold rounded-xl border transition-all ${certLevel === c.value ? 'border-teal-400 bg-teal-50 text-teal-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
                       {c.label}
                     </button>
                   ))}
@@ -159,16 +157,16 @@ export default function JoinStaffPage() {
           )}
 
           {/* Password */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">Password *</label>
               <input className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Min 6 chars" required />
+                value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Min 6 chars" required autoComplete="new-password" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">Confirm *</label>
               <input className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                value={confirm} onChange={e => setConfirm(e.target.value)} type="password" placeholder="Repeat" required />
+                value={confirm} onChange={e => setConfirm(e.target.value)} type="password" placeholder="Repeat" required autoComplete="new-password" />
             </div>
           </div>
 
