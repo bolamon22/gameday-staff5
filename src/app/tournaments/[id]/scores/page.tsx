@@ -44,6 +44,7 @@ export default function PostScoresPage({ params }: { params: { id: string } }) {
   const [saving, setSaving]   = useState<Record<string, boolean>>({})
   const [groupBy, setGroupBy]       = useState<GroupBy>('division')
   const [showFilter, setShowFilter] = useState<ShowFilter>('all')
+  const [search,     setSearch]     = useState('')
   const [sortBy, setSortBy]         = useState<SortBy>('time')
   const [selGroup, setSelGroup]     = useState('__all__')
   const [expandedComplexes, setExpandedComplexes] = useState<Record<string, boolean>>({})
@@ -108,6 +109,7 @@ export default function PostScoresPage({ params }: { params: { id: string } }) {
       if (showFilter === 'unscored') return !scored
       return true
     })
+    .filter(g => !search || [g.team1, g.team2, g.location].some(s => s.toLowerCase().includes(search.toLowerCase())))
     .sort((a, b) => {
       if (sortBy === 'time') {
         const aKey = `${a.date}T${a.startTime}`
@@ -185,6 +187,16 @@ export default function PostScoresPage({ params }: { params: { id: string } }) {
 
       {/* Top toolbar */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4 flex-wrap">
+        <div className="relative w-full sm:w-auto flex-1 sm:flex-none sm:min-w-[220px]">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          </span>
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search teams or field…"
+            className="w-full pl-9 pr-8 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          />
+          {search && <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>}
+        </div>
         <div className="flex items-center gap-3">
           <select value={groupBy} onChange={e => { setGroupBy(e.target.value as GroupBy); setSelGroup('__all__') }}
             className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:outline-none font-medium">
