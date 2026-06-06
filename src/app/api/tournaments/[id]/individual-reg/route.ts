@@ -43,6 +43,35 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         stripeSessionId: body.stripeSessionId || null,
       },
     })
+
+    // Auto-create a PlayerRegistration record so the player appears in the roster
+    try {
+      await prisma.playerRegistration.create({
+        data: {
+          tournamentId: params.id,
+          playerName: `${body.firstName} ${body.lastName}`,
+          playerEmail: body.email || '',
+          usLacrosseNumber: body.usLacrosseNumber || '',
+          gender: body.gender || '',
+          dob: body.dateOfBirth || '',
+          grade: body.grade || '',
+          teamClubName: body.teamClubName || body.feeTierName || '',
+          jerseyNumber: body.numberRequest || '',
+          parentName: body.guardianName || '',
+          parentEmail: body.guardianEmail || '',
+          parentPhone: body.guardianPhone || '',
+          emergencyContactName: body.emergencyContactName || '',
+          emergencyContactPhone: body.emergencyContactPhone || '',
+          waiverSignature: body.waiverSignature || '',
+          needsHotel: body.needsHotel || '',
+          wantsUpdates: false,
+        },
+      })
+    } catch (e) {
+      // Non-fatal — individual reg was already created
+      console.error('Failed to auto-create PlayerRegistration:', e)
+    }
+
     return NextResponse.json(reg, { status: 201 })
   } catch (e) {
     console.error(e)
