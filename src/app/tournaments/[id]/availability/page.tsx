@@ -93,11 +93,11 @@ export default function AvailabilityPage({ params }: { params:{id:string} }) {
   const dates:string[]=JSON.parse(tournament.dates||'[]')
 
   return(
-    <div>
+    <div className="px-4 sm:px-6">
       <TournamentNav id={params.id} name={tournament.name} logoUrl={tournament.logoUrl} />
 
       {/* Staff sub-nav */}
-      <div className="flex items-center gap-1 mb-6 border-b border-slate-200">
+      <div className="flex items-center gap-1 mb-6 border-b border-slate-200 overflow-x-auto">
         <Link href={`/tournaments/${params.id}/roster`}
           className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors">
           👥 Staff Roster
@@ -123,15 +123,15 @@ export default function AvailabilityPage({ params }: { params:{id:string} }) {
       </div>
 
       {dates.length>0&&(
-        <div className="flex gap-1 mb-5 border-b border-slate-200">
+        <div className="flex gap-1 mb-5 border-b border-slate-200 overflow-x-auto">
           {dates.map(d=><button key={d} onClick={()=>setActiveDay(d)} className={`px-5 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeDay===d?'border-sky-600 text-sky-700':'border-transparent text-slate-500 hover:text-slate-700'}`}>{formatDate(d)}</button>)}
         </div>
       )}
 
       {workers.length===0?(
-        <div className="card p-8 text-center text-slate-400">No rostered staff. <Link href={`/tournaments/${params.id}/roster`} className="text-sky-600">Add to roster first →</Link></div>
+        <div className="card p-4 sm:p-8 text-center text-slate-400">No rostered staff. <Link href={`/tournaments/${params.id}/roster`} className="text-sky-600">Add to roster first →</Link></div>
       ):dates.length===0?(
-        <div className="card p-8 text-center text-slate-400">Import games first to see time slots.</div>
+        <div className="card p-4 sm:p-8 text-center text-slate-400">Import games first to see time slots.</div>
       ):(
         <div className="card overflow-x-auto">
           <table className="w-full text-sm">
