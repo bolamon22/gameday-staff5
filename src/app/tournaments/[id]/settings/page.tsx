@@ -714,7 +714,7 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
                       ))}
                       {indivRegTiers.length === 0 && <p className="text-xs text-gray-400">No tiers yet. Add one below.</p>}
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       <input className="border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Tier name" value={newTierName} onChange={e => setNewTierName(e.target.value)} />
                       <input className="border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Price (e.g. 400)" type="number" value={newTierPrice} onChange={e => setNewTierPrice(e.target.value)} />
                       <input className="border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Description (optional)" value={newTierDesc} onChange={e => setNewTierDesc(e.target.value)} />
