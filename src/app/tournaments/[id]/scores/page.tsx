@@ -166,7 +166,7 @@ export default function PostScoresPage({ params }: { params: { id: string } }) {
       <TournamentNav id={params.id} name={tName} logoUrl={tLogo} />
 
       {/* Page header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Post Scores</h1>
@@ -184,7 +184,7 @@ export default function PostScoresPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Top toolbar */}
-      <div className="bg-white border-b border-gray-200 px-6 py-2.5 flex items-center justify-between gap-4">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <select value={groupBy} onChange={e => { setGroupBy(e.target.value as GroupBy); setSelGroup('__all__') }}
             className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:outline-none font-medium">
@@ -197,7 +197,7 @@ export default function PostScoresPage({ params }: { params: { id: string } }) {
 
       <div className="flex flex-1 overflow-hidden">
         {/* ── SIDEBAR ── */}
-        <div className="w-52 flex-shrink-0 bg-white border-r border-gray-200 overflow-y-auto">
+        <div className="hidden sm:flex sm:flex-col w-52 flex-shrink-0 bg-white border-r border-gray-200 overflow-y-auto">
           {/* All */}
           <button onClick={() => setSelGroup('__all__')}
             className={`w-full text-left px-4 py-3 border-b border-gray-100 flex items-center justify-between text-sm transition-colors ${selGroup === '__all__' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>
@@ -264,7 +264,7 @@ export default function PostScoresPage({ params }: { params: { id: string } }) {
         </div>
 
         {/* ── MAIN PANEL ── */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">
           {/* Panel header */}
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
             <div>
@@ -305,7 +305,7 @@ export default function PostScoresPage({ params }: { params: { id: string } }) {
                     </div>
                   )}
                   {/* Column headers */}
-                  <div className="grid grid-cols-12 gap-2 px-5 py-2 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <div className="grid grid-cols-12 gap-2 px-5 py-2 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[600px]">
                     <div className="col-span-3">Game</div>
                     <div className="col-span-3">Team 1</div>
                     <div className="col-span-2 text-center">Score</div>
@@ -320,7 +320,7 @@ export default function PostScoresPage({ params }: { params: { id: string } }) {
                     const t2wins = isScored && game.score2! > game.score1!
                     return (
                       <div key={game.id}
-                        className={`grid grid-cols-12 gap-2 px-5 py-3 items-center border-b border-gray-50 last:border-0 ${draft.dirty ? 'bg-amber-50/40' : isScored ? '' : 'hover:bg-gray-50/50'}`}>
+                        className={`grid grid-cols-12 gap-2 px-5 py-3 items-center border-b border-gray-50 last:border-0 min-w-[600px] ${draft.dirty ? 'bg-amber-50/40' : isScored ? '' : 'hover:bg-gray-50/50'}`}>
                         {/* Game info */}
                         <div className="col-span-3">
                           <p className={`text-xs font-semibold ${game.isChampionship ? 'text-amber-600' : 'text-gray-700'}`}>{gameLabel(game)}</p>
