@@ -164,7 +164,7 @@ export default function RegisterPage() {
             tournamentName,
             clubName,
             registrationId: registration.id,
-            successUrl: 'https://sunshineeventsgroup.com',
+            successUrl: `${window.location.origin}/tournaments/${id}/register?paid=1`,
             cancelUrl: window.location.href,
           }),
         })
