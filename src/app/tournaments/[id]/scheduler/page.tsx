@@ -95,12 +95,15 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
       setTName(tData.name ?? '')
       if (tData.scheduleIncrement) setIncrement(Number(tData.scheduleIncrement))
 
-      // Flatten venues → fields
+      // Flatten venues → fields (fields may be strings or {id,name,abbr} objects)
       const venueList: any[] = vData.venues ?? []
       const flat: Field[] = []
       venueList.forEach(v => {
-        const flds: string[] = Array.isArray(v.fields) ? v.fields : []
-        flds.forEach(f => flat.push({ venueName: v.name, fieldName: f, fullName: `${v.name} - ${f}` }))
+        const flds: any[] = Array.isArray(v.fields) ? v.fields : []
+        flds.forEach(f => {
+          const fieldName = typeof f === 'string' ? f : (f.name ?? String(f))
+          flat.push({ venueName: v.name, fieldName, fullName: `${v.name} - ${fieldName}` })
+        })
       })
       setFields(flat)
 
