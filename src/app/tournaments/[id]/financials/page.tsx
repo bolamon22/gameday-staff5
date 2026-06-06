@@ -194,7 +194,7 @@ export default function FinancialsPage() {
           <div className="space-y-4">
             <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
               {/* Revenue */}
-              <div className="px-6 py-4 border-b border-gray-100 bg-emerald-50">
+              <div className="px-4 sm:px-6 py-4 border-b border-gray-100 bg-emerald-50">
                 <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-3">Revenue</p>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
@@ -225,7 +225,7 @@ export default function FinancialsPage() {
               </div>
 
               {/* Expenses */}
-              <div className="px-6 py-4 border-b border-gray-100 bg-red-50">
+              <div className="px-4 sm:px-6 py-4 border-b border-gray-100 bg-red-50">
                 <p className="text-xs font-bold text-red-600 uppercase tracking-wide mb-3">Expenses</p>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
@@ -256,7 +256,7 @@ export default function FinancialsPage() {
               </div>
 
               {/* Bottom line */}
-              <div className="px-6 py-5 grid grid-cols-2 gap-4">
+              <div className="px-4 sm:px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className={`rounded-xl p-4 text-center ${grossProfit >= 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
                   <div className={`text-2xl font-bold ${grossProfit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>{fmt(grossProfit)}</div>
                   <div className="text-sm text-gray-500 mt-0.5">Gross Profit ({margin}% margin)</div>
@@ -271,7 +271,7 @@ export default function FinancialsPage() {
 
               {/* Expense bar */}
               {totalRevenue > 0 && (
-                <div className="px-6 pb-5">
+                <div className="px-4 sm:px-6 pb-5">
                   <div className="flex justify-between text-xs text-gray-500 mb-1">
                     <span>Expenses as % of revenue</span>
                     <span>{Math.min(100, Math.round((totalExpense / totalRevenue) * 100))}%</span>
