@@ -42,6 +42,7 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
     { href: `${base}/roster`,        label: 'Staff'         },
     { href: `${base}/registrations`, label: 'Registrations' },
     { href: `${base}/settings`,      label: 'Settings'      },
+    { href: `${base}/scheduler`,    label: 'Scheduler'     },
   ]
 
   // Countdown
