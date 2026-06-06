@@ -19,6 +19,12 @@ export async function PATCH(req: Request, { params }: { params:{id:string} }) {
     ...(b.divisionRules!==undefined&&{divisionRules:JSON.stringify(b.divisionRules)}),
     ...(b.registrationPricing!==undefined&&{registrationPricing:b.registrationPricing}),
     ...(b.registrationDivisions!==undefined&&{registrationDivisions:b.registrationDivisions}),
+    ...(b.teamRegEnabled!==undefined&&{teamRegEnabled:Boolean(b.teamRegEnabled)}),
+    ...(b.individualRegEnabled!==undefined&&{individualRegEnabled:Boolean(b.individualRegEnabled)}),
+    ...(b.individualRegDescription!==undefined&&{individualRegDescription:b.individualRegDescription}),
+    ...(b.individualRegTiers!==undefined&&{individualRegTiers:b.individualRegTiers}),
+    ...(b.individualRegPositions!==undefined&&{individualRegPositions:b.individualRegPositions}),
+    ...(b.individualRegSizes!==undefined&&{individualRegSizes:b.individualRegSizes}),
   }}))
 }
 export async function DELETE(_: Request, { params }: { params:{id:string} }) {
