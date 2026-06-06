@@ -189,7 +189,7 @@ export default function PaySummaryPage({ params }: { params:{id:string} }) {
               </div>
             )
           })}
-          <div className="card px-6 py-5 flex justify-between items-center" style={{background:'linear-gradient(135deg,#0ea5e9,#0284c7)',borderColor:'#0284c7'}}>
+          <div className="card px-4 sm:px-6 py-4 sm:py-5 flex justify-between items-center" style={{background:'linear-gradient(135deg,#0ea5e9,#0284c7)',borderColor:'#0284c7'}}>
             <div><p className="font-bold text-white text-lg">Total Payout</p>{outstanding>0&&<p className="text-sky-200 text-sm">${outstanding.toFixed(2)} outstanding</p>}</div>
             <span className="text-3xl font-bold text-white">${total.toFixed(2)}</span>
           </div>
