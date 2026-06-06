@@ -23,6 +23,14 @@ interface Registration {
 }
 interface TeamRow { clubName: string; teamName: string; division: string; coachName: string; coachPhone: string; coachEmail: string; logoUrl: string }
 interface Pricing { tier1: number; tier1Max: number; tier2: number; tier2Max: number; tier3: number; sevenVSeven: number }
+interface IndividualReg {
+  id: string; firstName: string; lastName: string; email: string; phone: string
+  position: string; jerseySize: string; shortsSize: string; numberRequest: string
+  usLacrosseNumber: string; dateOfBirth: string
+  guardianName: string; guardianPhone: string; guardianEmail: string
+  feeTierId: string; feeTierName: string; feeTierAmount: number
+  paymentStatus: string; waiverSigned: boolean; createdAt: string
+}
 
 const DEFAULT_PRICING: Pricing = { tier1: 1495, tier1Max: 3, tier2: 1450, tier2Max: 6, tier3: 1395, sevenVSeven: 1095 }
 const DEFAULT_DIVISIONS = [
@@ -161,14 +169,48 @@ export default function RegistrationsPage() {
   const [payNotes, setPayNotes] = useState('')
   const [addingPay, setAddingPay] = useState(false)
 
+  // Tabs & individual reg
+  const [activeTab, setActiveTab] = useState<'team' | 'individual'>('team')
+  const [teamRegEnabled, setTeamRegEnabled] = useState(true)
+  const [indivRegEnabled, setIndivRegEnabled] = useState(false)
+  const [indivRegTiers, setIndivRegTiers] = useState<{id:string;name:string;amount:number}[]>([])
+  const [indivRegPositions, setIndivRegPositions] = useState<string[]>([])
+  const [individualRegs, setIndividualRegs] = useState<IndividualReg[]>([])
+  const [showIndivForm, setShowIndivForm] = useState(false)
+  const [savingIndiv, setSavingIndiv] = useState(false)
+  const [editingIndivId, setEditingIndivId] = useState<string | null>(null)
+  const [indivFirstName, setIndivFirstName] = useState('')
+  const [indivLastName, setIndivLastName] = useState('')
+  const [indivEmail, setIndivEmail] = useState('')
+  const [indivPhone, setIndivPhone] = useState('')
+  const [indivPosition, setIndivPosition] = useState('')
+  const [indivJerseySize, setIndivJerseySize] = useState('')
+  const [indivShortsSize, setIndivShortsSize] = useState('')
+  const [indivNumberRequest, setIndivNumberRequest] = useState('')
+  const [indivUsLacrosse, setIndivUsLacrosse] = useState('')
+  const [indivDob, setIndivDob] = useState('')
+  const [indivGuardianName, setIndivGuardianName] = useState('')
+  const [indivGuardianPhone, setIndivGuardianPhone] = useState('')
+  const [indivGuardianEmail, setIndivGuardianEmail] = useState('')
+  const [indivFeeTierId, setIndivFeeTierId] = useState('')
+  const [indivFeeTierName, setIndivFeeTierName] = useState('')
+  const [indivFeeTierAmount, setIndivFeeTierAmount] = useState(0)
+  const [indivPaymentStatus, setIndivPaymentStatus] = useState('pending')
+
   const load = () => {
     Promise.all([
       fetch(`/api/registrations?tournamentId=${tournamentId}`).then(r => r.json()),
       fetch(`/api/tournaments/${tournamentId}`).then(r => r.json()),
-    ]).then(([regs, t]) => {
+      fetch(`/api/tournaments/${tournamentId}/individual-reg`).then(r => r.json()),
+    ]).then(([regs, t, indivRegs]) => {
       setRegistrations(regs)
+      setIndividualRegs(Array.isArray(indivRegs) ? indivRegs : [])
       setTournamentName(t.name || '')
       if (t.logoUrl) setTournamentLogo(t.logoUrl)
+      setTeamRegEnabled(t.teamRegEnabled !== false)
+      setIndivRegEnabled(Boolean(t.individualRegEnabled))
+      try { const tiers = JSON.parse(t.individualRegTiers || '[]'); if (tiers.length) setIndivRegTiers(tiers) } catch {}
+      try { const pos = JSON.parse(t.individualRegPositions || '[]'); if (pos.length) setIndivRegPositions(pos) } catch {}
       try {
         const p = JSON.parse(t.registrationPricing || '{}')
         if (p.tier1) { setPricing(p); setPricingDraft(p) }
@@ -404,6 +446,68 @@ export default function RegistrationsPage() {
     a.download = 'registration_import_template.csv'; a.click()
   }
 
+  const resetIndivForm = () => {
+    setEditingIndivId(null)
+    setIndivFirstName(''); setIndivLastName(''); setIndivEmail(''); setIndivPhone('')
+    setIndivPosition(''); setIndivJerseySize(''); setIndivShortsSize('')
+    setIndivNumberRequest(''); setIndivUsLacrosse(''); setIndivDob('')
+    setIndivGuardianName(''); setIndivGuardianPhone(''); setIndivGuardianEmail('')
+    setIndivFeeTierId(''); setIndivFeeTierName(''); setIndivFeeTierAmount(0)
+    setIndivPaymentStatus('pending')
+  }
+
+  const openIndivNew = () => { resetIndivForm(); setShowIndivForm(true) }
+  const openIndivEdit = (reg: IndividualReg) => {
+    setEditingIndivId(reg.id)
+    setIndivFirstName(reg.firstName); setIndivLastName(reg.lastName)
+    setIndivEmail(reg.email); setIndivPhone(reg.phone)
+    setIndivPosition(reg.position); setIndivJerseySize(reg.jerseySize)
+    setIndivShortsSize(reg.shortsSize); setIndivNumberRequest(reg.numberRequest)
+    setIndivUsLacrosse(reg.usLacrosseNumber); setIndivDob(reg.dateOfBirth)
+    setIndivGuardianName(reg.guardianName); setIndivGuardianPhone(reg.guardianPhone)
+    setIndivGuardianEmail(reg.guardianEmail)
+    setIndivFeeTierId(reg.feeTierId); setIndivFeeTierName(reg.feeTierName)
+    setIndivFeeTierAmount(reg.feeTierAmount); setIndivPaymentStatus(reg.paymentStatus)
+    setShowIndivForm(true)
+  }
+
+  const handleSaveIndiv = async (e: React.FormEvent) => {
+    e.preventDefault(); setSavingIndiv(true)
+    try {
+      const url = editingIndivId
+        ? `/api/tournaments/${tournamentId}/individual-reg/${editingIndivId}`
+        : `/api/tournaments/${tournamentId}/individual-reg`
+      const res = await fetch(url, {
+        method: editingIndivId ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: indivFirstName, lastName: indivLastName,
+          email: indivEmail, phone: indivPhone,
+          position: indivPosition, jerseySize: indivJerseySize,
+          shortsSize: indivShortsSize, numberRequest: indivNumberRequest,
+          usLacrosseNumber: indivUsLacrosse, dateOfBirth: indivDob,
+          guardianName: indivGuardianName, guardianPhone: indivGuardianPhone,
+          guardianEmail: indivGuardianEmail,
+          feeTierId: indivFeeTierId, feeTierName: indivFeeTierName,
+          feeTierAmount: indivFeeTierAmount, paymentStatus: indivPaymentStatus,
+          waiverSigned: false,
+        }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success(editingIndivId ? 'Updated!' : 'Player added!')
+      setShowIndivForm(false); resetIndivForm(); load()
+    } catch { toast.error('Failed to save.') }
+    finally { setSavingIndiv(false) }
+  }
+
+  const handleDeleteIndiv = async (id: string, name: string) => {
+    if (!confirm(`Delete registration for "${name}"?`)) return
+    try {
+      await fetch(`/api/tournaments/${tournamentId}/individual-reg/${id}`, { method: 'DELETE' })
+      toast.success('Deleted.'); load()
+    } catch { toast.error('Failed to delete.') }
+  }
+
   const allDivisionsInData = Array.from(new Set(registrations.flatMap(r => r.teams.map(t => t.division)).filter(Boolean))).sort()
 
   const filteredRegistrations = registrations.filter(reg => {
@@ -439,19 +543,48 @@ export default function RegistrationsPage() {
 
         {/* Header */}
         <TournamentNav id={tournamentId as string} name={tournamentName || 'Tournament'} logoUrl={tournamentLogo} />
+
+        {/* Tab switcher */}
+        {(teamRegEnabled && indivRegEnabled) && (
+          <div className="flex gap-1 mb-5 bg-gray-100 rounded-xl p-1 w-fit">
+            <button
+              onClick={() => setActiveTab('team')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'team' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Team Registrations
+            </button>
+            <button
+              onClick={() => setActiveTab('individual')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'individual' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Individual Players
+              {individualRegs.length > 0 && (
+                <span className="ml-1.5 bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded-full">{individualRegs.length}</span>
+              )}
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">Team Registrations</h1>
+              <h1 className="text-2xl font-bold text-gray-800">
+                {activeTab === 'individual' ? 'Individual Players' : 'Team Registrations'}
+              </h1>
             </div>
           </div>
           <div className="flex gap-2 flex-wrap justify-end">
-            {[
+            {activeTab === 'team' ? [
               { label: 'Clubs', value: registrations.length, color: 'text-blue-600' },
               { label: 'Teams', value: totalTeams, color: 'text-green-600' },
               { label: 'Invoiced', value: fmt(totalInvoiced), color: 'text-gray-800' },
               { label: 'Received', value: fmt(totalReceived), color: 'text-green-700' },
               { label: 'Balance', value: fmt(totalBalance), color: totalBalance > 0 ? 'text-red-600' : 'text-green-600' },
+            ] : [
+              { label: 'Players', value: individualRegs.length, color: 'text-blue-600' },
+              { label: 'Paid', value: individualRegs.filter(r => r.paymentStatus === 'paid').length, color: 'text-green-600' },
+              { label: 'Pending', value: individualRegs.filter(r => r.paymentStatus === 'pending').length, color: 'text-orange-500' },
+              { label: 'Revenue', value: fmt(individualRegs.filter(r => r.paymentStatus === 'paid').reduce((s, r) => s + r.feeTierAmount, 0)), color: 'text-green-700' },
             ].map(s => (
               <div key={s.label} className="bg-white border rounded-xl px-3 py-2 text-center min-w-[70px]">
                 <div className={`text-lg font-bold ${s.color}`}>{s.value}</div>
@@ -463,7 +596,10 @@ export default function RegistrationsPage() {
 
         {/* Action bar */}
         <div className="mb-5 flex gap-2 flex-wrap">
-          <button onClick={openNew} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">+ Add Entry</button>
+          <button
+            onClick={() => activeTab === 'individual' ? openIndivNew() : openNew()}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
+          >+ Add Entry</button>
           <button onClick={() => { setShowImport(v => !v); setImportData(null) }} className={`px-4 py-2 rounded-lg text-sm font-medium border ${showImport ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>↑ Import Excel</button>
           <button onClick={() => { setPricingDraft(pricing); setDivisionsDraft(divisions); setNewDivision(''); setShowPricing(true) }} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">⚙ Settings</button>
           <button onClick={() => downloadCSV(registrations)} disabled={!registrations.length} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-40">⬇ CSV</button>
@@ -669,6 +805,110 @@ export default function RegistrationsPage() {
           </div>
         )}
 
+        {/* Individual registration form drawer */}
+        {showIndivForm && (
+          <div className="fixed inset-0 z-50 flex">
+            <div className="flex-1 bg-black/40" onClick={() => setShowIndivForm(false)} />
+            <div className="w-full max-w-2xl bg-white shadow-2xl overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
+                <h2 className="text-lg font-semibold text-gray-800">{editingIndivId ? 'Edit Player' : 'Add Individual Player'}</h2>
+                <button onClick={() => setShowIndivForm(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+              </div>
+              <form onSubmit={handleSaveIndiv} className="px-6 py-6 space-y-5">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Player Info</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                      <input required value={indivFirstName} onChange={e => setIndivFirstName(e.target.value)} className={inputCls} /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                      <input required value={indivLastName} onChange={e => setIndivLastName(e.target.value)} className={inputCls} /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                      <input required type="email" value={indivEmail} onChange={e => setIndivEmail(e.target.value)} className={inputCls} /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                      <input type="tel" value={indivPhone} onChange={e => setIndivPhone(e.target.value)} className={inputCls} /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                      <input type="date" value={indivDob} onChange={e => setIndivDob(e.target.value)} className={inputCls} /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">US Lacrosse #</label>
+                      <input value={indivUsLacrosse} onChange={e => setIndivUsLacrosse(e.target.value)} className={inputCls} /></div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Position & Gear</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Position *</label>
+                      {indivRegPositions.length > 0 ? (
+                        <select required value={indivPosition} onChange={e => setIndivPosition(e.target.value)} className={inputCls}>
+                          <option value="">Choose</option>
+                          {indivRegPositions.map(p => <option key={p}>{p}</option>)}
+                        </select>
+                      ) : (
+                        <input required value={indivPosition} onChange={e => setIndivPosition(e.target.value)} className={inputCls} />
+                      )}</div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Jersey Size *</label>
+                      <input required value={indivJerseySize} onChange={e => setIndivJerseySize(e.target.value)} className={inputCls} placeholder="e.g. M, L" /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Shorts Size *</label>
+                      <input required value={indivShortsSize} onChange={e => setIndivShortsSize(e.target.value)} className={inputCls} placeholder="e.g. M, L" /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Number Request</label>
+                      <input value={indivNumberRequest} onChange={e => setIndivNumberRequest(e.target.value)} className={inputCls} placeholder="e.g. 12" /></div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Guardian (if minor)</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Guardian Name</label>
+                      <input value={indivGuardianName} onChange={e => setIndivGuardianName(e.target.value)} className={inputCls} /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Guardian Phone</label>
+                      <input type="tel" value={indivGuardianPhone} onChange={e => setIndivGuardianPhone(e.target.value)} className={inputCls} /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Guardian Email</label>
+                      <input type="email" value={indivGuardianEmail} onChange={e => setIndivGuardianEmail(e.target.value)} className={inputCls} /></div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Fee & Payment</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {indivRegTiers.length > 0 ? (
+                      <div className="sm:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Fee Tier *</label>
+                        <select required value={indivFeeTierId} onChange={e => {
+                          const t = indivRegTiers.find(t => t.id === e.target.value)
+                          if (t) { setIndivFeeTierId(t.id); setIndivFeeTierName(t.name); setIndivFeeTierAmount(t.amount) }
+                        }} className={inputCls}>
+                          <option value="">Choose tier</option>
+                          {indivRegTiers.map(t => <option key={t.id} value={t.id}>{t.name} — {fmt(t.amount)}</option>)}
+                        </select>
+                      </div>
+                    ) : (
+                      <>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Fee Tier Name</label>
+                          <input value={indivFeeTierName} onChange={e => setIndivFeeTierName(e.target.value)} className={inputCls} placeholder="e.g. Standard" /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+                          <input type="number" step="0.01" min="0" value={indivFeeTierAmount} onChange={e => setIndivFeeTierAmount(Number(e.target.value))} className={inputCls} /></div>
+                      </>
+                    )}
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+                      <select value={indivPaymentStatus} onChange={e => setIndivPaymentStatus(e.target.value)} className={inputCls}>
+                        <option value="pending">Pending</option>
+                        <option value="paid">Paid</option>
+                        <option value="refunded">Refunded</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button type="submit" disabled={savingIndiv} className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold rounded-xl py-2.5 text-sm">
+                    {savingIndiv ? 'Saving...' : editingIndivId ? 'Save Changes' : 'Add Player'}
+                  </button>
+                  <button type="button" onClick={() => setShowIndivForm(false)} className="px-5 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Registration entry / edit panel */}
         {showForm && (
           <div className="fixed inset-0 z-50 flex">
@@ -802,8 +1042,68 @@ export default function RegistrationsPage() {
           </div>
         )}
 
+        {/* Individual registrations list */}
+        {activeTab === 'individual' && (
+          <>
+            {loading ? (
+              <div className="text-center py-20 text-gray-400">Loading...</div>
+            ) : individualRegs.length === 0 ? (
+              <div className="text-center py-20">
+                <p className="text-gray-400 mb-3">No individual players registered yet.</p>
+                {indivRegEnabled && (
+                  <button onClick={openIndivNew} className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">+ Add First Player</button>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-100">
+                      <tr>
+                        {['Player','Position','Jersey / Shorts','Fee Tier','Amount','Status','Registered',''].map(h => (
+                          <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {individualRegs.map(reg => (
+                        <tr key={reg.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-gray-800">{reg.firstName} {reg.lastName}</div>
+                            <div className="text-xs text-gray-400">{reg.email}</div>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">{reg.position}</td>
+                          <td className="px-4 py-3 text-gray-600">{reg.jerseySize} / {reg.shortsSize}</td>
+                          <td className="px-4 py-3 text-gray-600">{reg.feeTierName || '—'}</td>
+                          <td className="px-4 py-3 font-medium text-gray-800">{fmt(reg.feeTierAmount)}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
+                              reg.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
+                              reg.paymentStatus === 'refunded' ? 'bg-red-100 text-red-600' :
+                              'bg-orange-100 text-orange-600'
+                            }`}>
+                              {reg.paymentStatus.charAt(0).toUpperCase() + reg.paymentStatus.slice(1)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">{new Date(reg.createdAt).toLocaleDateString()}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-1.5 justify-end">
+                              <button onClick={() => openIndivEdit(reg)} className="text-xs text-blue-600 border border-blue-200 hover:border-blue-400 px-2.5 py-1 rounded-lg">Edit</button>
+                              <button onClick={() => handleDeleteIndiv(reg.id, `${reg.firstName} ${reg.lastName}`)} className="text-xs text-red-500 border border-red-200 hover:border-red-400 px-2.5 py-1 rounded-lg">Del</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
         {/* Filter bar */}
-        {!loading && registrations.length > 0 && (
+        {activeTab === 'team' && !loading && registrations.length > 0 && (
           <div className="mb-4 flex flex-wrap gap-2 items-center">
             <input
               type="search"
@@ -844,8 +1144,8 @@ export default function RegistrationsPage() {
           </div>
         )}
 
-        {/* List */}
-        {loading ? (
+        {/* Team list */}
+        {activeTab === 'team' && (loading ? (
           <div className="text-center py-20 text-gray-400">Loading...</div>
         ) : registrations.length === 0 ? (
           <div className="text-center py-20 text-gray-400">No registrations yet.</div>
@@ -985,7 +1285,7 @@ export default function RegistrationsPage() {
               )
             })}
           </div>
-        )}
+        ))}
       </div>
     </div>
   )
