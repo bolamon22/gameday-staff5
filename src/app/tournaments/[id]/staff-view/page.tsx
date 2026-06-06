@@ -108,7 +108,7 @@ export default function StaffViewPage({ params }: { params: { id: string } }) {
       <div className="max-w-2xl mx-auto px-4 pt-5">
         {/* My stats */}
         {myGames.length > 0 && (
-          <div className="grid grid-cols-3 gap-3 mb-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
             {[
               { label: 'My Games', value: myGames.filter(g => !g.isCanceled).length, color: 'text-white' },
               { label: 'Completed', value: myGames.filter(g => !g.isCanceled && g.score1 != null).length, color: 'text-emerald-400' },
