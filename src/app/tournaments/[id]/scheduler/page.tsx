@@ -214,6 +214,18 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   const cellMap: Record<string, Game> = {}
   dayGames.forEach(g => { cellMap[`${g.startTime}|${g.location}`] = g })
 
+  // Derive pool game display numbers client-side (P1, P2… per division)
+  const poolGameNums: Record<string, string> = {}
+  const byDiv: Record<string, Game[]> = {}
+  games.forEach(g => { if (g.pool) { byDiv[g.division] = byDiv[g.division] ?? []; byDiv[g.division].push(g) } })
+  Object.values(byDiv).forEach(dg => {
+    dg.sort((a, b) => {
+      const na = parseInt(a.gameNumber) || 0, nb = parseInt(b.gameNumber) || 0
+      return na !== nb ? na - nb : a.gameNumber.localeCompare(b.gameNumber)
+    })
+    dg.forEach((g, i) => { poolGameNums[g.id] = `P${i + 1}` })
+  })
+
   // ── Conflict detection ─────────────────────────────────────────────
   const scheduledGames = games.filter(g => g.date && g.startTime)
 
@@ -347,7 +359,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                   {hasB2B && (
                     <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title="Back-to-back game">⇔</span>
                   )}
-                  <div className="font-bold text-[11px] opacity-80">{g.gameNumber}</div>
+                  <div className="font-bold text-[11px] opacity-80">{poolGameNums[g.id] ?? g.gameNumber}</div>
                   <div className="font-semibold">{g.team1}</div>
                   <div className="opacity-80">vs {g.team2}</div>
                   <div className="opacity-60 text-[10px] mt-0.5">{g.division}{g.pool ? ` · ${g.pool}` : ''}</div>
@@ -443,7 +455,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                                 <span className="absolute top-0.5 right-0.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded px-1 leading-tight shadow" title="Back-to-back game">⇔ B2B</span>
                               )}
                             <div>
-                              <div className="text-white text-[10px] font-bold opacity-75">{game.gameNumber}</div>
+                              <div className="text-white text-[10px] font-bold opacity-75">{poolGameNums[game.id] ?? game.gameNumber}</div>
                               <div className="text-white text-xs font-semibold leading-tight truncate">{game.team1}</div>
                               <div className="text-white/70 text-[10px] truncate">vs {game.team2}</div>
                             </div>
