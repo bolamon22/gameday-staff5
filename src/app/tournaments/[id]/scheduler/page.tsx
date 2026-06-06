@@ -95,7 +95,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
       setTName(tData.name ?? '')
       if (tData.scheduleIncrement) setIncrement(Number(tData.scheduleIncrement))
 
-      // Flatten venues Ã¢ÂÂ fields (fields may be strings or {id,name,abbr} objects)
+      // Flatten venues â fields (fields may be strings or {id,name,abbr} objects)
       const venueList: any[] = vData.venues ?? []
       const flat: Field[] = []
       venueList.forEach(v => {
@@ -192,12 +192,12 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   const dayGames = games.filter(g => g.date === activeDate && g.startTime && g.location)
   const slots = makeSlots(startH, endH, increment)
 
-  // slot+field Ã¢ÂÂ game lookup
+  // slot+field â game lookup
   const cellMap: Record<string, Game> = {}
   dayGames.forEach(g => { cellMap[`${g.startTime}|${g.location}`] = g })
 
-  // Ã¢ÂÂÃ¢ÂÂ Conflict detection Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
-  // Build a map: team Ã¢ÂÂ list of { date, startTime, gameId } for scheduled games
+  // ââ Conflict detection ââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // Build a map: team â list of { date, startTime, gameId } for scheduled games
   const scheduledGames = games.filter(g => g.date && g.startTime)
 
   function slotIndex(time: string) {
@@ -249,12 +249,12 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
       <TournamentNav id={params.id} />
       <Toaster position="top-right" />
 
-      {/* Ã¢ÂÂÃ¢ÂÂ Header Ã¢ÂÂÃ¢ÂÂ */}
+      {/* ââ Header ââ */}
       <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Game Scheduler</h1>
           <p className="text-sm text-slate-500">
-            {games.length} games ÃÂ· <span className="text-amber-600 font-medium">{unscheduled.length} unscheduled</span>
+            {games.length} games Â· <span className="text-amber-600 font-medium">{unscheduled.length} unscheduled</span>
           </p>
         </div>
         <div className="flex items-center gap-3 text-sm flex-wrap">
@@ -277,11 +277,11 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
               <option key={h} value={h}>{fmtTime(`${String(h).padStart(2,'0')}:00`)}</option>
             ))}
           </select>
-          {saving && <span className="text-blue-500 text-xs animate-pulse">SavingÃ¢ÂÂ¦</span>}
+          {saving && <span className="text-blue-500 text-xs animate-pulse">Savingâ¦</span>}
         </div>
       </div>
 
-      {/* Ã¢ÂÂÃ¢ÂÂ Parking Lot Ã¢ÂÂÃ¢ÂÂ */}
+      {/* ââ Parking Lot ââ */}
       <div
         className="bg-slate-900 border-b border-slate-700 flex-shrink-0"
         onDragOver={e => e.preventDefault()}
@@ -300,14 +300,14 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
             {divisions.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
           <span className="ml-auto text-slate-600 text-xs hidden sm:block">
-            Drag to grid Ã¢ÂÂ  ÃÂ·  Drag to here to unschedule
+            Drag to grid â  Â·  Drag to here to unschedule
           </span>
         </div>
         <div className="overflow-x-auto">
           <div className="flex gap-2 px-4 sm:px-6 pb-3 min-w-max">
             {filtered.length === 0 ? (
               <p className="text-slate-500 text-sm py-3 italic">
-                {unscheduled.length === 0 ? 'Ã°ÂÂÂ All games scheduled!' : 'No games match filter'}
+                {unscheduled.length === 0 ? 'ð All games scheduled!' : 'No games match filter'}
               </p>
             ) : filtered.map(g => {
               const color = divColor(g.division, divisions)
@@ -322,15 +322,15 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                   className={`relative ${color} rounded-lg px-3 py-2 cursor-grab active:cursor-grabbing text-white text-xs font-medium whitespace-nowrap select-none flex-shrink-0 shadow transition-opacity ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'}`}
                 >
                   {hasConflict && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title="Same-time conflict">Ã¢ÂÂ </span>
+                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title="Same-time conflict">â </span>
                   )}
                   {hasB2B && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title="Back-to-back game">Ã¢ÂÂ</span>
+                    <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title="Back-to-back game">â</span>
                   )}
                   <div className="font-bold text-[11px] opacity-80">{g.gameNumber}</div>
                   <div className="font-semibold">{g.team1}</div>
                   <div className="opacity-80">vs {g.team2}</div>
-                  <div className="opacity-60 text-[10px] mt-0.5">{g.division}{g.pool ? ` ÃÂ· ${g.pool}` : ''}</div>
+                  <div className="opacity-60 text-[10px] mt-0.5">{g.division}{g.pool ? ` Â· ${g.pool}` : ''}</div>
                 </div>
               )
             })}
@@ -338,7 +338,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* Ã¢ÂÂÃ¢ÂÂ Date Tabs Ã¢ÂÂÃ¢ÂÂ */}
+      {/* ââ Date Tabs ââ */}
       <div className="bg-white border-b border-slate-200 overflow-x-auto flex-shrink-0">
         <div className="flex min-w-max">
           {dates.map(d => (
@@ -361,10 +361,10 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* Ã¢ÂÂÃ¢ÂÂ Grid Ã¢ÂÂÃ¢ÂÂ */}
+      {/* ââ Grid ââ */}
       {fields.length === 0 ? (
         <div className="flex-1 flex items-center justify-center flex-col gap-3 text-slate-400 py-20">
-          <div className="text-4xl">Ã°ÂÂÂÃ¯Â¸Â</div>
+          <div className="text-4xl">ðï¸</div>
           <p className="text-base font-medium text-slate-600">No fields configured yet</p>
           <p className="text-sm">Add venues and fields in the
             <a href={`/tournaments/${params.id}/builder`} className="text-blue-500 hover:underline ml-1">Builder</a>
@@ -417,10 +417,10 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                             className={`${divColor(game.division, divisions)} relative rounded-md px-2 py-1 cursor-grab active:cursor-grabbing h-full min-h-[52px] flex flex-col justify-between transition-opacity ${dragId === game.id ? 'opacity-30' : 'hover:brightness-110'}`}
                           >
                               {conflictIds.has(game.id) && (
-                                <span className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[9px] font-bold rounded px-1 leading-tight shadow" title="Same-time conflict">â  Conflict</span>
+                                <span className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[9px] font-bold rounded px-1 leading-tight shadow" title="Same-time conflict">⚠ Conflict</span>
                               )}
                               {!conflictIds.has(game.id) && backToBackIds.has(game.id) && (
-                                <span className="absolute top-0.5 right-0.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded px-1 leading-tight shadow" title="Back-to-back game">â B2B</span>
+                                <span className="absolute top-0.5 right-0.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded px-1 leading-tight shadow" title="Back-to-back game">↔ B2B</span>
                               )}
                             <div>
                               <div className="text-white text-[10px] font-bold opacity-75">{game.gameNumber}</div>
