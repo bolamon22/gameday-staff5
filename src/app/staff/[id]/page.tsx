@@ -145,7 +145,7 @@ export default function StaffProfilePage({ params }: { params:{id:string} }) {
           </div>
         </div>
         {payments.length===0?(
-          <div className="p-8 text-center text-slate-400 text-sm">No payments recorded yet</div>
+          <div className="p-4 sm:p-8 text-center text-slate-400 text-sm">No payments recorded yet</div>
         ):(
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-100"><tr>
