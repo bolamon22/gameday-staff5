@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
-// GET — list existing pool games for this division
+// GET – list existing pool games for this division
 export async function GET(_req: NextRequest, { params }: { params: { id: string; division: string } }) {
   const division = decodeURIComponent(params.division)
   const games = await prisma.game.findMany({
@@ -11,7 +11,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string;
   return NextResponse.json(games)
 }
 
-// POST — generate round-robin pool games OR add a single game
+// POST – generate round-robin pool games OR add a single game
 export async function POST(req: NextRequest, { params }: { params: { id: string; division: string } }) {
   const division = decodeURIComponent(params.division)
   const body = await req.json()
@@ -41,16 +41,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
       await prisma.game.deleteMany({ where: { tournamentId: params.id, division, pool: { not: null } } })
     }
 
-    const allGames = await prisma.game.findMany({
-      where: { tournamentId: params.id },
-      select: { gameNumber: true },
+    // Count existing pool games for this division to continue numbering from there
+    const existingCount = await prisma.game.count({
+      where: { tournamentId: params.id, division, pool: { not: null } },
     })
-    let nextNum = allGames.reduce((max, g) => {
-      const n = parseInt(g.gameNumber)
-      return isNaN(n) ? max : Math.max(max, n)
-    }, 0) + 1
+    let poolGameNum = existingCount + 1
 
-    const created: { id: string; gameNumber: string; pool: string | null; team1: string; team2: string }[] = []
+    const created: any[] = []
 
     for (const pool of pools) {
       const teamNames: string[] = JSON.parse(pool.teamNames || '[]')
@@ -62,14 +59,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
       const rounds = Math.ceil(gpt / Math.max(1, teamsCount - 1))
 
       for (let round = 0; round < rounds; round++) {
-        for (let i = 0; i < teamNames.length; i++) {
-          for (let j = i + 1; j < teamNames.length; j++) {
+        for (let i = 0; i < teamsCount; i++) {
+          for (let j = i + 1; j < teamsCount; j++) {
             const game = await prisma.game.create({
               data: {
                 tournamentId: params.id,
                 division,
                 pool: pool.name,
-                gameNumber: String(nextNum++),
+                gameNumber: `P${poolGameNum++}`,
                 date: date ?? '',
                 startTime: '',
                 location: '',
@@ -87,22 +84,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
     return NextResponse.json({ generated: created.length, games: created })
   }
 
-  // Renumber pool games for this division sequentially
+  // Renumber pool games for this division with P prefix
   if (body.action === 'renumber') {
-    const { startFrom } = body
     const games = await prisma.game.findMany({
       where: { tournamentId: params.id, division, pool: { not: null } },
       orderBy: [{ pool: 'asc' }, { createdAt: 'asc' }],
     })
-    let num = Number(startFrom ?? 1)
-    await Promise.all(games.map(g => prisma.game.update({ where: { id: g.id }, data: { gameNumber: String(num++) } })))
+    let num = 1
+    await Promise.all(games.map(g => prisma.game.update({ where: { id: g.id }, data: { gameNumber: `P${num++}` } })))
     return NextResponse.json({ renumbered: games.length })
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
 }
 
-// DELETE — remove all pool games for this division
+// DELETE – remove all pool games for this division
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string; division: string } }) {
   const division = decodeURIComponent(params.division)
   const { count } = await prisma.game.deleteMany({
