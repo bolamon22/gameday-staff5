@@ -447,8 +447,8 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
         if (diff > increment * 2) {
           const slots = Math.round(diff / increment) - 1
           const msg = `${team}: ${slots}-slot gap between ${a.startTime} and ${b.startTime}`
-          if (!longGapMsgs.has(a.id)) longGapMsgs.set(a.id, msg)
-          if (!longGapMsgs.has(b.id)) longGapMsgs.set(b.id, msg)
+          longGapMsgs.set(a.id, longGapMsgs.has(a.id) ? longGapMsgs.get(a.id)! + '\n' + msg : msg)
+          longGapMsgs.set(b.id, longGapMsgs.has(b.id) ? longGapMsgs.get(b.id)! + '\n' + msg : msg)
         }
       }
     }
@@ -459,13 +459,13 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
         const diff = Math.abs(slotIndex(a.startTime) - slotIndex(b.startTime))
         if (diff === 0) {
           const msg = `${team} plays two games at ${a.startTime} — conflict!`
-          if (!conflictMsgs.has(a.id)) conflictMsgs.set(a.id, msg)
-          if (!conflictMsgs.has(b.id)) conflictMsgs.set(b.id, msg)
+          conflictMsgs.set(a.id, conflictMsgs.has(a.id) ? conflictMsgs.get(a.id)! + '\n' + msg : msg)
+          conflictMsgs.set(b.id, conflictMsgs.has(b.id) ? conflictMsgs.get(b.id)! + '\n' + msg : msg)
         } else if (diff === increment) {
           const [first, second] = slotIndex(a.startTime) < slotIndex(b.startTime) ? [a, b] : [b, a]
           const msg = `${team}: back-to-back at ${first.startTime} & ${second.startTime}`
-          if (!backToBackMsgs.has(a.id)) backToBackMsgs.set(a.id, msg)
-          if (!backToBackMsgs.has(b.id)) backToBackMsgs.set(b.id, msg)
+          backToBackMsgs.set(a.id, backToBackMsgs.has(a.id) ? backToBackMsgs.get(a.id)! + '\n' + msg : msg)
+          backToBackMsgs.set(b.id, backToBackMsgs.has(b.id) ? backToBackMsgs.get(b.id)! + '\n' + msg : msg)
         }
       }
     }
