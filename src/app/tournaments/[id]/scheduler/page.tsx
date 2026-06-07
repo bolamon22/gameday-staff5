@@ -105,6 +105,12 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   const [sideStage,    setSideStage]    = useState(false)
   const [scratchPad,   setScratchPad]   = useState<string[]>([])
 
+  // ── Draft/publish versioning ─────────────────────────────────────────────
+  const [snapshot,       setSnapshot]       = useState<Record<string, {date:string,startTime:string,location:string}>>({})
+  const [publishedAt,    setPublishedAt]    = useState<string | null>(null)
+  const [publishing,     setPublishing]     = useState(false)
+  const [showDiff,       setShowDiff]       = useState(false)
+
   // ── Grid filters ─────────────────────────────────────────────────────────
   const [gridDiv,  setGridDiv]  = useState('__all__')
   const [gridPool, setGridPool] = useState('__all__')
@@ -113,14 +119,24 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     async function load() {
-      const [gRes, vRes, tRes] = await Promise.all([
+      const [gRes, vRes, tRes, pRes] = await Promise.all([
         fetch(`/api/tournaments/${params.id}/games`),
         fetch(`/api/venues/${params.id}`),
         fetch(`/api/tournaments/${params.id}`),
+        fetch(`/api/tournaments/${params.id}/publish`),
       ])
       const gData = await gRes.json()
       const vData = await vRes.json()
       const tData = await tRes.json()
+      const pData = await pRes.json()
+      if (pData.publishedAt) {
+        setPublishedAt(pData.publishedAt)
+        const snap: Record<string, {date:string,startTime:string,location:string}> = {}
+        ;(pData.snapshot?.games ?? []).forEach((g: any) => {
+          snap[g.id] = { date: g.date, startTime: g.startTime, location: g.location }
+        })
+        setSnapshot(snap)
+      }
 
       const allGames: Game[] = Array.isArray(gData) ? gData : (gData.games ?? [])
       setGames(allGames)
@@ -304,6 +320,22 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
     setSwapSourceId(null)
   }
 
+  async function publishSchedule() {
+    setPublishing(true)
+    try {
+      const res = await fetch(`/api/tournaments/${params.id}/publish`, { method: 'POST' })
+      const data = await res.json()
+      if (data.ok) {
+        setPublishedAt(data.publishedAt)
+        const snap: Record<string, {date:string,startTime:string,location:string}> = {}
+        games.forEach(g => { snap[g.id] = { date: g.date, startTime: g.startTime, location: g.location } })
+        setSnapshot(snap)
+        setShowDiff(false)
+        toast.success('Schedule published!')
+      }
+    } finally { setPublishing(false) }
+  }
+
   async function unscheduleAll() {
     const scheduled = games.filter(g => g.date || g.startTime || g.location)
     if (scheduled.length === 0) { toast('No scheduled games to unschedule'); return }
@@ -351,6 +383,29 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
 
   // ── Derived values ────────────────────────────────────────────────────────
   const divisions = [...new Set(games.map(g => g.division))].sort()
+
+  // ── Draft diff vs published snapshot ────────────────────────────────────
+  const diffChanges = (() => {
+    const moved: {game: Game, from: {date:string,startTime:string,location:string}, to: {date:string,startTime:string,location:string}}[] = []
+    const newlyScheduled: Game[] = []
+    const nowUnscheduled: Game[] = []
+    const snapIds = Object.keys(snapshot)
+    games.forEach(g => {
+      const snap = snapshot[g.id]
+      const curScheduled = !!(g.date && g.startTime && g.location)
+      const wasScheduled = !!(snap?.date && snap?.startTime && snap?.location)
+      if (curScheduled && wasScheduled) {
+        if (snap.date !== g.date || snap.startTime !== g.startTime || snap.location !== g.location)
+          moved.push({ game: g, from: snap, to: { date: g.date, startTime: g.startTime, location: g.location } })
+      } else if (curScheduled && !wasScheduled) {
+        newlyScheduled.push(g)
+      } else if (!curScheduled && wasScheduled) {
+        nowUnscheduled.push(g)
+      }
+    })
+    return { moved, newlyScheduled, nowUnscheduled, total: moved.length + newlyScheduled.length + nowUnscheduled.length }
+  })()
+  const hasChanges = publishedAt ? diffChanges.total > 0 : games.some(g => g.date && g.startTime && g.location)
   const unscheduled = games.filter(g => (!g.date || !g.startTime || !g.location) && !scratchPad.includes(g.id))
 
   // Parking lot: available pools based on division filter
@@ -499,6 +554,102 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <TournamentNav id={params.id} />
       <Toaster position="top-right" />
+
+      {/* ── Draft/Publish status bar ── */}
+      <div className={`flex items-center gap-3 px-4 sm:px-6 py-1.5 text-xs flex-wrap border-b ${hasChanges ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
+        {!publishedAt ? (
+          <>
+            <span className="inline-flex items-center gap-1 font-semibold text-amber-700">
+              <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> Draft — never published
+            </span>
+            <span className="text-amber-600 hidden sm:block">Schedule changes are only visible to admins until published.</span>
+          </>
+        ) : hasChanges ? (
+          <>
+            <span className="inline-flex items-center gap-1 font-semibold text-amber-700">
+              <span className="w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse" /> Draft — {diffChanges.total} unpublished change{diffChanges.total !== 1 ? 's' : ''}
+            </span>
+            <button onClick={() => setShowDiff(true)} className="text-amber-700 underline hover:text-amber-900">View diff</button>
+          </>
+        ) : (
+          <span className="inline-flex items-center gap-1 font-semibold text-green-700">
+            <span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Published
+            {publishedAt && <span className="font-normal text-green-600 ml-1">· {new Date(publishedAt).toLocaleString()}</span>}
+          </span>
+        )}
+        <button
+          onClick={publishSchedule}
+          disabled={publishing || !hasChanges}
+          className="ml-auto text-xs font-semibold px-3 py-1 rounded-lg border transition-colors disabled:opacity-40
+            bg-green-600 hover:bg-green-700 text-white border-green-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:border-slate-300"
+        >
+          {publishing ? 'Publishing…' : '🚀 Publish Schedule'}
+        </button>
+      </div>
+
+      {/* ── Diff modal ── */}
+      {showDiff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setShowDiff(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h2 className="text-lg font-semibold text-slate-900">Unpublished Changes</h2>
+              <button onClick={() => setShowDiff(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
+              {diffChanges.newlyScheduled.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-green-700 mb-2">✓ Newly Scheduled ({diffChanges.newlyScheduled.length})</h3>
+                  <div className="space-y-1">
+                    {diffChanges.newlyScheduled.map(g => (
+                      <div key={g.id} className="text-xs bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                        <span className="font-semibold">{g.gameNumber}</span> · {g.division} · {g.team1} vs {g.team2}
+                        <span className="ml-2 text-green-700">→ {fmtDate(g.date)} {g.startTime} @ {g.location}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {diffChanges.moved.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-amber-700 mb-2">↔ Moved ({diffChanges.moved.length})</h3>
+                  <div className="space-y-1">
+                    {diffChanges.moved.map(({ game: g, from, to }) => (
+                      <div key={g.id} className="text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                        <span className="font-semibold">{g.gameNumber}</span> · {g.division} · {g.team1} vs {g.team2}
+                        <div className="mt-0.5 text-amber-700">
+                          <span className="line-through opacity-60">{fmtDate(from.date)} {from.startTime} @ {from.location}</span>
+                          <span className="mx-1">→</span>
+                          <span>{fmtDate(to.date)} {to.startTime} @ {to.location}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {diffChanges.nowUnscheduled.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-red-700 mb-2">✕ Unscheduled ({diffChanges.nowUnscheduled.length})</h3>
+                  <div className="space-y-1">
+                    {diffChanges.nowUnscheduled.map(g => (
+                      <div key={g.id} className="text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                        <span className="font-semibold">{g.gameNumber}</span> · {g.division} · {g.team1} vs {g.team2}
+                        <span className="ml-2 text-red-600 line-through opacity-70">{fmtDate(snapshot[g.id]?.date ?? '')} {snapshot[g.id]?.startTime} @ {snapshot[g.id]?.location}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t">
+              <button onClick={() => setShowDiff(false)} className="text-sm text-slate-600 hover:text-slate-900 px-4 py-2">Cancel</button>
+              <button onClick={publishSchedule} disabled={publishing}
+                className="text-sm font-semibold bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg disabled:opacity-50">
+                {publishing ? 'Publishing…' : '🚀 Publish Schedule'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Header ── */}
       <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
