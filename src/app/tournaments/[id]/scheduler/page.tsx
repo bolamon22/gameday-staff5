@@ -498,6 +498,16 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
             title={lotExpanded ? 'Collapse' : 'Expand to see all games'}>
             {lotExpanded ? '▲ Collapse' : '▼ Expand'}
           </button>
+          <button
+            onClick={() => setLotOrder(
+              [...games.filter(g => !g.date || !g.startTime || !g.location)]
+                .sort((a,b) => a.gameNumber.localeCompare(b.gameNumber, undefined, {numeric:true}))
+                .map(g => g.id)
+            )}
+            className="text-slate-500 hover:text-slate-300 transition-colors text-xs px-1"
+            title="Sort by game number">
+            ↕ Sort
+          </button>
           <span className="bg-slate-700 text-slate-300 text-xs font-semibold rounded-full px-2 py-0.5 mr-1">
             {unscheduled.length}
           </span>
