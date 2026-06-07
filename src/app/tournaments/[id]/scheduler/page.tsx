@@ -183,6 +183,8 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
     setOverCell(null)
     const gameId = e.dataTransfer.getData('gameId') || dragId
     if (!gameId) return
+    const occupied = games.find(g => g.id !== gameId && g.date === activeDate && g.startTime === time && g.location === field)
+    if (occupied) { toast.error(`${field} is already booked at ${time}`); return }
     patchGame(gameId, { date: activeDate, startTime: time, location: field })
   }
 
