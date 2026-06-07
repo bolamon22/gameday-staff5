@@ -102,6 +102,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   // ── Parking lot order (for drag-to-reorder) ──────────────────────────────
   const [lotOrder,     setLotOrder]     = useState<string[]>([])
   const [lotDragOver,  setLotDragOver]  = useState<string | null>(null)
+  const [sideStage,    setSideStage]    = useState(false)
 
   // ── Grid filters ─────────────────────────────────────────────────────────
   const [gridDiv,  setGridDiv]  = useState('__all__')
@@ -523,6 +524,11 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
             className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 rounded-lg px-3 py-1 transition-colors whitespace-nowrap">
             ↻ Renumber All
           </button>
+          <button onClick={() => setSideStage(v => !v)}
+            className={`text-xs border rounded-lg px-3 py-1 transition-colors whitespace-nowrap ${sideStage ? 'bg-slate-800 text-white border-slate-600' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-300'}`}
+            title={sideStage ? 'Switch to top bar layout' : 'Switch to side panel layout'}>
+            {sideStage ? '◨ Side Panel' : '◧ Side Panel'}
+          </button>
           {games.some(g => g.date || g.startTime || g.location) && (
             <button onClick={unscheduleAll} disabled={unscheduling}
               className="text-xs bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg px-3 py-1 disabled:opacity-50 transition-colors whitespace-nowrap">
@@ -533,7 +539,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* ── Parking Lot ── */}
-      <div className="bg-slate-900 border-b border-slate-700 flex-shrink-0">
+      {!sideStage && <div className="bg-slate-900 border-b border-slate-700 flex-shrink-0">
 
         {/* Filter row */}
         <div className="px-4 sm:px-6 pt-2 pb-1 flex items-center gap-2 flex-wrap">
@@ -673,7 +679,73 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         </div>
-      </div>
+      </div>}
+
+      {/* ── Side staging wrapper ── */}
+      <div className={sideStage ? 'flex flex-1 overflow-hidden' : 'contents'}>
+      {sideStage && (
+        <div className="w-56 bg-slate-900 border-r border-slate-700 flex flex-col flex-shrink-0 overflow-hidden">
+          {/* Sidebar header + filters */}
+          <div className="px-3 pt-3 pb-2 border-b border-slate-700 flex-shrink-0">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-slate-300 text-xs font-semibold uppercase tracking-widest">Staging</span>
+              <span className="bg-slate-700 text-slate-300 text-xs font-semibold rounded-full px-2 py-0.5">{unscheduled.length}</span>
+            </div>
+            <select value={filterDiv}
+              onChange={e => { setFilterDiv(e.target.value); setFilterPool('__all__'); setFilterTeam('__all__') }}
+              className="w-full text-xs bg-slate-800 text-slate-200 border border-slate-600 rounded px-2 py-1 mb-1">
+              <option value="__all__">All Divisions</option>
+              {divisions.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+            <select value={filterPool}
+              onChange={e => { setFilterPool(e.target.value); setFilterTeam('__all__') }}
+              className="w-full text-xs bg-slate-800 text-slate-200 border border-slate-600 rounded px-2 py-1">
+              <option value="__all__">All Pools</option>
+              {parkingPools.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+          {/* Drop zone */}
+          <div
+            className="mx-2 mt-2 mb-1 flex-shrink-0 rounded border-2 border-dashed border-slate-600 bg-slate-800/50 flex items-center justify-center text-slate-500 text-xs font-medium p-1.5 cursor-default select-none"
+            onDragOver={e => e.preventDefault()}
+            onDrop={handleDropParking}
+          >
+            DROP TO UNSCHEDULE
+          </div>
+          {/* Game chips */}
+          <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1.5">
+            {filteredSorted.length === 0 ? (
+              <p className="text-slate-500 text-xs italic text-center py-4">
+                {unscheduled.length === 0 ? '🎉 All scheduled!' : 'No matches'}
+              </p>
+            ) : filteredSorted.map(g => {
+              const color = divColor(g.division, divisions)
+              const hasConflict = conflictMsgs.has(g.id)
+              const hasB2B = !hasConflict && backToBackMsgs.has(g.id)
+              return (
+                <div
+                  key={g.id}
+                  draggable={!swapMode}
+                  onDragStart={e => handleDragStart(e, g.id)}
+                  onDragEnd={() => { handleDragEnd(); setLotDragOver(null) }}
+                  className={`relative ${color} rounded-lg px-2.5 py-2 cursor-grab active:cursor-grabbing text-white text-xs font-medium select-none shadow transition-all ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'}`}
+                >
+                  {hasConflict && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title={conflictMsgs.get(g.id) ?? 'Same-time conflict'}>⚠</span>
+                  )}
+                  {hasB2B && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title={backToBackMsgs.get(g.id) ?? 'Back-to-back game'}>↔</span>
+                  )}
+                  <div className="font-bold text-[10px] opacity-70 mb-0.5">{g.gameNumber} · {g.division}{g.pool ? ` · ${g.pool}` : ''}</div>
+                  <div className="font-semibold truncate">{g.team1}</div>
+                  <div className="opacity-80 truncate">vs {g.team2}</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      <div className={sideStage ? 'flex flex-col flex-1 min-w-0 overflow-hidden' : 'contents'}>
 
       {/* ── Grid filter row ── */}
       <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-2 flex items-center gap-2 flex-wrap flex-shrink-0">
@@ -834,6 +906,8 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
           </table>
         </div>
       )}
+      </div>{/* end right-content wrapper */}
+      </div>{/* end side staging wrapper */}
     </div>
   )
 }
