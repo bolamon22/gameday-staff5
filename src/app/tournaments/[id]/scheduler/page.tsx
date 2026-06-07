@@ -681,7 +681,10 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                             {!conflictIds.has(game.id) && backToBackIds.has(game.id) && (
                               <span className="absolute top-0.5 right-0.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded px-1 leading-tight shadow" title="Back-to-back game">⇔</span>
                             )}
-                            <div className="font-bold text-[10px] text-white/70 leading-none">{game.gameNumber}</div>
+                            <div className="flex items-center justify-between gap-1">
+                              <div className="font-bold text-[10px] text-white leading-none">{game.gameNumber}</div>
+                              <div className="text-[9px] text-white/70 leading-none truncate">{game.division}</div>
+                            </div>
                             <div>
                               <div className="text-white text-xs font-semibold truncate leading-tight">{game.team1}</div>
                               <div className="text-white/80 text-[10px] truncate">vs {game.team2}</div>
