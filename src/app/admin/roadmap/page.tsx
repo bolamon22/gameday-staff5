@@ -10,6 +10,7 @@ type Status = 'todo' | 'in-progress' | 'done'
 
 interface RoadmapItem {
   id: string
+  num: number
   title: string
   description: string
   status: Status
@@ -276,6 +277,7 @@ export default function RoadmapPage() {
                       <div className="flex items-start gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start gap-2 flex-wrap">
+                            <span className="text-xs font-mono text-slate-400 font-medium">#{item.num}</span>
                             <span className="font-semibold text-slate-800 text-sm">{item.title}</span>
                             {/* Status dropdown */}
                             <div className="relative" onClick={e => e.stopPropagation()}>

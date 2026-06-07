@@ -14,6 +14,7 @@ async function ensureTable(client: ReturnType<typeof getClient>) {
   await client.execute(`
     CREATE TABLE IF NOT EXISTS "RoadmapItem" (
       id          TEXT PRIMARY KEY,
+      num         INTEGER,
       title       TEXT NOT NULL,
       description TEXT NOT NULL DEFAULT '',
       status      TEXT NOT NULL DEFAULT 'todo',
@@ -21,8 +22,17 @@ async function ensureTable(client: ReturnType<typeof getClient>) {
       createdAt   TEXT NOT NULL
     )
   `)
-  // Add notes column to existing tables
   try { await client.execute(`ALTER TABLE "RoadmapItem" ADD COLUMN notes TEXT NOT NULL DEFAULT ''`) } catch {}
+  try { await client.execute(`ALTER TABLE "RoadmapItem" ADD COLUMN num INTEGER`) } catch {}
+  // Backfill num for existing rows that don't have one
+  await client.execute(`
+    UPDATE "RoadmapItem"
+    SET num = (
+      SELECT COUNT(*) FROM "RoadmapItem" r2
+      WHERE r2.createdAt <= "RoadmapItem".createdAt
+    )
+    WHERE num IS NULL
+  `)
 }
 
 export async function GET(req: Request) {
@@ -43,11 +53,15 @@ export async function POST(req: Request) {
   if (!title?.trim()) return NextResponse.json({ error: 'Title required' }, { status: 400 })
   const client = getClient()
   await ensureTable(client)
+  // Get next number
+  const maxRes = await client.execute('SELECT MAX(num) as maxNum FROM "RoadmapItem"')
+  const maxNum = (maxRes.rows[0]?.maxNum as number) ?? 0
+  const num = maxNum + 1
   const id = crypto.randomUUID()
   const createdAt = new Date().toISOString()
   await client.execute({
-    sql: 'INSERT INTO "RoadmapItem" (id, title, description, status, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?)',
-    args: [id, title.trim(), (description ?? '').trim(), 'todo', '', createdAt],
+    sql: 'INSERT INTO "RoadmapItem" (id, num, title, description, status, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    args: [id, num, title.trim(), (description ?? '').trim(), 'todo', '', createdAt],
   })
-  return NextResponse.json({ id, title: title.trim(), description: (description ?? '').trim(), status: 'todo', notes: '', createdAt }, { status: 201 })
+  return NextResponse.json({ id, num, title: title.trim(), description: (description ?? '').trim(), status: 'todo', notes: '', createdAt }, { status: 201 })
 }
