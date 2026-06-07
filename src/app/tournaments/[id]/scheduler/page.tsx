@@ -86,18 +86,19 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   const [dragGame, setDragGame]         = useState<Game | null>(null)
   const [overCell, setOverCell]         = useState<string | null>(null)
 
-  // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Parking lot filters ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+  // ── Parking lot filters ──────────────────────────────────────────────────
   const [filterDiv,        setFilterDiv]        = useState('__all__')
   const [filterPool,       setFilterPool]       = useState('__all__')
   const [filterTeam,       setFilterTeam]       = useState('__all__')
   const [filterType,       setFilterType]       = useState('__all__')
   const [showRestricted,   setShowRestricted]   = useState(false)
+  const [lotExpanded,      setLotExpanded]      = useState(false)
 
-  // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Swap mode ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+  // ── Swap mode ────────────────────────────────────────────────────────────
   const [swapMode,       setSwapMode]       = useState(false)
   const [swapSourceId,   setSwapSourceId]   = useState<string | null>(null)
 
-  // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Grid filters ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+  // ── Grid filters ─────────────────────────────────────────────────────────
   const [gridDiv,  setGridDiv]  = useState('__all__')
   const [gridPool, setGridPool] = useState('__all__')
   const [gridTeam, setGridTeam] = useState('__all__')
@@ -162,6 +163,24 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
     if (res.ok) {
       const updated = await res.json()
       setGames(prev => prev.map(g => g.id === gameId ? { ...g, ...updated } : g))
+    }
+    setSaving(false)
+  }
+
+  async function unscheduleAll() {
+    const scheduled = games.filter(g => g.date || g.startTime || g.location)
+    if (scheduled.length === 0) { toast('No scheduled games to unschedule'); return }
+    if (!window.confirm(`Unschedule all ${scheduled.length} games across every division?`)) return
+    if (!window.confirm(`Are you absolutely sure? This will move all ${scheduled.length} games back to the parking lot.`)) return
+    setUnscheduling(true)
+    await Promise.all(scheduled.map(g =>
+      fetch(`/api/tournaments/${params.id}/games/${g.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: '', startTime: '', location: '' }),
+      })
+    ))
+    setGames(prev => prev.map(g => ({ ...g, date: '', startTime: '', location: '' })))
+    toast.success(`mes(prev => prev.map(g => g.id === gameId ? { ...g, ...updated } : g))
     } else {
       toast.error('Failed to update game')
     }
@@ -182,10 +201,6 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
     setOverCell(null)
     const gameId = e.dataTransfer.getData('gameId') || dragId
     if (!gameId) return
-    if (busySlots.has(time)) {
-      patchGame(gameId, { date: '', startTime: '', location: '' })
-      return
-    }
     patchGame(gameId, { date: activeDate, startTime: time, location: field })
   }
 
@@ -202,7 +217,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
 
   function handleSwapClick(gameId: string) {
     if (!swapMode) return
-    if (!swapSourceId) { setSwapSourceId(gameId); toast('Now click the game to swap with', { icon: 'ÃÂ°ÃÂÃÂÃÂ' }); return }
+    if (!swapSourceId) { setSwapSourceId(gameId); toast('Now click the game to swap with', { icon: '🔄' }); return }
     if (swapSourceId === gameId) { setSwapSourceId(null); return }
     const a = games.find(g => g.id === swapSourceId)
     const b = games.find(g => g.id === gameId)
@@ -225,6 +240,23 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
       toast.success('Games swapped!')
     })
     setSwapSourceId(null)
+  }
+
+  async function unscheduleAll() {
+    const scheduled = games.filter(g => g.date || g.startTime || g.location)
+    if (scheduled.length === 0) { toast('No scheduled games to unschedule'); return }
+    if (!window.confirm(`Unschedule all ${scheduled.length} games across every division?`)) return
+    if (!window.confirm(`Are you absolutely sure? This will move all ${scheduled.length} games back to the parking lot.`)) return
+    setUnscheduling(true)
+    await Promise.all(scheduled.map(g =>
+      fetch(`/api/tournaments/${params.id}/games/${g.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: '', startTime: '', location: '' }),
+      })
+    ))
+    setGames(prev => prev.map(g => ({ ...g, date: '', startTime: '', location: '' })))
+    toast.success(`Unscheduled all ${scheduled.length} games`)
+    setUnscheduling(false)
   }
 
   async function unscheduleDivision(div: string) {
@@ -255,7 +287,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
     setActiveDate(s)
   }
 
-  // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Derived values ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+  // ── Derived values ────────────────────────────────────────────────────────
   const divisions = [...new Set(games.map(g => g.division))].sort()
   const unscheduled = games.filter(g => !g.date || !g.startTime || !g.location)
 
@@ -298,7 +330,6 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
     if (!dragGame) return new Set<string>()
     const teams = [dragGame.team1, dragGame.team2].filter(t => t && t !== 'TBD')
     const s = new Set<string>()
-    if (dragGame.startTime) s.add(dragGame.startTime)
     dayGames.forEach(g => {
       if (g.id === dragGame.id) return
       if (teams.includes(g.team1) || teams.includes(g.team2)) s.add(g.startTime)
@@ -331,11 +362,11 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
     return true
   }
 
-  // slot+field ÃÂ¢ÃÂÃÂ game lookup
+  // slot+field → game lookup
   const cellMap: Record<string, Game> = {}
   dayGames.forEach(g => { cellMap[`${g.startTime}|${g.location}`] = g })
 
-  // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Conflict detection ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+  // ── Conflict detection ────────────────────────────────────────────────────
   const scheduledGames = games.filter(g => g.date && g.startTime)
   function slotIndex(time: string) { const [h, m] = time.split(':').map(Number); return h * 60 + m }
   const conflictIds = new Set<string>()
@@ -377,12 +408,12 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
       <TournamentNav id={params.id} />
       <Toaster position="top-right" />
 
-      {/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Header ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */}
+      {/* ── Header ── */}
       <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-lg font-semibold text-slate-900">Game Scheduler</h1>
           <p className="text-sm text-slate-500">
-            {games.length} games ÃÂÃÂ· <span className="text-amber-600 font-medium">{unscheduled.length} unscheduled</span>
+            {games.length} games · <span className="text-amber-600 font-medium">{unscheduled.length} unscheduled</span>
           </p>
         </div>
         <div className="flex items-center gap-3 text-sm flex-wrap">
@@ -405,16 +436,27 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
               <option key={h} value={h}>{fmtTime(`${String(h).padStart(2,'0')}:00`)}</option>
             ))}
           </select>
-          {saving && <span className="text-blue-500 text-xs animate-pulse">SavingÃÂ¢ÃÂÃÂ¦</span>}
+          {saving && <span className="text-blue-500 text-xs animate-pulse">Saving…</span>}
+          {games.some(g => g.date || g.startTime || g.location) && (
+            <button onClick={unscheduleAll} disabled={unscheduling}
+              className="text-xs bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg px-3 py-1 disabled:opacity-50 transition-colors whitespace-nowrap">
+              {unscheduling ? 'Unscheduling…' : '🗑 Unschedule All'}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Parking Lot ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */}
+      {/* ── Parking Lot ── */}
       <div className="bg-slate-900 border-b border-slate-700 flex-shrink-0">
 
         {/* Filter row */}
         <div className="px-4 sm:px-6 pt-2 pb-1 flex items-center gap-2 flex-wrap">
           <span className="text-slate-400 text-xs font-semibold uppercase tracking-widest mr-1">Parking Lot</span>
+          <button onClick={() => setLotExpanded(v => !v)}
+            className="text-slate-500 hover:text-slate-300 transition-colors text-xs px-1"
+            title={lotExpanded ? 'Collapse' : 'Expand to see all games'}>
+            {lotExpanded ? '▲ Collapse' : '▼ Expand'}
+          </button>
           <span className="bg-slate-700 text-slate-300 text-xs font-semibold rounded-full px-2 py-0.5 mr-1">
             {unscheduled.length}
           </span>
@@ -465,12 +507,12 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
           {filterDiv !== '__all__' && (
             <button onClick={() => unscheduleDivision(filterDiv)} disabled={unscheduling}
               className="ml-2 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 rounded px-2 py-0.5 disabled:opacity-50 transition-colors whitespace-nowrap">
-              {unscheduling ? 'UnschedulingÃÂ¢ÃÂÃÂ¦' : 'Unschedule All'}
+              {unscheduling ? 'Unscheduling…' : 'Unschedule All'}
             </button>
           )}
 
           <span className="ml-auto text-slate-600 text-xs hidden sm:block">
-            {swapMode ? 'ÃÂ°ÃÂÃÂÃÂ Click two scheduled games to swap them' : 'Drag to grid ÃÂ¢ÃÂÃÂ  ÃÂÃÂ·  Drop here to unschedule'}
+            {swapMode ? '🔄 Click two scheduled games to swap them' : 'Drag to grid ↓  ·  Drop here to unschedule'}
           </span>
         </div>
 
@@ -486,11 +528,11 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Game chips */}
-          <div className="overflow-x-auto flex-1">
-            <div className="flex gap-2 min-w-max">
+          <div className={lotExpanded ? 'flex-1 max-h-72 overflow-y-auto' : 'overflow-x-auto flex-1'}>
+            <div className={lotExpanded ? 'flex flex-wrap gap-2' : 'flex gap-2 min-w-max'}>
               {filtered.length === 0 ? (
                 <p className="text-slate-500 text-sm py-3 italic self-center">
-                  {unscheduled.length === 0 ? 'ÃÂ°ÃÂÃÂÃÂ All games scheduled!' : 'No games match filter'}
+                  {unscheduled.length === 0 ? '🎉 All games scheduled!' : 'No games match filter'}
                 </p>
               ) : filtered.map(g => {
                 const color = divColor(g.division, divisions)
@@ -505,15 +547,14 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                     className={`relative ${color} rounded-lg px-3 py-2 cursor-grab active:cursor-grabbing text-white text-xs font-medium whitespace-nowrap select-none flex-shrink-0 shadow transition-opacity ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'}`}
                   >
                     {hasConflict && (
-                      <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title="Same-time conflict">ÃÂ¢ÃÂÃÂ </span>
+                      <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title="Same-time conflict">⚠</span>
                     )}
                     {hasB2B && (
-                      <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title="Back-to-back game">ÃÂ¢ÃÂÃÂ</span>
+                      <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title="Back-to-back game">↔</span>
                     )}
                     <div className="font-bold text-[11px] opacity-80">{g.gameNumber}</div>
-                    <div className="font-semibold">{g.team1}</div>
-                    <div className="opacity-80">vs {g.team2}</div>
-                    <div className="opacity-60 text-[10px] mt-0.5">{g.division}{g.pool ? ` ÃÂÃÂ· ${g.pool}` : ''}</div>
+     ssName="opacity-80">vs {g.team2}</div>
+                    <div className="opacity-60 text-[10px] mt-0.5">{g.division}{g.pool ? ` · ${g.pool}` : ''}</div>
                   </div>
                 )
               })}
@@ -522,7 +563,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Grid filter row ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */}
+      {/* ── Grid filter row ── */}
       <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-2 flex items-center gap-2 flex-wrap flex-shrink-0">
         <label className="text-slate-500 text-xs font-semibold">View:</label>
 
@@ -564,12 +605,12 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
 
         {swapMode && swapSourceId && (
           <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 border border-emerald-300 rounded px-2 py-0.5">
-            ÃÂ°ÃÂÃÂÃÂ Click a game to swap with it
+            🔄 Click a game to swap with it
           </span>
         )}
       </div>
 
-      {/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Date Tabs ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */}
+      {/* ── Date Tabs ── */}
       <div className="bg-white border-b border-slate-200 overflow-x-auto flex-shrink-0">
         <div className="flex min-w-max">
           {dates.map(d => (
@@ -592,10 +633,10 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Grid ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */}
+      {/* ── Grid ── */}
       {fields.length === 0 ? (
         <div className="flex-1 flex items-center justify-center flex-col gap-3 text-slate-400 py-20">
-          <div className="text-4xl">ÃÂ°ÃÂÃÂÃÂÃÂ¯ÃÂ¸ÃÂ</div>
+          <div className="text-4xl">🏟️</div>
           <p className="text-base font-medium text-slate-600">No fields configured yet</p>
           <p className="text-sm">Add venues and fields in the
             <a href={`/tournaments/${params.id}/builder`} className="text-blue-500 hover:underline ml-1">Builder</a>
@@ -627,13 +668,14 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                     const cellKey = `${slot}|${f.fullName}`
                     const game = cellMap[cellKey]
                     const isOver = overCell === cellKey
-                    const isTeamBusy = !!dragGame && !game && busySlots.has(slot)
                     const matchesGrid = game ? gameMatchesGridFilter(game) : true
                     const isSwapSource = swapSourceId === game?.id
+                    const isTeamBusy = !!dragGame && !game && busySlots.has(slot)
                     return (
                       <td
                         key={f.fullName}
                         className={`border border-slate-200 p-1 align-top h-16 transition-colors ${isOver ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'}`}
+                       top h-16 transition-colors ${isOver ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'}`}
                         onDragOver={e => { e.preventDefault(); setOverCell(cellKey) }}
                         onDragLeave={() => setOverCell(null)}
                         onDrop={e => handleDropCell(e, slot, f.fullName)}
@@ -652,35 +694,6 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                             `}
                           >
                             {conflictIds.has(game.id) && (
-                              <span className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[9px] font-bold rounded px-1 leading-tight shadow" title="Same-time conflict">ÃÂ¢ÃÂÃÂ  Conflict</span>
+                              <span className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[9px] font-bold rounded px-1 leading-tight shadow" title="Same-time conflict">⚠ Conflict</span>
                             )}
-                            {!conflictIds.has(game.id) && backToBackIds.has(game.id) && (
-                              <span className="absolute top-0.5 right-0.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded px-1 leading-tight shadow" title="Back-to-back game">ÃÂ¢ÃÂÃÂ B2B</span>
-                            )}
-                            <div>
-                              <div className="text-white text-[10px] font-bold opacity-75">{game.gameNumber}</div>
-                              <div className="text-white text-xs font-semibold leading-tight truncate">{game.team1}</div>
-                              <div className="text-white/70 text-[10px] truncate">vs {game.team2}</div>
-                            </div>
-                            <div className="text-white/50 text-[9px] truncate">{game.division}</div>
-                          </div>
-                        ) : isTeamBusy ? (
-                          <div className={`h-full min-h-[52px] rounded-md border transition-colors flex items-center justify-center select-none
-                            ${isOver ? 'border-red-400 bg-red-100' : 'border-red-200 bg-red-50'}`}>
-                            <span className="text-red-400 text-[9px] font-semibold">Ã¢ÂÂ  team busy</span>
-                          </div>
-                        ) : (
-                          <div className={`h-full min-h-[52px] rounded-md border-2 border-dashed transition-colors ${isOver ? 'border-blue-400 bg-blue-50' : 'border-transparent'}`} />
-                        )}
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  )
-}
+                            {!conflictIds.has(game.id) && backToBac
