@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import TournamentNav from '../TournamentNav'
 import toast, { Toaster } from 'react-hot-toast'
 
@@ -466,6 +467,9 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
       {/* ── Header ── */}
       <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
         <div>
+          <div className="flex items-center gap-2 mb-0.5">
+            <Link href={`/tournaments/${params.id}/divisions`} className="text-xs text-blue-600 hover:text-blue-800 hover:underline">← Divisions</Link>
+          </div>
           <h1 className="text-lg font-semibold text-slate-900">Game Scheduler</h1>
           <p className="text-sm text-slate-500">
             {games.length} games · <span className="text-amber-600 font-medium">{unscheduled.length} unscheduled</span>
