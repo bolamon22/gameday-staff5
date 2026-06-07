@@ -89,13 +89,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
       if (teamNames.length < 2) continue
 
       const teamsCount = teamNames.length
-      const gpt = Number(gamesPerTeam) > 0 ? Number(gamesPerTeam) : teamsCount - 1
-      // Each round has floor(n/2) games; cap rounds at the full round-robin length (n-1)
-      const gamesPerRound = Math.floor(teamsCount / 2)
-      const totalRounds = Math.min(Math.ceil(gpt / Math.max(1, gamesPerRound)), teamsCount - 1)
-
       const allRounds = roundRobinByRound(teamNames)
-      poolSchedules.push({ poolName: pool.name, rounds: allRounds.slice(0, totalRounds), rc: Number(refCount ?? 2) })
+      const maxRounds = allRounds.length // n-1 for even teams, n for odd (with bye slot)
+      const gpt = Number(gamesPerTeam) > 0 ? Number(gamesPerTeam) : teamsCount - 1
+      // Full round-robin: each team plays (teamsCount-1) games regardless of odd/even.
+      // For odd teams, that requires ALL maxRounds rounds (one sit-out per team).
+      // For partial RRs, use gpt rounds directly.
+      const roundsToUse = gpt >= teamsCount - 1 ? maxRounds : Math.min(gpt, maxRounds)
+
+      poolSchedules.push({ poolName: pool.name, rounds: allRounds.slice(0, roundsToUse), rc: Number(refCount ?? 2) })
     }
 
     // Number games ROUND BY ROUND across all pools:
