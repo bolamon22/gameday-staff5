@@ -41,6 +41,7 @@ export default function RoadmapPage() {
   const [description, setDescription] = useState('')
   const [adding, setAdding] = useState(false)
   const [filterStatus, setFilterStatus] = useState<Status | 'all'>('all')
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'num' | 'az' | 'status'>('newest')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [editDesc, setEditDesc] = useState('')
@@ -180,7 +181,16 @@ export default function RoadmapPage() {
 
   const counts = { todo: 0, 'in-progress': 0, done: 0 }
   items.forEach(i => { counts[i.status]++ })
-  const filtered = filterStatus === 'all' ? items : items.filter(i => i.status === filterStatus)
+  const statusOrder: Record<Status, number> = { 'in-progress': 0, 'todo': 1, 'done': 2 }
+  const filtered = (filterStatus === 'all' ? items : items.filter(i => i.status === filterStatus))
+    .slice()
+    .sort((a, b) => {
+      if (sortBy === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      if (sortBy === 'num') return (a.num ?? 0) - (b.num ?? 0)
+      if (sortBy === 'az') return a.title.localeCompare(b.title)
+      if (sortBy === 'status') return statusOrder[a.status] - statusOrder[b.status]
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime() // newest
+    })
 
   if (loading) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -233,18 +243,31 @@ export default function RoadmapPage() {
           </button>
         </form>
 
-        {/* Filter tabs */}
-        <div className="flex gap-2">
-          {(['all', 'todo', 'in-progress', 'done'] as const).map(s => (
-            <button key={s} onClick={() => setFilterStatus(s)}
-              className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
-                filterStatus === s
-                  ? 'bg-slate-800 text-white border-slate-800'
-                  : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'
-              }`}>
-              {s === 'all' ? `All (${items.length})` : `${STATUS_CONFIG[s].label} (${counts[s]})`}
-            </button>
-          ))}
+        {/* Filter + Sort bar */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap">
+            {(['all', 'todo', 'in-progress', 'done'] as const).map(s => (
+              <button key={s} onClick={() => setFilterStatus(s)}
+                className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                  filterStatus === s
+                    ? 'bg-slate-800 text-white border-slate-800'
+                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'
+                }`}>
+                {s === 'all' ? `All (${items.length})` : `${STATUS_CONFIG[s].label} (${counts[s]})`}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-slate-400">Sort:</span>
+            <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}
+              className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="num">By # number</option>
+              <option value="az">A → Z</option>
+              <option value="status">By status</option>
+            </select>
+          </div>
         </div>
 
         {/* Items list */}
