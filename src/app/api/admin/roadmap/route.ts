@@ -19,12 +19,13 @@ async function ensureTable(client: ReturnType<typeof getClient>) {
       description TEXT NOT NULL DEFAULT '',
       status      TEXT NOT NULL DEFAULT 'todo',
       notes       TEXT NOT NULL DEFAULT '',
+      estimate    TEXT NOT NULL DEFAULT '',
       createdAt   TEXT NOT NULL
     )
   `)
   try { await client.execute(`ALTER TABLE "RoadmapItem" ADD COLUMN notes TEXT NOT NULL DEFAULT ''`) } catch {}
   try { await client.execute(`ALTER TABLE "RoadmapItem" ADD COLUMN num INTEGER`) } catch {}
-  // Backfill num for existing rows that don't have one
+  try { await client.execute(`ALTER TABLE "RoadmapItem" ADD COLUMN estimate TEXT NOT NULL DEFAULT ''`) } catch {}
   await client.execute(`
     UPDATE "RoadmapItem"
     SET num = (
@@ -49,19 +50,18 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
   if ((session?.user as any)?.role !== 'admin')
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  const { title, description } = await req.json()
+  const { title, description, estimate } = await req.json()
   if (!title?.trim()) return NextResponse.json({ error: 'Title required' }, { status: 400 })
   const client = getClient()
   await ensureTable(client)
-  // Get next number
   const maxRes = await client.execute('SELECT MAX(num) as maxNum FROM "RoadmapItem"')
   const maxNum = (maxRes.rows[0]?.maxNum as number) ?? 0
   const num = maxNum + 1
   const id = crypto.randomUUID()
   const createdAt = new Date().toISOString()
   await client.execute({
-    sql: 'INSERT INTO "RoadmapItem" (id, num, title, description, status, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    args: [id, num, title.trim(), (description ?? '').trim(), 'todo', '', createdAt],
+    sql: 'INSERT INTO "RoadmapItem" (id, num, title, description, status, notes, estimate, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    args: [id, num, title.trim(), (description ?? '').trim(), 'todo', '', (estimate ?? '').trim(), createdAt],
   })
-  return NextResponse.json({ id, num, title: title.trim(), description: (description ?? '').trim(), status: 'todo', notes: '', createdAt }, { status: 201 })
+  return NextResponse.json({ id, num, title: title.trim(), description: (description ?? '').trim(), status: 'todo', notes: '', estimate: (estimate ?? '').trim(), createdAt }, { status: 201 })
 }

@@ -16,21 +16,20 @@ export async function PATCH(req: Request, { params }: { params: { itemId: string
   const session = await getServerSession(authOptions)
   if ((session?.user as any)?.role !== 'admin')
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  const { status, title, description, notes } = await req.json()
+  const { status, title, description, notes, estimate } = await req.json()
   const client = getClient()
   if (status !== undefined) {
     if (!STATUSES.includes(status)) return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
     await client.execute({ sql: 'UPDATE "RoadmapItem" SET status = ? WHERE id = ?', args: [status, params.itemId] })
   }
-  if (title !== undefined) {
+  if (title !== undefined)
     await client.execute({ sql: 'UPDATE "RoadmapItem" SET title = ? WHERE id = ?', args: [title, params.itemId] })
-  }
-  if (description !== undefined) {
+  if (description !== undefined)
     await client.execute({ sql: 'UPDATE "RoadmapItem" SET description = ? WHERE id = ?', args: [description, params.itemId] })
-  }
-  if (notes !== undefined) {
+  if (notes !== undefined)
     await client.execute({ sql: 'UPDATE "RoadmapItem" SET notes = ? WHERE id = ?', args: [notes, params.itemId] })
-  }
+  if (estimate !== undefined)
+    await client.execute({ sql: 'UPDATE "RoadmapItem" SET estimate = ? WHERE id = ?', args: [estimate, params.itemId] })
   return NextResponse.json({ ok: true })
 }
 

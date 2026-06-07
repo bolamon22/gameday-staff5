@@ -15,6 +15,7 @@ interface RoadmapItem {
   description: string
   status: Status
   notes: string
+  estimate: string
   createdAt: string
 }
 
@@ -39,12 +40,14 @@ export default function RoadmapPage() {
   const [loading, setLoading] = useState(true)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [estimate, setEstimate] = useState('')
   const [adding, setAdding] = useState(false)
   const [filterStatus, setFilterStatus] = useState<Status | 'all'>('all')
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'num' | 'az' | 'status'>('newest')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [editDesc, setEditDesc] = useState('')
+  const [editEstimate, setEditEstimate] = useState('')
   const [statusDropdown, setStatusDropdown] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [subtasksMap, setSubtasksMap] = useState<Record<string, Subtask[]>>({})
@@ -98,12 +101,12 @@ export default function RoadmapPage() {
     const res = await fetch('/api/admin/roadmap', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description }),
+      body: JSON.stringify({ title, description, estimate }),
     })
     const item = await res.json()
     setItems(prev => [item, ...prev])
     setNotesMap(prev => ({ ...prev, [item.id]: '' }))
-    setTitle(''); setDescription('')
+    setTitle(''); setDescription(''); setEstimate('')
     toast.success('Item added')
     setAdding(false)
   }
@@ -126,12 +129,12 @@ export default function RoadmapPage() {
   }
 
   async function saveEdit(id: string) {
-    setItems(prev => prev.map(i => i.id === id ? { ...i, title: editTitle, description: editDesc } : i))
+    setItems(prev => prev.map(i => i.id === id ? { ...i, title: editTitle, description: editDesc, estimate: editEstimate } : i))
     setEditingId(null)
     await fetch(`/api/admin/roadmap/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: editTitle, description: editDesc }),
+      body: JSON.stringify({ title: editTitle, description: editDesc, estimate: editEstimate }),
     })
     toast.success('Saved')
   }
@@ -235,7 +238,11 @@ export default function RoadmapPage() {
           <textarea
             placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)}
             rows={2}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          />
+          <input
+            type="text" placeholder="Estimate (e.g. 1 hr, 30 min, 2-3 hrs)" value={estimate} onChange={e => setEstimate(e.target.value)}
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button type="submit" disabled={adding || !title.trim()}
             className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-40 transition-colors">
@@ -302,6 +309,9 @@ export default function RoadmapPage() {
                           <div className="flex items-start gap-2 flex-wrap">
                             <span className="text-xs font-mono text-slate-400 font-medium">#{item.num}</span>
                             <span className="font-semibold text-slate-800 text-sm">{item.title}</span>
+                            {item.estimate && (
+                              <span className="text-xs text-slate-400 font-normal">({item.estimate})</span>
+                            )}
                             {/* Status dropdown */}
                             <div className="relative" onClick={e => e.stopPropagation()}>
                               <button onClick={() => setStatusDropdown(statusDropdown === item.id ? null : item.id)}
@@ -341,7 +351,7 @@ export default function RoadmapPage() {
                             title="Notes & Subtasks">
                             {isExpanded ? '▲ Less' : '▼ Notes & Subtasks'}
                           </button>
-                          <button onClick={() => { setEditingId(item.id); setEditTitle(item.title); setEditDesc(item.description) }}
+                          <button onClick={() => { setEditingId(item.id); setEditTitle(item.title); setEditDesc(item.description); setEditEstimate(item.estimate ?? '') }}
                             className="text-slate-400 hover:text-slate-600 text-sm px-1.5 py-1 rounded" title="Edit">✏️</button>
                           <button onClick={() => deleteItem(item.id)}
                             className="text-slate-400 hover:text-red-500 text-sm px-1.5 py-1 rounded" title="Delete">🗑</button>
