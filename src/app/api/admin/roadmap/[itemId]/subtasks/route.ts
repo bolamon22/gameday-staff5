@@ -12,42 +12,42 @@ function getClient() {
 
 async function ensureTable(client: ReturnType<typeof getClient>) {
   await client.execute(`
-    CREATE TABLE IF NOT EXISTS "RoadmapItem" (
-      id          TEXT PRIMARY KEY,
-      title       TEXT NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
-      status      TEXT NOT NULL DEFAULT 'todo',
-      notes       TEXT NOT NULL DEFAULT '',
-      createdAt   TEXT NOT NULL
+    CREATE TABLE IF NOT EXISTS "RoadmapSubtask" (
+      id        TEXT PRIMARY KEY,
+      itemId    TEXT NOT NULL,
+      title     TEXT NOT NULL,
+      completed INTEGER NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL
     )
   `)
-  // Add notes column to existing tables
-  try { await client.execute(`ALTER TABLE "RoadmapItem" ADD COLUMN notes TEXT NOT NULL DEFAULT ''`) } catch {}
 }
 
-export async function GET(req: Request) {
+export async function GET(req: Request, { params }: { params: { itemId: string } }) {
   const session = await getServerSession(authOptions)
   if ((session?.user as any)?.role !== 'admin')
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const client = getClient()
   await ensureTable(client)
-  const result = await client.execute('SELECT * FROM "RoadmapItem" ORDER BY createdAt DESC')
+  const result = await client.execute({
+    sql: 'SELECT * FROM "RoadmapSubtask" WHERE itemId = ? ORDER BY createdAt ASC',
+    args: [params.itemId],
+  })
   return NextResponse.json(result.rows)
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request, { params }: { params: { itemId: string } }) {
   const session = await getServerSession(authOptions)
   if ((session?.user as any)?.role !== 'admin')
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  const { title, description } = await req.json()
+  const { title } = await req.json()
   if (!title?.trim()) return NextResponse.json({ error: 'Title required' }, { status: 400 })
   const client = getClient()
   await ensureTable(client)
   const id = crypto.randomUUID()
   const createdAt = new Date().toISOString()
   await client.execute({
-    sql: 'INSERT INTO "RoadmapItem" (id, title, description, status, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?)',
-    args: [id, title.trim(), (description ?? '').trim(), 'todo', '', createdAt],
+    sql: 'INSERT INTO "RoadmapSubtask" (id, itemId, title, completed, createdAt) VALUES (?, ?, ?, 0, ?)',
+    args: [id, params.itemId, title.trim(), createdAt],
   })
-  return NextResponse.json({ id, title: title.trim(), description: (description ?? '').trim(), status: 'todo', notes: '', createdAt }, { status: 201 })
+  return NextResponse.json({ id, itemId: params.itemId, title: title.trim(), completed: 0, createdAt }, { status: 201 })
 }
