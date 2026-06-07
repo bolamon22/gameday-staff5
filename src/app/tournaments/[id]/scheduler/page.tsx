@@ -792,8 +792,8 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                               <div className="text-[9px] text-white/70 leading-none truncate">{game.division}{game.pool ? ` · ${game.pool}` : ''}</div>
                             </div>
                             <div>
-                              <div className="text-white text-xs font-semibold truncate leading-tight">{game.team1}</div>
-                              <div className="text-white/80 text-[10px] truncate">vs {game.team2}</div>
+                              <div className="text-white text-xs font-semibold truncate leading-tight">{game.team1}{(teamGames[game.team1]?.length ?? 0) > 0 && <span className="opacity-60 font-normal"> ({teamGames[game.team1]?.length})</span>}</div>
+                              <div className="text-white/80 text-[10px] truncate">vs {game.team2}{(teamGames[game.team2]?.length ?? 0) > 0 && <span className="opacity-60"> ({teamGames[game.team2]?.length})</span>}</div>
                             </div>
                           </div>
                         ) : isTeamBusy ? (
