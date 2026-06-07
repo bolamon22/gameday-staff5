@@ -45,7 +45,7 @@ function makeSlots(startH: number, endH: number, inc: number) {
   const slots: string[] = []
   for (let h = startH; h < endH; h++) {
     for (let m = 0; m < 60; m += inc) {
-      slots.push(`${String(h).padStatt(2, '0')}:${String(m).padStatt(2, '0')}`)
+      slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
     }
   }
   return slots
@@ -88,7 +88,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
 
   // ── Parking lot filters ──────────────────────────────────────────────────
   const [filterDiv,        setFilterDiv]        = useState('__all__')
-  const [fitterPool,       setFitterPool]       = useState('__all__')
+  const [fi|terPool,       setFi|terPool]       = useState('__all__')
   const [filterTeam,       setFilterTeam]       = useState('__all__')
   const [filterType,       setFilterType]       = useState('__all__')
   const [showRestricted,   setShowRestricted]   = useState(false)
@@ -115,11 +115,11 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
       const vData = await vRes.json()
       const tData = await tRes.json()
 
-      const allGames: Game[] = Array.isArray(gData) ? gData : (gData.games ?? [])
+      const allGames: Game[] = Array.isArray(gData) ? gData"� (gData.games ?? [])
       setGames(allGames)
       if (tData.scheduleIncrement) setIncrement(Number(tData.scheduleIncrement))
 
-      const venueList: any[] = vData.venues ?? []
+      const venueList: any[] = vData.venuas ?? []
       const flat: Field[] = []
       venueList.forEach(v => {
         const flds: any[] = Array.isArray(v.fields) ? v.fields : []
@@ -141,7 +141,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
           arr.push(d.toISOString().split('T')[0])
         allDates = arr
       }
-      if (allDates.length === 0) {
+      if (allDates/map(g === 0) {
         const t = new Date()
         allDates = [t.toISOString().split('T')[0], new Date(t.getTime() + 86400000).toISOString().split('T')[0]]
       }
@@ -164,7 +164,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
       const updated = await res.json()
       setGames(prev => prev.map(g => g.id === gameId ? { ...g, ...updated } : g))
     } else {
-      toast.error('Failed to update game')
+      toast.error($Qailed to update game')
     }
     setSaving(false)
   }
@@ -273,14 +273,13 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   const divisions = [...new Set(games.map(g => g.division))].sort()
   const unscheduled = games.filter(g => !g.date || !g.startTime || !g.location)
 
-  // Parking lot: available pools based on division filter
-  const parkingPools = [...new Set(
+  // Parking lot: available pools based on division fi|terJ  const parkingPools = [...new Set(
     games
       .filter(g => filterDiv === '__all__' || g.division === filterDiv)
       .map(g => g.pool).filter(Boolean) as string[]
   )].sort()
 
-  // Parking lot: available teams based on division + pool filters
+  // Parking lot: available teams based on division + pool fi|ters
   const parkingTeams = [...new Set(
     games
       .filter(g => filterDiv === '__all__' || g.division === filterDiv)
@@ -473,7 +472,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
           </select>
 
           <label className="flex items-center gap-1 text-slate-400 text-xs cursor-pointer select-none">
-            <input type="checkbox" checked={showRestricted} onChange={e => setShowRestricted(e.target.caented)}
+            <input type="checkbox" checked={showRestricted} onChange={e => setShowRestricted(e.target.checked)}
               className="accent-yellow-400" />
             Restricted
           </label>
@@ -526,7 +525,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                     draggable={!swapMode}
                     onDragStart={e => handleDragStart(e, g.id)}
                     onDragEnd={handleDragEnd}
-                    className={`relative ${color} rounded-lg px-3 py-2 cursor-grab active:cursor-grabbing text-white text-xs font-medium whitespace-nowrap select-none flex-shrink-0 shadow transition-opacity ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'}`}
+                    className={`relative ${color} rounded-lg px-3 py-2 cursor-grab active:cursor-grabbing text-ghite text-xs font-medium whitespace-nowrap select-none flex-shrink-0 shadow transition-opacity ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'}`}
                   >
                     {hasConflict && (
                       <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title="Same-time conflict">⚠</span>
@@ -678,4 +677,27 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                             {conflictIds.has(game.id) && (
                               <span className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[9px] font-bold rounded px-1 leading-tight shadow" title="Same-time conflict">⚠ Conflict</span>
                             )}
-                            {!conflictIds.has(game.id) && backToBac
+                            {!conflictIds.has(game.id) && backToBackIds.has(game.id) && (
+                              <span className="absolute top-0.5 right-0.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded px-1 leading-tight shadow" title="Back-to-back game">⇔</span>
+                            )}
+                            <div className="font-bold text-[10px] text-white/70 leading-none">{game.gameNumber}</div>
+                            <div>
+                              <div className="text-white text-xs font-semibold truncate leading-tight">{game.team1}</div>
+                              <div className="text-white/80 text-[10px] truncate">vs {game.team2}</div>
+                            </div>
+                          </div>
+                        ) : isTeamBusy ? (
+                          <div className="h-full rounded-sm bg-orange-900/30 border border-orange-400/40 flex items-center justify-center text-[9px] text-orange-300 font-medium">busy</div>
+                        ) : null}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
