@@ -16,7 +16,7 @@ export async function PATCH(req: Request, { params }: { params: { itemId: string
   const session = await getServerSession(authOptions)
   if ((session?.user as any)?.role !== 'admin')
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  const { status, title, description, notes, estimate } = await req.json()
+  const { status, title, description, notes, estimate, num } = await req.json()
   const client = getClient()
   if (status !== undefined) {
     if (!STATUSES.includes(status)) return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
@@ -30,6 +30,8 @@ export async function PATCH(req: Request, { params }: { params: { itemId: string
     await client.execute({ sql: 'UPDATE "RoadmapItem" SET notes = ? WHERE id = ?', args: [notes, params.itemId] })
   if (estimate !== undefined)
     await client.execute({ sql: 'UPDATE "RoadmapItem" SET estimate = ? WHERE id = ?', args: [estimate, params.itemId] })
+  if (num !== undefined)
+    await client.execute({ sql: 'UPDATE "RoadmapItem" SET num = ? WHERE id = ?', args: [num, params.itemId] })
   return NextResponse.json({ ok: true })
 }
 
