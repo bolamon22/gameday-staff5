@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
 import { DEFAULT_PAY_RATES, PayRates } from '@/lib/utils'
 import TournamentNav from '../TournamentNav'
@@ -102,6 +103,33 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
   const [open, setOpen] = useState<Section>('general')
 
   const toggle = (s: Section) => setOpen(o => o === s ? ('' as any) : s)
+
+  // Copy tournament state
+  const router = useRouter()
+  const [showCopy, setShowCopy] = useState(false)
+  const [copyName, setCopyName] = useState('')
+  const [copyStart, setCopyStart] = useState('')
+  const [copyEnd, setCopyEnd] = useState('')
+  const [copying, setCopying] = useState(false)
+
+  async function copyTournament() {
+    if (!copyName.trim()) return
+    setCopying(true)
+    const res = await fetch(`/api/tournaments/${params.id}/copy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: copyName.trim(), startDate: copyStart, endDate: copyEnd }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      toast.success(`"${data.name}" created!`)
+      setShowCopy(false)
+      router.push(`/tournaments/${data.id}/settings`)
+    } else {
+      toast.error(data.error || 'Failed to copy')
+    }
+    setCopying(false)
+  }
 
   useEffect(() => {
     fetch(`/api/tournaments/${params.id}`).then(r => r.json()).then(t => {
@@ -239,10 +267,16 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
             <h1 className="text-2xl font-bold text-gray-800">Settings</h1>
             <p className="text-sm text-gray-500 mt-0.5">{tName}</p>
           </div>
-          <button onClick={save} disabled={saving}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold px-5 py-2 rounded-xl text-sm transition-colors">
-            {saving ? 'Saving…' : 'Save Changes'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => { setCopyName(tName + ' (Copy)'); setCopyStart(''); setCopyEnd(''); setShowCopy(true) }}
+              className="border border-gray-300 hover:bg-gray-100 text-gray-600 font-semibold px-4 py-2 rounded-xl text-sm transition-colors">
+              📋 Copy Tournament
+            </button>
+            <button onClick={save} disabled={saving}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold px-5 py-2 rounded-xl text-sm transition-colors">
+              {saving ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
         </div>
 
         <form onSubmit={save} className="space-y-3">
@@ -768,6 +802,53 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
         </form>
       </div>
       </div>
+
+      {/* Copy Tournament Modal */}
+      {showCopy && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="px-6 py-5 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-800">📋 Copy Tournament</h2>
+              <p className="text-sm text-gray-500 mt-1">Creates a new tournament with the same settings, venues, and staff roster. Games and registrations are not copied.</p>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Tournament Name</label>
+                <input className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={copyName} onChange={e => setCopyName(e.target.value)} placeholder="e.g. Spring Invitational 2027" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                  <input type="date" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={copyStart} onChange={e => setCopyStart(e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                  <input type="date" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={copyEnd} onChange={e => setCopyEnd(e.target.value)} />
+                </div>
+              </div>
+              <div className="bg-blue-50 rounded-xl px-4 py-3 text-xs text-blue-700 space-y-1">
+                <p className="font-semibold">What gets copied:</p>
+                <p>✓ Venues & fields · ✓ Divisions · ✓ Pay rates · ✓ Ref rules · ✓ Staff roster · ✓ Registration settings</p>
+                <p className="font-semibold mt-1">What stays behind:</p>
+                <p>✗ Games & schedule · ✗ Team registrations · ✗ Assignments · ✗ Availability</p>
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button type="button" className="flex-1 border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
+                  onClick={() => setShowCopy(false)}>Cancel</button>
+                <button type="button"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
+                  onClick={copyTournament}
+                  disabled={!copyName.trim() || copying}>
+                  {copying ? 'Copying…' : 'Create Copy'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
