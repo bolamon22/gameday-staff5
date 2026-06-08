@@ -965,19 +965,17 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                         reorderLot(sourceId, g.id)
                       }
                     }}
-                    className={`relative rounded-lg px-3 py-2 cursor-grab active:cursor-grabbing text-xs font-medium whitespace-nowrap select-none flex-shrink-0 shadow transition-all ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'} ${isLotOver && dragId !== g.id ? 'ring-2 ring-white scale-105' : ''}`}
+                    className={`relative rounded-md px-2 py-1 cursor-grab active:cursor-grabbing text-[11px] font-medium whitespace-nowrap select-none flex-shrink-0 shadow transition-all ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'} ${isLotOver && dragId !== g.id ? 'ring-2 ring-white scale-105' : ''}`}
                     style={{ backgroundColor: color, color: textColor(color) }}
                   >
                     {hasConflict && (
-                      <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title={conflictMsgs.get(g.id) ?? 'Same-time conflict'}>⚠</span>
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center shadow-sm" title={conflictMsgs.get(g.id) ?? 'Same-time conflict'}>!</span>
                     )}
                     {hasB2B && (
-                      <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title={backToBackMsgs.get(g.id) ?? 'Back-to-back game'}>↔</span>
+                      <span className="absolute -top-1 -right-1 bg-yellow-400 text-slate-900 text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center shadow-sm" title={backToBackMsgs.get(g.id) ?? 'Back-to-back game'}>↔</span>
                     )}
-                    <div className="font-bold text-[11px] opacity-80">{g.gameNumber}</div>
-                    <div className="font-semibold">{g.team1}</div>
-                    <div className="opacity-80">vs {g.team2}</div>
-                    <div className="opacity-60 text-[10px] mt-0.5">{g.division}{g.pool ? ` · ${g.pool}` : ''}</div>
+                    <div className="font-bold leading-none mb-0.5"><span className="opacity-60 text-[9px] mr-1">{g.gameNumber}</span>{g.team1}</div>
+                    <div className="opacity-75 text-[10px] leading-none">vs {g.team2} <span className="opacity-60">· {g.division}{g.pool ? ` ${g.pool}` : ''}</span></div>
                   </div>
                 )
               })}
@@ -1260,13 +1258,13 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                             style={{ backgroundColor: divColor(game.division, divisions, divColorMap), color: textColor(divColor(game.division, divisions, divColorMap)) }}
                           >
                             {conflictMsgs.has(game.id) && (
-                              <span className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[9px] font-bold rounded px-1 leading-tight shadow" title={conflictMsgs.get(game.id) ?? 'Same-time conflict'}>⚠ Conflict</span>
+                              <span className="absolute bottom-0.5 right-0.5 bg-red-500 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow" title={conflictMsgs.get(game.id) ?? 'Same-time conflict'}>⚠</span>
                             )}
                             {!conflictMsgs.has(game.id) && backToBackMsgs.has(game.id) && (
                               <span className="absolute top-0.5 right-0.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded px-1 leading-tight shadow" title={backToBackMsgs.get(game.id) ?? 'Back-to-back game'}>⇔</span>
                             )}
                             {!conflictMsgs.has(game.id) && !backToBackMsgs.has(game.id) && longGapMsgs.has(game.id) && (
-                              <span className="absolute top-0.5 right-0.5 bg-blue-400 text-white text-[9px] font-bold rounded px-1 leading-tight shadow" title={longGapMsgs.get(game.id) ?? 'Long gap'}>⏱ Gap</span>
+                              <span className="absolute bottom-0.5 right-0.5 bg-blue-400 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow" title={longGapMsgs.get(game.id) ?? 'Long gap'}>⏱</span>
                             )}
                             <div className="flex items-center justify-between gap-1">
                               <div className="font-bold text-[10px] leading-none" style={{ color: 'inherit' }}>{game.gameNumber}</div>
