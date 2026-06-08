@@ -391,7 +391,7 @@ if (loading) return (
         <div className="flex gap-6">
 
           {/* -- Sidebar -------------------------------------------- */}
-          <div className="w-56 flex-shrink-0">
+          <div className="w-72 flex-shrink-0">
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden sticky top-6">
               <div className="bg-slate-800 px-4 py-3">
                 <p className="text-xs font-bold text-white uppercase tracking-wider">Divisions</p>
