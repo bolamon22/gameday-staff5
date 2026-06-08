@@ -64,7 +64,7 @@ export default function AssignPoolsPage() {
     all.forEach((team, i) => newPools[i % newPools.length].teamNames.push(team))
     setPools(newPools)
     setUnassigned([])
-    toast.success('Teams randomly assigned')
+    toast.success('Teams auto-assigned to pools')
   }
 
   async function saveAndGoBack() {
@@ -104,14 +104,14 @@ export default function AssignPoolsPage() {
         </button>
         <button onClick={randomAssign} disabled={pools.length === 0}
           className="text-sm font-semibold border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-1.5 rounded-lg transition-colors disabled:opacity-40 tracking-wide uppercase">
-          Randomly Assign Teams to Pools
+          Auto Assign Teams to Pools
         </button>
       </div>
 
       <div className="px-6 py-6 max-w-6xl mx-auto">
         <h1 className="text-lg font-bold text-slate-800">Assign Teams to Pools</h1>
         <p className="text-sm text-slate-500 mt-0.5">{divName}</p>
-        <p className="text-sm text-slate-400 mt-3 mb-6">Drag and drop teams to pools below or randomly assign them to pools</p>
+        <p className="text-sm text-slate-400 mt-3 mb-6">Drag and drop teams to pools below or auto-assign them to pools</p>
 
         {pools.length === 0 ? (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-8 text-center">
