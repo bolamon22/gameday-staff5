@@ -96,6 +96,7 @@ export default function GridPage({ params }: { params:{id:string} }) {
   const [clearConfirm,setClearConfirm]=useState('')
   const [clearName,setClearName]=useState('')
   const [clearSaving,setClearSaving]=useState(false)
+  const [clearCategory,setClearCategory]=useState<'girls-refs'|'boys-refs'|'scorekeepers'|null>(null)
 
   // View mode
   const [viewMode,setViewMode]=useState<'grid'|'list'|'division'|'staff'>('grid')
@@ -427,26 +428,37 @@ export default function GridPage({ params }: { params:{id:string} }) {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
             <div className="px-6 py-5 border-b border-red-100 bg-red-50 rounded-t-2xl">
               <h2 className="text-lg font-bold text-red-800">Clear Assignments</h2>
-              <p className="text-sm text-red-600 mt-1">This will delete all assignments for <strong>{formatDate(activeDay)}</strong>. This cannot be undone.</p>
+              <p className="text-sm text-red-600 mt-1">For <strong>{formatDate(activeDay)}</strong>. This cannot be undone.</p>
             </div>
-            <div className="px-6 py-5 space-y-4">
-              <div>
-                <label className="label">Your name (for the audit log)</label>
-                <input className="input" placeholder="e.g. John Smith" value={clearName} onChange={e=>setClearName(e.target.value)}/>
+            {!clearCategory?(
+              <div className="px-6 py-5 space-y-3">
+                <p className="text-sm font-semibold text-slate-700">What do you want to clear?</p>
+                <button className="w-full text-left px-4 py-3 rounded-xl border border-pink-200 hover:bg-pink-50 text-sm font-medium text-pink-800 transition-colors" onClick={()=>setClearCategory('girls-refs')}>👧 Girls Referees</button>
+                <button className="w-full text-left px-4 py-3 rounded-xl border border-sky-200 hover:bg-sky-50 text-sm font-medium text-sky-800 transition-colors" onClick={()=>setClearCategory('boys-refs')}>👦 Boys Referees</button>
+                <button className="w-full text-left px-4 py-3 rounded-xl border border-emerald-200 hover:bg-emerald-50 text-sm font-medium text-emerald-800 transition-colors" onClick={()=>setClearCategory('scorekeepers')}>📋 Score Keepers</button>
+                <button className="btn-secondary w-full mt-1" onClick={()=>{setShowClear(false);setClearConfirm('');setClearName('');setClearCategory(null)}}>Cancel</button>
               </div>
-              <div>
-                <label className="label">Type <strong>DELETE</strong> to confirm</label>
-                <input className="input font-mono" placeholder="DELETE" value={clearConfirm} onChange={e=>setClearConfirm(e.target.value)}/>
+            ):(
+              <div className="px-6 py-5 space-y-4">
+                <p className="text-sm text-slate-600">Clearing: <strong className="text-slate-800">{clearCategory==='girls-refs'?'Girls Referees':clearCategory==='boys-refs'?'Boys Referees':'Score Keepers'}</strong></p>
+                <div>
+                  <label className="label">Your name (for the audit log)</label>
+                  <input className="input" placeholder="e.g. John Smith" value={clearName} onChange={e=>setClearName(e.target.value)}/>
+                </div>
+                <div>
+                  <label className="label">Type <strong>DELETE</strong> to confirm</label>
+                  <input className="input font-mono" placeholder="DELETE" value={clearConfirm} onChange={e=>setClearConfirm(e.target.value)}/>
+                </div>
+                <div className="flex gap-3">
+                  <button className="btn-secondary flex-1" onClick={()=>{setClearCategory(null);setClearConfirm('');setClearName('')}}>← Back</button>
+                  <button
+                    className="flex-1 px-4 py-2 rounded-xl font-semibold text-sm transition-colors bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                    onClick={clearAssignments}
+                    disabled={clearConfirm!=='DELETE'||!clearName.trim()||clearSaving}
+                  >{clearSaving?'Clearing…':'Clear'}</button>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <button className="btn-secondary flex-1" onClick={()=>{setShowClear(false);setClearConfirm('');setClearName('')}}>Cancel</button>
-                <button
-                  className="flex-1 px-4 py-2 rounded-xl font-semibold text-sm transition-colors bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
-                  onClick={clearAssignments}
-                  disabled={clearConfirm!=='DELETE'||!clearName.trim()||clearSaving}
-                >{clearSaving?'Clearing…':'Clear All Assignments'}</button>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       )}
