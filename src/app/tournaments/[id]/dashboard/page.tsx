@@ -29,14 +29,15 @@ interface DashData {
 const fmt = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const payLabel = (m: string) => m === 'credit_card' ? 'Credit Card' : m === 'zelle' ? 'Zelle' : 'Check'
 
-function StatCard({ label, value, sub, color = 'text-slate-800' }: { label: string; value: string | number; sub?: string; color?: string }) {
-  return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4">
+function StatCard({ label, value, sub, color = 'text-slate-800', href }: { label: string; value: string | number; sub?: string; color?: string; href?: string }) {
+  const inner = (
+    <div className={`bg-white border border-slate-200 rounded-xl p-4 transition-shadow${href ? ' hover:shadow-md hover:border-slate-300 cursor-pointer' : ''}`}>
       <div className={`text-2xl font-bold ${color}`}>{value}</div>
       <div className="text-sm font-medium text-slate-600 mt-0.5">{label}</div>
       {sub && <div className="text-xs text-slate-400 mt-0.5">{sub}</div>}
     </div>
   )
+  return href ? <Link href={href}>{inner}</Link> : inner
 }
 
 // ── Hub component ─────────────────────────────────────────────────────────────
@@ -200,11 +201,11 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                <StatCard label="Clubs Registered" value={reg.clubs} color="text-purple-600" />
-                <StatCard label="Teams Registered" value={reg.teams} color="text-blue-600" />
-                <StatCard label="Paid in Full" value={reg.paidInFull} sub={`${reg.outstanding} outstanding`} color="text-green-600" />
+                <StatCard label="Clubs Registered" value={reg.clubs} color="text-purple-600" href={`/tournaments/${id}/registrations`} />
+                <StatCard label="Teams Registered" value={reg.teams} color="text-blue-600" href={`/tournaments/${id}/registrations`} />
+                <StatCard label="Paid in Full" value={reg.paidInFull} sub={`${reg.outstanding} outstanding`} color="text-green-600" href={`/tournaments/${id}/registrations`} />
                 {reg.hotelYes + reg.hotelMaybe > 0 && (
-                  <StatCard label="Hotel Requests" value={reg.hotelYes} sub={`${reg.hotelMaybe} maybe`} color="text-amber-600" />
+                  <StatCard label="Hotel Requests" value={reg.hotelYes} sub={`${reg.hotelMaybe} maybe`} color="text-amber-600" href={`/tournaments/${id}/registrations`} />
                 )}
               </div>
 
