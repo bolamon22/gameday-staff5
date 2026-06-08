@@ -73,7 +73,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
     if (pools.length === 0) return NextResponse.json({ error: 'No pools found for this division' }, { status: 400 })
 
     if (clearExisting) {
-      await prisma.game.deleteMany({ where: { tournamentId: params.id, division, pool: { not: null } } })
+      // Delete ALL games for the division (pool and non-pool) so old legacy games don't persist
+      await prisma.game.deleteMany({ where: { tournamentId: params.id, division } })
     }
 
     // Count existing pool games for this division to continue numbering from there
