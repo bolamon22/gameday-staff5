@@ -67,7 +67,7 @@ export default function FinancialsPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'summary' | 'registrations' | 'other'>('summary')
+  const [activeTab, setActiveTab] = useState<'summary' | 'other'>('summary')
 
   const load = () => {
     Promise.all([
@@ -145,7 +145,6 @@ export default function FinancialsPage() {
 
   const tabs = [
     { key: 'summary',       label: '📊 P&L Summary' },
-    { key: 'registrations', label: `📋 Team Fees (${registrations.length + individualRegs.length})` },
     { key: 'other',         label: `💰 Other (${transactions.length})` },
   ] as const
 
@@ -184,6 +183,10 @@ export default function FinancialsPage() {
               {tab.label}
             </button>
           ))}
+          <Link href={`/tournaments/${tournamentId}/registrations`}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:bg-gray-100">
+            📋 Team Fees ({registrations.length + individualRegs.length})
+          </Link>
           <Link href={`/tournaments/${tournamentId}/pay-summary`}
             className="px-4 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:bg-gray-100">
             👥 Staff Pay ({staffSummary.length})
@@ -288,125 +291,9 @@ export default function FinancialsPage() {
           </div>
         )}
 
-        {/* ── REGISTRATIONS TAB ── */}
-        {activeTab === 'registrations' && (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold text-gray-800">Registration Fees</h2>
-                <p className="text-xs text-gray-400 mt-0.5">{registrations.length} clubs · {registrations.reduce((s,r)=>s+r.teams.length,0)} teams · {individualRegs.length} individual players</p>
-              </div>
-              <div className="text-right">
-                <div className="text-xl font-bold text-emerald-600">{fmt(regReceived)} <span className="text-sm font-normal text-gray-400">collected</span></div>
-                {regBalance > 0 && <div className="text-sm text-amber-600">{fmt(regBalance)} outstanding</div>}
-              </div>
-            </div>
-
-            {/* Team registrations */}
-            {registrations.length > 0 && (
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-100">
-                  <tr>
-                    <th colSpan={6} className="text-left px-5 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Team Registrations</th>
-                  </tr>
-                  <tr>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Club</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Teams</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Method</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Invoiced</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Paid</th>
-                    <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Balance</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {registrations.map(reg => {
-                    const paid = reg.payments.reduce((s, p) => s + p.amount, 0)
-                    const due  = reg.invoiceAmount - reg.discountAmount
-                    const bal  = due - paid
-                    return (
-                      <tr key={reg.id} className="hover:bg-gray-50">
-                        <td className="px-5 py-3 font-medium text-gray-800">{reg.clubName || reg.clubContact}</td>
-                        <td className="px-4 py-3 text-gray-500">{reg.teams.length}</td>
-                        <td className="px-4 py-3 text-gray-500">{methodLabel(reg.paymentMethod)}</td>
-                        <td className="px-4 py-3 text-right text-gray-700">{fmt(due)}</td>
-                        <td className="px-4 py-3 text-right text-emerald-600 font-medium">{fmt(paid)}</td>
-                        <td className={`px-5 py-3 text-right font-semibold ${bal > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>{fmt(bal)}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-                <tfoot className="bg-gray-50 border-t border-gray-200">
-                  <tr>
-                    <td colSpan={3} className="px-5 py-2 text-sm font-semibold text-gray-600">Team subtotal</td>
-                    <td className="px-4 py-2 text-right text-sm font-semibold text-gray-700">{fmt(teamInvoiced)}</td>
-                    <td className="px-4 py-2 text-right text-sm font-semibold text-emerald-600">{fmt(teamReceived)}</td>
-                    <td className={`px-5 py-2 text-right text-sm font-semibold ${(teamInvoiced-teamReceived) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>{fmt(teamInvoiced-teamReceived)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            )}
-
-            {/* Individual player registrations */}
-            {individualRegs.length > 0 && (
-              <table className="w-full text-sm border-t border-gray-100">
-                <thead className="bg-gray-50 border-b border-gray-100">
-                  <tr>
-                    <th colSpan={5} className="text-left px-5 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">Individual Players</th>
-                  </tr>
-                  <tr>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Player</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Fee Tier</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Amount</th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                    <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Balance</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {individualRegs.map(reg => {
-                    const isPaid = reg.paymentStatus === 'paid'
-                    return (
-                      <tr key={reg.id} className="hover:bg-gray-50">
-                        <td className="px-5 py-3 font-medium text-gray-800">
-                          {reg.firstName} {reg.lastName}
-                          <div className="text-xs text-gray-400">{reg.email}</div>
-                        </td>
-                        <td className="px-4 py-3 text-gray-500">{reg.feeTierName || '—'}</td>
-                        <td className="px-4 py-3 text-right text-gray-700">{fmt(reg.feeTierAmount)}</td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${isPaid ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-600'}`}>
-                            {isPaid ? 'Paid' : 'Pending'}
-                          </span>
-                        </td>
-                        <td className={`px-5 py-3 text-right font-semibold ${isPaid ? 'text-emerald-600' : 'text-amber-600'}`}>{fmt(isPaid ? 0 : reg.feeTierAmount)}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-                <tfoot className="bg-gray-50 border-t border-gray-200">
-                  <tr>
-                    <td colSpan={2} className="px-5 py-2 text-sm font-semibold text-gray-600">Player subtotal</td>
-                    <td className="px-4 py-2 text-right text-sm font-semibold text-gray-700">{fmt(indivInvoiced)}</td>
-                    <td></td>
-                    <td className="px-5 py-2 text-right text-sm font-semibold text-emerald-600">{fmt(indivReceived)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            )}
-
-            {/* Grand total */}
-            <div className="bg-gray-50 border-t-2 border-gray-200 px-5 py-3 flex justify-between items-center">
-              <span className="font-bold text-gray-800">Grand Total</span>
-              <div className="flex gap-8 text-sm">
-                <span className="font-bold text-gray-800">Invoiced: {fmt(regInvoiced)}</span>
-                <span className="font-bold text-emerald-600">Collected: {fmt(regReceived)}</span>
-                <span className={`font-bold ${regBalance > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>Balance: {fmt(regBalance)}</span>
-              </div>
-            </div>
-          </div>
-        )}
 
 
-        {/* ── OTHER INCOME & EXPENSES TAB ── */}
+                {/* ── OTHER INCOME & EXPENSES TAB ── */}
         {activeTab === 'other' && (
           <div>
             <div className="flex gap-2 mb-4">
