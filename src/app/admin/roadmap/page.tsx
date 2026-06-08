@@ -43,6 +43,7 @@ export default function RoadmapPage() {
   const [estimate, setEstimate] = useState('')
   const [adding, setAdding] = useState(false)
   const [filterStatus, setFilterStatus] = useState<Status | 'all'>('all')
+  const [search, setSearch] = useState('')
   const [filterTime, setFilterTime] = useState<'all' | 'quick' | 'medium' | 'big'>('all')
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'num' | 'az' | 'status'>('newest')
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -202,6 +203,11 @@ export default function RoadmapPage() {
   }
   const filtered = (filterStatus === 'all' ? items : items.filter(i => i.status === filterStatus))
     .filter(timeFilterFn)
+    .filter(i => {
+      if (!search.trim()) return true
+      const q = search.toLowerCase()
+      return i.title.toLowerCase().includes(q) || (i.description ?? '').toLowerCase().includes(q) || String(i.num ?? '').includes(q)
+    })
     .slice()
     .sort((a, b) => {
       if (sortBy === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -267,6 +273,22 @@ export default function RoadmapPage() {
         </form>
 
         {/* Filter + Sort bar */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search tasks…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full border border-slate-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white placeholder-slate-400"
+          />
+          <svg className="absolute left-2.5 top-2.5 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+          </svg>
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-lg leading-none">×</button>
+          )}
+        </div>
+
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex gap-2 flex-wrap">
             {(['all', 'todo', 'in-progress', 'done'] as const).map(s => (
