@@ -908,6 +908,9 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                   )
                 })}
               </div>
+              <span className="ml-3 text-[10px] text-slate-600 italic hidden sm:block self-center">
+                Drop a game here to hold it · Drop anywhere below to unschedule
+              </span>
             </div>
           )}
           {swapMode && (
