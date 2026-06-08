@@ -43,6 +43,7 @@ export default function RoadmapPage() {
   const [estimate, setEstimate] = useState('')
   const [adding, setAdding] = useState(false)
   const [filterStatus, setFilterStatus] = useState<Status | 'all'>('all')
+  const [filterTime, setFilterTime] = useState<'all' | 'quick' | 'medium' | 'big'>('all')
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'num' | 'az' | 'status'>('newest')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
@@ -185,7 +186,22 @@ export default function RoadmapPage() {
   const counts = { todo: 0, 'in-progress': 0, done: 0 }
   items.forEach(i => { counts[i.status]++ })
   const statusOrder: Record<Status, number> = { 'in-progress': 0, 'todo': 1, 'done': 2 }
+  const timeFilterFn = (item: RoadmapItem) => {
+    if (filterTime === 'all') return true
+    const e = (item.estimate || '').toLowerCase()
+    if (!e) return filterTime === 'all'
+    // parse out the largest number mentioned
+    const nums = e.match(/[\d.]+/g)?.map(Number) || []
+    const max = nums.length ? Math.max(...nums) : 0
+    const isHours = e.includes('hr') || e.includes('hour')
+    const minutes = isHours ? max * 60 : max
+    if (filterTime === 'quick') return minutes <= 60
+    if (filterTime === 'medium') return minutes > 60 && minutes <= 120
+    if (filterTime === 'big') return minutes > 120
+    return true
+  }
   const filtered = (filterStatus === 'all' ? items : items.filter(i => i.status === filterStatus))
+    .filter(timeFilterFn)
     .slice()
     .sort((a, b) => {
       if (sortBy === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -275,6 +291,26 @@ export default function RoadmapPage() {
               <option value="status">By status</option>
             </select>
           </div>
+        </div>
+
+        {/* Time filter bar */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-slate-400">Time:</span>
+          {([
+            { key: 'all', label: 'All' },
+            { key: 'quick', label: '⚡ Quick (≤1 hr)' },
+            { key: 'medium', label: '🔧 Medium (1-2 hrs)' },
+            { key: 'big', label: '🏗 Big (2+ hrs)' },
+          ] as const).map(({ key, label }) => (
+            <button key={key} onClick={() => setFilterTime(key)}
+              className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                filterTime === key
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'
+              }`}>
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Items list */}
