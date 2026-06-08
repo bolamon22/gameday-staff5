@@ -1271,12 +1271,12 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                       >
                         {game ? (
                           <div
-                            draggable={!swapMode}
+                            draggable={!swapMode && editingTimeId !== game.id}
                             onDragStart={e => handleDragStart(e, game.id)}
                             onDragEnd={handleDragEnd}
                             onClick={() => handleSwapClick(game.id)}
                             className={`relative rounded-md px-2 py-1 h-full min-h-[52px] flex flex-col justify-between transition-all
-                              ${swapMode ? 'cursor-pointer hover:ring-2 hover:ring-white' : 'cursor-grab active:cursor-grabbing'}
+                              ${swapMode ? 'cursor-pointer hover:ring-2 hover:ring-white' : editingTimeId === game.id ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}
                               ${dragId === game.id ? 'opacity-30' : ''}
                               ${!matchesGrid ? 'opacity-20' : 'hover:brightness-110'}
                               ${isSwapSource ? 'ring-2 ring-white ring-offset-1 brightness-125' : ''}
@@ -1302,7 +1302,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                                     value={editingTimeVal}
                                     onChange={e => setEditingTimeVal(e.target.value)}
                                     onKeyDown={e => { if (e.key === 'Enter') commitTimeEdit(game.id); if (e.key === 'Escape') setEditingTimeId(null) }}
-                                    onBlur={() => commitTimeEdit(game.id)}
+                                    onBlur={() => { if (editingTimeVal !== fmtTime(game.startTime)) commitTimeEdit(game.id); else setEditingTimeId(null) }}
                                     onClick={e => e.stopPropagation()}
                                     onDragStart={e => e.stopPropagation()}
                                     className="w-16 text-[9px] rounded px-1 py-0.5 bg-white/20 border border-white/40 text-white placeholder-white/50 focus:outline-none focus:bg-white/30"
