@@ -54,6 +54,14 @@ export default function DivisionsPage() {
   const [generatingAll, setGeneratingAll] = useState(false)
   const [guarantee, setGuarantee] = useState('4')
 
+  // Division management state
+  const [renamingDiv, setRenamingDiv] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [addingDivInput, setAddingDivInput] = useState(false)
+  const [newDivName, setNewDivName] = useState('')
+  const [movingTeam, setMovingTeam] = useState<Team | null>(null)
+  const [moveTarget, setMoveTarget] = useState('')
+
   // Swap teams state
   const [swapA, setSwapA] = useState<string | null>(null)
   const [swapB, setSwapB] = useState<string | null>(null)
@@ -92,6 +100,79 @@ export default function DivisionsPage() {
     const res = await fetch(`/api/tournaments/${id}/divisions/${encodeURIComponent(div)}/pool-games`)
     const data = await res.json()
     setPoolGames(Array.isArray(data) ? data : [])
+  }
+
+  async function createDivision() {
+    if (!newDivName.trim()) return
+    const res = await fetch(`/api/tournaments/${id}/divisions`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newDivName.trim() }),
+    })
+    const data = await res.json()
+    if (!res.ok) { toast.error(data.error ?? 'Failed to create division'); return }
+    setDivisions(d => [...d, { name: newDivName.trim(), teamCount: 0, poolCount: 0 }].sort((a, b) => a.name.localeCompare(b.name)))
+    setNewDivName('')
+    setAddingDivInput(false)
+    toast.success(`Division "${newDivName.trim()}" created`)
+  }
+
+  async function renameDiv(oldName: string) {
+    const newName = renameValue.trim()
+    if (!newName || newName === oldName) { setRenamingDiv(null); return }
+    const res = await fetch(`/api/tournaments/${id}/divisions`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldName, newName }),
+    })
+    const data = await res.json()
+    if (!res.ok) { toast.error(data.error ?? 'Failed to rename'); return }
+    setDivisions(d => d.map(x => x.name === oldName ? { ...x, name: newName } : x).sort((a, b) => a.name.localeCompare(b.name)))
+    setDivColors(prev => {
+      const next = { ...prev }
+      if (prev[oldName]) { next[newName] = prev[oldName]; delete next[oldName] }
+      return next
+    })
+    setDivGamesPerTeam(prev => {
+      const next = { ...prev }
+      if (prev[oldName]) { next[newName] = prev[oldName]; delete next[oldName] }
+      return next
+    })
+    if (activeDiv === oldName) setActiveDiv(newName)
+    setRenamingDiv(null)
+    toast.success(`Renamed to "${newName}"`)
+  }
+
+  async function deleteDiv(name: string) {
+    const div = divisions.find(d => d.name === name)
+    if (div && div.teamCount > 0) {
+      toast.error(`Move or remove all ${div.teamCount} team(s) before deleting`)
+      return
+    }
+    if (!confirm(`Delete division "${name}"? This will also remove its pools.`)) return
+    const res = await fetch(`/api/tournaments/${id}/divisions`, {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    if (!res.ok) { const d = await res.json(); toast.error(d.error ?? 'Failed to delete'); return }
+    setDivisions(d => d.filter(x => x.name !== name))
+    if (activeDiv === name) setActiveDiv(divisions.find(x => x.name !== name)?.name ?? null)
+    toast.success(`Division "${name}" deleted`)
+  }
+
+  async function moveTeam(team: Team, newDivision: string) {
+    if (!activeDiv || !newDivision.trim()) return
+    const res = await fetch(`/api/tournaments/${id}/divisions/${encodeURIComponent(activeDiv)}/teams`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teamId: team.id, newDivision }),
+    })
+    if (!res.ok) { const d = await res.json(); toast.error(d.error ?? 'Failed to move team'); return }
+    setTeams(t => t.filter(x => x.id !== team.id))
+    setDivisions(d => d.map(x => {
+      if (x.name === activeDiv) return { ...x, teamCount: x.teamCount - 1 }
+      if (x.name === newDivision) return { ...x, teamCount: x.teamCount + 1 }
+      return x
+    }))
+    setMovingTeam(null)
+    toast.success(`${team.teamName} moved to ${newDivision}`)
   }
 
   const selectDiv = useCallback((div: string) => {
@@ -324,31 +405,79 @@ if (loading) return (
                 <div>
                   {divisions.map(div => (
                     <div key={div.name}
-                      className={`w-full border-b border-slate-100 last:border-b-0 transition-colors ${activeDiv === div.name ? 'bg-sky-50 border-l-2 border-l-sky-500' : 'hover:bg-slate-50'}`}>
-                      <div className="flex items-center pr-3">
-                        <button onClick={() => selectDiv(div.name)} className="flex-1 text-left px-4 py-2.5 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="inline-block w-3 h-3 rounded-full flex-shrink-0 border border-white shadow-sm"
-                              style={{ backgroundColor: divColors[div.name] || PALETTE[divisions.indexOf(div) % PALETTE.length] }}
-                            />
-                            <p className={`text-sm font-semibold truncate ${activeDiv === div.name ? 'text-sky-700' : 'text-slate-700'}`}>{div.name}</p>
-                          </div>
-                          <p className="text-xs text-slate-400 mt-0.5 pl-5">{div.teamCount} teams · {div.poolCount} pools</p>
-                        </button>
-                        <div className="flex flex-col items-center flex-shrink-0" onClick={e => e.stopPropagation()}>
-                          <span className="text-[9px] text-slate-400 leading-none mb-0.5">gms</span>
+                      className={`w-full border-b border-slate-100 last:border-b-0 transition-colors group ${activeDiv === div.name ? 'bg-sky-50 border-l-2 border-l-sky-500' : 'hover:bg-slate-50'}`}>
+                      {renamingDiv === div.name ? (
+                        <div className="flex items-center gap-1 px-2 py-2" onClick={e => e.stopPropagation()}>
+                          <span className="inline-block w-3 h-3 rounded-full flex-shrink-0 border border-white shadow-sm ml-2"
+                            style={{ backgroundColor: divColors[div.name] || PALETTE[divisions.indexOf(div) % PALETTE.length] }} />
                           <input
-                            type="number" min="1" max="10"
-                            value={divGamesPerTeam[div.name] ?? '3'}
-                            onChange={e => setDivGamesPerTeam(prev => ({ ...prev, [div.name]: e.target.value }))}
-                            className="w-10 border border-slate-200 rounded text-center text-xs py-0.5 focus:outline-none focus:ring-1 focus:ring-sky-400 bg-white"
+                            autoFocus
+                            value={renameValue}
+                            onChange={e => setRenameValue(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') renameDiv(div.name); if (e.key === 'Escape') setRenamingDiv(null) }}
+                            className="flex-1 min-w-0 text-xs border border-sky-400 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-sky-400"
                           />
+                          <button onClick={() => renameDiv(div.name)} className="text-sky-600 hover:text-sky-800 text-xs font-bold px-1">✓</button>
+                          <button onClick={() => setRenamingDiv(null)} className="text-slate-400 hover:text-slate-600 text-xs px-1">✕</button>
                         </div>
-                      </div>
-
+                      ) : (
+                        <div className="flex items-center pr-1">
+                          <button onClick={() => selectDiv(div.name)} className="flex-1 text-left px-4 py-2.5 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="inline-block w-3 h-3 rounded-full flex-shrink-0 border border-white shadow-sm"
+                                style={{ backgroundColor: divColors[div.name] || PALETTE[divisions.indexOf(div) % PALETTE.length] }}
+                              />
+                              <p className={`text-sm font-semibold truncate ${activeDiv === div.name ? 'text-sky-700' : 'text-slate-700'}`}>{div.name}</p>
+                            </div>
+                            <p className="text-xs text-slate-400 mt-0.5 pl-5">{div.teamCount} teams · {div.poolCount} pools</p>
+                          </button>
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                            <button
+                              onClick={() => { setRenamingDiv(div.name); setRenameValue(div.name) }}
+                              className="p-1 text-slate-400 hover:text-sky-600 rounded" title="Rename">
+                              ✏
+                            </button>
+                            <button
+                              onClick={() => deleteDiv(div.name)}
+                              className="p-1 text-slate-400 hover:text-red-500 rounded" title="Delete">
+                              ×
+                            </button>
+                          </div>
+                          <div className="flex flex-col items-center flex-shrink-0 ml-1" onClick={e => e.stopPropagation()}>
+                            <span className="text-[9px] text-slate-400 leading-none mb-0.5">gms</span>
+                            <input
+                              type="number" min="1" max="10"
+                              value={divGamesPerTeam[div.name] ?? '3'}
+                              onChange={e => setDivGamesPerTeam(prev => ({ ...prev, [div.name]: e.target.value }))}
+                              className="w-10 border border-slate-200 rounded text-center text-xs py-0.5 focus:outline-none focus:ring-1 focus:ring-sky-400 bg-white"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
+                  {/* Add division */}
+                  {addingDivInput ? (
+                    <div className="flex items-center gap-1 px-2 py-2 border-t border-slate-100" onClick={e => e.stopPropagation()}>
+                      <input
+                        autoFocus
+                        value={newDivName}
+                        onChange={e => setNewDivName(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') createDivision(); if (e.key === 'Escape') { setAddingDivInput(false); setNewDivName('') } }}
+                        placeholder="Division name..."
+                        className="flex-1 min-w-0 text-xs border border-sky-400 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-sky-400"
+                      />
+                      <button onClick={createDivision} className="text-sky-600 hover:text-sky-800 text-xs font-bold px-1">✓</button>
+                      <button onClick={() => { setAddingDivInput(false); setNewDivName('') }} className="text-slate-400 text-xs px-1">✕</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setAddingDivInput(true)}
+                      className="w-full text-left px-4 py-2 text-xs text-slate-400 hover:text-sky-600 hover:bg-slate-50 border-t border-slate-100 transition-colors">
+                      + Add Division
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -461,6 +590,7 @@ if (loading) return (
                             <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Pool</th>
                             <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Payment</th>
                             <th className="text-left px-3 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Coach</th>
+                            <th className="px-3 py-2.5"></th>
                           </tr>
                         </thead>
                         <tbody>
@@ -503,12 +633,51 @@ if (loading) return (
                                   <div>{team.coachName}</div>
                                   {team.coachPhone && <div className="text-slate-400">{team.coachPhone}</div>}
                                 </td>
+                                <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                                  <button
+                                    onClick={() => { setMovingTeam(team); setMoveTarget('') }}
+                                    className="text-[11px] text-slate-400 hover:text-sky-600 border border-slate-200 hover:border-sky-300 rounded px-1.5 py-0.5 transition-colors whitespace-nowrap">
+                                    Move →
+                                  </button>
+                                </td>
                               </tr>
                             )
                           })}
                         </tbody>
                       </table>
                     )}
+                  </div>
+                )}
+
+                {/* ── Move Team modal ── */}
+                {movingTeam && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setMovingTeam(null)}>
+                    <div className="bg-white rounded-xl shadow-xl p-6 w-80" onClick={e => e.stopPropagation()}>
+                      <h3 className="font-bold text-slate-800 mb-1">Move Team</h3>
+                      <p className="text-sm text-slate-500 mb-4">
+                        Moving <strong>{movingTeam.teamName}</strong> from <strong>{activeDiv}</strong>
+                      </p>
+                      <label className="block text-xs font-medium text-slate-600 mb-1.5">Destination Division</label>
+                      <select
+                        value={moveTarget}
+                        onChange={e => setMoveTarget(e.target.value)}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 mb-4">
+                        <option value="">— Select division —</option>
+                        {divisions.filter(d => d.name !== activeDiv).map(d => (
+                          <option key={d.name} value={d.name}>{d.name}</option>
+                        ))}
+                      </select>
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => setMovingTeam(null)}
+                          className="text-sm text-slate-500 hover:text-slate-700 px-4 py-2">Cancel</button>
+                        <button
+                          onClick={() => moveTarget && moveTeam(movingTeam, moveTarget)}
+                          disabled={!moveTarget}
+                          className="text-sm font-semibold bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg disabled:opacity-40 transition-colors">
+                          Move Team
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
 
