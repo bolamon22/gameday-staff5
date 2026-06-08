@@ -196,9 +196,18 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
       const added = unscheduledIds.filter(id => !prev.includes(id))
         .sort((a, b) => {
           const ga = games.find(x => x.id === a), gb = games.find(x => x.id === b)
+          const divCmp = (ga?.division ?? '').localeCompare(gb?.division ?? '')
+          if (divCmp !== 0) return divCmp
           return (ga?.gameNumber ?? '').localeCompare(gb?.gameNumber ?? '', undefined, { numeric: true })
         })
-      return [...kept, ...added]
+      // Also re-sort kept items by division→gameNumber so the full list stays ordered
+      const allSorted = [...kept, ...added].sort((a, b) => {
+        const ga = games.find(x => x.id === a), gb = games.find(x => x.id === b)
+        const divCmp = (ga?.division ?? '').localeCompare(gb?.division ?? '')
+        if (divCmp !== 0) return divCmp
+        return (ga?.gameNumber ?? '').localeCompare(gb?.gameNumber ?? '', undefined, { numeric: true })
+      })
+      return allSorted
     })
   }, [games])
 
