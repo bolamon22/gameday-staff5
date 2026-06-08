@@ -313,7 +313,7 @@ export default function DivisionsPage() {
     if (!res.ok) { toast.error(data.error ?? 'Failed to generate games'); setGenerating(false); return }
     await loadPoolGames(activeDiv)
     setGenerating(false)
-    toast.success(`${data.generated} games created — each team plays ${gamesPerTeam} game${Number(gamesPerTeam) !== 1 ? 's' : ''}`)
+    const gpt = divGamesPerTeam[activeDiv] ?? '2'; toast.success(`${data.generated} games created — each team plays ${gpt} game${Number(gpt) !== 1 ? 's' : ''}`)
   }
 
   function smartPoolGames(teamCount: number, g: number): number {
@@ -964,7 +964,7 @@ if (loading) return (
                         </div>
                         <div>
                           <label className="block text-xs text-slate-500 mb-1">Games per team</label>
-                          <input type="number" min="1" max="10" className="input text-sm w-20" value={gamesPerTeam} onChange={e => setGamesPerTeam(e.target.value)} />
+                          <input type="number" min="1" max="10" className="input text-sm w-20" value={activeDiv ? (divGamesPerTeam[activeDiv] ?? '2') : '2'} onChange={e => activeDiv && setDivGamesPerTeam(prev => ({ ...prev, [activeDiv]: e.target.value }))} />
                         </div>
                         <button onClick={generateGames} disabled={generating || pools.length === 0}
                           className="btn-primary btn-sm disabled:opacity-50">
