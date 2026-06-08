@@ -575,6 +575,15 @@ if (loading) return (
                 </div>
               )}
             </div>
+            {/* Totals summary */}
+            {divisions.some(d => d.gameCount > 0) && (
+              <div className="border-t border-slate-200 px-4 py-3 flex items-center justify-between bg-slate-50">
+                <span className="text-xs text-slate-500">Total games</span>
+                <span className="text-sm font-bold text-slate-700">
+                  {divisions.reduce((s, d) => s + d.gameCount, 0)}
+                </span>
+              </div>
+            )}
             {/* Bulk generator panel */}
             <div className="border-t border-slate-200 px-4 py-4 space-y-2.5">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bulk Generate</p>
