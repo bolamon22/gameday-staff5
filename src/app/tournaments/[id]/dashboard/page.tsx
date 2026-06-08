@@ -213,18 +213,18 @@ export default function DashboardPage() {
               <div className="bg-white border border-slate-200 rounded-xl p-5">
                 <h3 className="text-sm font-semibold text-slate-700 mb-4">💵 Financial Summary</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="text-center p-3 bg-slate-50 rounded-xl">
+                  <Link href={`/tournaments/${id}/registrations`} className="text-center p-3 bg-slate-50 rounded-xl hover:shadow-md hover:bg-slate-100 transition-shadow cursor-pointer">
                     <div className="text-xl font-bold text-slate-800">{fmt(reg.invoiced)}</div>
                     <div className="text-xs text-slate-500 mt-0.5">Total Invoiced</div>
-                  </div>
-                  <div className="text-center p-3 bg-green-50 rounded-xl">
+                  </Link>
+                  <Link href={`/tournaments/${id}/registrations`} className="text-center p-3 bg-green-50 rounded-xl hover:shadow-md hover:bg-green-100 transition-shadow cursor-pointer">
                     <div className="text-xl font-bold text-green-700">{fmt(reg.received)}</div>
                     <div className="text-xs text-slate-500 mt-0.5">Total Received</div>
-                  </div>
-                  <div className={`text-center p-3 rounded-xl ${reg.balance > 0 ? 'bg-red-50' : 'bg-green-50'}`}>
+                  </Link>
+                  <Link href={`/tournaments/${id}/registrations`} className={`text-center p-3 rounded-xl hover:shadow-md transition-shadow cursor-pointer ${reg.balance > 0 ? 'bg-red-50 hover:bg-red-100' : 'bg-green-50 hover:bg-green-100'}`}>
                     <div className={`text-xl font-bold ${reg.balance > 0 ? 'text-red-600' : 'text-green-600'}`}>{fmt(reg.balance)}</div>
                     <div className="text-xs text-slate-500 mt-0.5">Balance Due</div>
-                  </div>
+                  </Link>
                 </div>
                 {reg.invoiced > 0 && (
                   <div className="mt-4">
