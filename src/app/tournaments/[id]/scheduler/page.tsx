@@ -917,17 +917,15 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
           )}
         </div>
 
-        {/* Chips + drop zone */}
-        <div className="flex gap-0 px-4 sm:px-6 pb-3">
-          {/* Drop zone box */}
-          <div
-            className="flex-shrink-0 w-36 mr-3 rounded-lg border-2 border-dashed border-slate-600 bg-slate-800/50 flex items-center justify-center text-center text-slate-500 text-xs font-medium leading-tight p-2 cursor-default select-none"
-            onDragOver={e => e.preventDefault()}
-            onDrop={handleDropParking}
-          >
-            DROP HERE<br />TO UNSCHEDULE
-          </div>
+        {/* Hint row */}
+        <div className="flex items-center gap-3 px-4 sm:px-6 pb-1">
+          <span className="text-[10px] text-slate-500 italic">↓ Drop any game here to unschedule it</span>
+          <span className="text-slate-600 text-[10px]">·</span>
+          <span className="text-[10px] text-slate-500 italic">Scratch: drag up to 4 games aside while you rearrange</span>
+        </div>
 
+        {/* Chips + drop zone */}
+        <div className="flex gap-0 px-4 sm:px-6 pb-3" onDragOver={e => e.preventDefault()} onDrop={handleDropParking}>
           {/* Game chips */}
           <div className={lotExpanded ? 'flex-1 max-h-72 overflow-y-auto' : 'overflow-x-auto flex-1'}>
             <div className={lotExpanded ? 'flex flex-wrap gap-2' : 'flex gap-2 min-w-max'}>
@@ -1042,16 +1040,8 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* Drop zone */}
-          <div
-            className="mx-2 mt-2 mb-1 flex-shrink-0 rounded border-2 border-dashed border-slate-600 bg-slate-800/50 flex items-center justify-center text-slate-500 text-xs font-medium p-1.5 cursor-default select-none"
-            onDragOver={e => e.preventDefault()}
-            onDrop={handleDropParking}
-          >
-            DROP TO UNSCHEDULE
-          </div>
           {/* Game chips */}
-          <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1.5">
+          <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1.5" onDragOver={e => e.preventDefault()} onDrop={handleDropParking}>
             {filteredSorted.length === 0 ? (
               <p className="text-slate-500 text-xs italic text-center py-4">
                 {unscheduled.length === 0 ? '🎉 All scheduled!' : 'No matches'}
