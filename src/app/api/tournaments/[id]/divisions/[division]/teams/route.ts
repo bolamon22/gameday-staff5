@@ -119,16 +119,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
     const { teamName, clubName, coachName, coachEmail, coachPhone } = body
     if (!teamName?.trim()) return NextResponse.json({ error: 'Team name required' }, { status: 400 })
 
-    // Ensure status column exists
+    // Ensure status column exists (libSQL-safe)
     try {
-      await prisma.$executeRawUnsafe(`ALTER TABLE "RegisteredTeam" ADD COLUMN "status" TEXT DEFAULT 'confirmed'`)
+      await prisma.$executeRawUnsafe('ALTER TABLE RegisteredTeam ADD COLUMN status TEXT DEFAULT \'confirmed\'')
     } catch { /* already exists */ }
 
-    // Create a stub TeamRegistration for this direct-add team
+    // Create a stub TeamRegistration
     const reg = await prisma.teamRegistration.create({
       data: {
         tournamentId: params.id,
-        clubName: (clubName?.trim() || teamName.trim()),
+        clubName: clubName?.trim() || teamName.trim(),
         clubContact: coachName?.trim() || '',
         contactEmail: coachEmail?.trim() || '',
         contactPhone: coachPhone?.trim() || '',
@@ -137,7 +137,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
       },
     })
 
-    const team = await (prisma.registeredTeam as any).create({
+    // Create the RegisteredTeam via Prisma (known fields only)
+    const team = await prisma.registeredTeam.create({
       data: {
         registrationId: reg.id,
         clubName: clubName?.trim() || teamName.trim(),
@@ -146,9 +147,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
         coachName: coachName?.trim() || '',
         coachEmail: coachEmail?.trim() || '',
         coachPhone: coachPhone?.trim() || '',
-        status: 'placeholder',
       },
     })
+
+    // Set status = 'placeholder' via raw SQL (not in Prisma schema)
+    await prisma.$executeRawUnsafe(
+      'UPDATE RegisteredTeam SET status = \'placeholder\' WHERE id = ?',
+      team.id
+    )
 
     return NextResponse.json({ ...team, pool: null, paid: 0, owed: 0, paymentStatus: 'unpaid', status: 'placeholder' })
   } catch (e) {
@@ -163,20 +169,28 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
     const { teamId, teamName, clubName, coachName, coachEmail, coachPhone, confirm } = await req.json()
     if (!teamId) return NextResponse.json({ error: 'teamId required' }, { status: 400 })
 
-    // Ensure status column exists
-    try {
-      await prisma.$executeRawUnsafe(`ALTER TABLE "RegisteredTeam" ADD COLUMN "status" TEXT DEFAULT 'confirmed'`)
-    } catch { /* already exists */ }
-
+    // Update known fields via Prisma
     const data: Record<string, string> = {}
     if (teamName?.trim()) data.teamName = teamName.trim()
     if (clubName !== undefined) data.clubName = clubName.trim()
     if (coachName !== undefined) data.coachName = coachName.trim()
     if (coachEmail !== undefined) data.coachEmail = coachEmail.trim()
     if (coachPhone !== undefined) data.coachPhone = coachPhone.trim()
-    if (confirm) data.status = 'confirmed'
 
-    await (prisma.registeredTeam as any).update({ where: { id: teamId }, data })
+    if (Object.keys(data).length > 0) {
+      await prisma.registeredTeam.update({ where: { id: teamId }, data })
+    }
+
+    // Update status via raw SQL if confirming
+    if (confirm) {
+      try {
+        await prisma.$executeRawUnsafe('ALTER TABLE RegisteredTeam ADD COLUMN status TEXT DEFAULT \'confirmed\'')
+      } catch { /* already exists */ }
+      await prisma.$executeRawUnsafe(
+        'UPDATE RegisteredTeam SET status = \'confirmed\' WHERE id = ?',
+        teamId
+      )
+    }
 
     return NextResponse.json({ ok: true })
   } catch (e) {
