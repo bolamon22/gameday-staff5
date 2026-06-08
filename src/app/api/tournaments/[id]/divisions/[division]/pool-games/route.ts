@@ -148,11 +148,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
 }
 
-// DELETE – remove all pool games for this division
+// DELETE – remove all games for this division (pool and non-pool)
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string; division: string } }) {
   const division = decodeURIComponent(params.division)
   const { count } = await prisma.game.deleteMany({
-    where: { tournamentId: params.id, division, pool: { not: null } },
+    where: { tournamentId: params.id, division },
   })
   return NextResponse.json({ deleted: count })
 }
