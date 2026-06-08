@@ -25,19 +25,20 @@ interface Field {
 }
 
 const PALETTE = [
-  'bg-blue-500',
-  'bg-emerald-500',
-  'bg-purple-500',
-  'bg-orange-500',
-  'bg-pink-500',
-  'bg-teal-500',
-  'bg-red-500',
-  'bg-amber-500',
-  'bg-indigo-500',
-  'bg-cyan-500',
+  '#3b82f6',
+  '#10b981',
+  '#a855f7',
+  '#f97316',
+  '#ec4899',
+  '#14b8a6',
+  '#ef4444',
+  '#f59e0b',
+  '#6366f1',
+  '#06b6d4',
 ]
 
-function divColor(div: string, divs: string[]) {
+function divColor(div: string, divs: string[], colorMap: Record<string, string> = {}) {
+  if (colorMap[div]) return colorMap[div]
   const i = divs.indexOf(div)
   return PALETTE[i % PALETTE.length] ?? PALETTE[0]
 }
@@ -104,6 +105,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   const [lotDragOver,  setLotDragOver]  = useState<string | null>(null)
   const [sideStage,    setSideStage]    = useState(false)
   const [scratchPad,   setScratchPad]   = useState<string[]>([])
+  const [divColorMap,  setDivColorMap]  = useState<Record<string, string>>({})
 
   // ── Draft/publish versioning ─────────────────────────────────────────────
   const [snapshot,       setSnapshot]       = useState<Record<string, {date:string,startTime:string,location:string}>>({})
@@ -119,16 +121,18 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     async function load() {
-      const [gRes, vRes, tRes, pRes] = await Promise.all([
+      const [gRes, vRes, tRes, pRes, cRes] = await Promise.all([
         fetch(`/api/tournaments/${params.id}/games`),
         fetch(`/api/venues/${params.id}`),
         fetch(`/api/tournaments/${params.id}`),
         fetch(`/api/tournaments/${params.id}/publish`),
+        fetch(`/api/tournaments/${params.id}/division-colors`),
       ])
       const gData = await gRes.json()
       const vData = await vRes.json()
       const tData = await tRes.json()
       const pData = await pRes.json()
+      const cData = await cRes.json()
       if (pData.publishedAt) {
         setPublishedAt(pData.publishedAt)
         const snap: Record<string, {date:string,startTime:string,location:string}> = {}
@@ -140,6 +144,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
 
       const allGames: Game[] = Array.isArray(gData) ? gData : (gData.games ?? [])
       setGames(allGames)
+      if (cData && typeof cData === 'object' && !cData.error) setDivColorMap(cData)
       if (tData.scheduleIncrement) setIncrement(Number(tData.scheduleIncrement))
 
       const venueList: any[] = vData.venues ?? []
@@ -787,7 +792,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                 {[0,1,2,3].map(i => {
                   const id = scratchPad[i]
                   const game = id ? games.find(g => g.id === id) : null
-                  const color = game ? divColor(game.division, divisions) : ''
+                  const color = game ? divColor(game.division, divisions, divColorMap) : ''
                   return (
                     <div key={i}
                       className={`w-20 h-11 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors
@@ -798,7 +803,8 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                           draggable
                           onDragStart={e => handleDragStart(e, game.id)}
                           onDragEnd={handleDragEnd}
-                          className={`${color} text-white text-[9px] font-semibold px-1.5 py-1 cursor-grab w-full h-full flex flex-col justify-center leading-tight`}
+                          className="text-white text-[9px] font-semibold px-1.5 py-1 cursor-grab w-full h-full flex flex-col justify-center leading-tight"
+                          style={{ backgroundColor: color }}
                         >
                           <div className="opacity-60 text-[8px]">{game.gameNumber} · {game.division}</div>
                           <div className="truncate">{game.team1}</div>
@@ -839,7 +845,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                   {unscheduled.length === 0 ? '🎉 All games scheduled!' : 'No games match filter'}
                 </p>
               ) : filteredSorted.map(g => {
-                const color = divColor(g.division, divisions)
+                const color = divColor(g.division, divisions, divColorMap)
                 const hasConflict = conflictMsgs.has(g.id)
                 const hasB2B = !hasConflict && backToBackMsgs.has(g.id)
                 const isLotOver = lotDragOver === g.id
@@ -863,7 +869,8 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                         reorderLot(sourceId, g.id)
                       }
                     }}
-                    className={`relative ${color} rounded-lg px-3 py-2 cursor-grab active:cursor-grabbing text-white text-xs font-medium whitespace-nowrap select-none flex-shrink-0 shadow transition-all ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'} ${isLotOver && dragId !== g.id ? 'ring-2 ring-white scale-105' : ''}`}
+                    className={`relative rounded-lg px-3 py-2 cursor-grab active:cursor-grabbing text-white text-xs font-medium whitespace-nowrap select-none flex-shrink-0 shadow transition-all ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'} ${isLotOver && dragId !== g.id ? 'ring-2 ring-white scale-105' : ''}`}
+                    style={{ backgroundColor: color }}
                   >
                     {hasConflict && (
                       <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title={conflictMsgs.get(g.id) ?? 'Same-time conflict'}>⚠</span>
@@ -919,7 +926,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
               {[0,1,2,3].map(i => {
                 const id = scratchPad[i]
                 const game = id ? games.find(g => g.id === id) : null
-                const color = game ? divColor(game.division, divisions) : ''
+                const color = game ? divColor(game.division, divisions, divColorMap) : ''
                 return (
                   <div key={i}
                     className={`h-11 rounded border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors
@@ -960,7 +967,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                 {unscheduled.length === 0 ? '🎉 All scheduled!' : 'No matches'}
               </p>
             ) : filteredSorted.map(g => {
-              const color = divColor(g.division, divisions)
+              const color = divColor(g.division, divisions, divColorMap)
               const hasConflict = conflictMsgs.has(g.id)
               const hasB2B = !hasConflict && backToBackMsgs.has(g.id)
               return (
@@ -969,7 +976,8 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                   draggable={!swapMode}
                   onDragStart={e => handleDragStart(e, g.id)}
                   onDragEnd={() => { handleDragEnd(); setLotDragOver(null) }}
-                  className={`relative ${color} rounded-lg px-2.5 py-2 cursor-grab active:cursor-grabbing text-white text-xs font-medium select-none shadow transition-all ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'}`}
+                  className={`relative rounded-lg px-2.5 py-2 cursor-grab active:cursor-grabbing text-white text-xs font-medium select-none shadow transition-all ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'}`}
+                  style={{ backgroundColor: color }}
                 >
                   {hasConflict && (
                     <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title={conflictMsgs.get(g.id) ?? 'Same-time conflict'}>⚠</span>
@@ -1110,12 +1118,13 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                             onDragStart={e => handleDragStart(e, game.id)}
                             onDragEnd={handleDragEnd}
                             onClick={() => handleSwapClick(game.id)}
-                            className={`relative ${divColor(game.division, divisions)} rounded-md px-2 py-1 h-full min-h-[52px] flex flex-col justify-between transition-all
+                            className={`relative rounded-md px-2 py-1 h-full min-h-[52px] flex flex-col justify-between transition-all
                               ${swapMode ? 'cursor-pointer hover:ring-2 hover:ring-white' : 'cursor-grab active:cursor-grabbing'}
                               ${dragId === game.id ? 'opacity-30' : ''}
                               ${!matchesGrid ? 'opacity-20' : 'hover:brightness-110'}
                               ${isSwapSource ? 'ring-2 ring-white ring-offset-1 brightness-125' : ''}
                             `}
+                            style={{ backgroundColor: divColor(game.division, divisions, divColorMap) }}
                           >
                             {conflictMsgs.has(game.id) && (
                               <span className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[9px] font-bold rounded px-1 leading-tight shadow" title={conflictMsgs.get(game.id) ?? 'Same-time conflict'}>⚠ Conflict</span>

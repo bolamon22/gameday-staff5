@@ -35,6 +35,7 @@ export default function DivisionsPage() {
   const [pools, setPools] = useState<Pool[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingDiv, setLoadingDiv] = useState(false)
+  const [divColors, setDivColors] = useState<Record<string, string>>({})
   const [poolGames, setPoolGames] = useState<PoolGame[]>([])
 
   // Pool games state
@@ -59,7 +60,9 @@ export default function DivisionsPage() {
     Promise.all([
       fetch(`/api/tournaments/${id}`).then(r => r.json()),
       fetch(`/api/tournaments/${id}/divisions`).then(r => r.json()),
-    ]).then(([t, d]) => {
+      fetch(`/api/tournaments/${id}/division-colors`).then(r => r.json()),
+    ]).then(([t, d, colors]) => {
+      setDivColors(colors)
       setTournament(t)
       setDivisions(d)
       if (d.length > 0) selectDiv(d[0].name)
@@ -188,6 +191,15 @@ export default function DivisionsPage() {
     toast.success('Pool games cleared')
   }
 
+  async function saveDivColor(division: string, color: string) {
+    setDivColors(prev => ({ ...prev, [division]: color }))
+    await fetch(`/api/tournaments/${id}/division-colors`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ division, color }),
+    })
+  }
+
 if (loading) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
       <p className="text-slate-400 animate-pulse">Loading divisions...</p>
@@ -215,11 +227,32 @@ if (loading) return (
               ) : (
                 <div>
                   {divisions.map(div => (
-                    <button key={div.name} onClick={() => selectDiv(div.name)}
-                      className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-b-0 transition-colors ${activeDiv === div.name ? 'bg-sky-50 border-l-2 border-l-sky-500' : 'hover:bg-slate-50'}`}>
-                      <p className={`text-sm font-semibold truncate ${activeDiv === div.name ? 'text-sky-700' : 'text-slate-700'}`}>{div.name}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{div.teamCount} teams · {div.poolCount} pools</p>
-                    </button>
+                    <div key={div.name}
+                      className={`w-full border-b border-slate-100 last:border-b-0 transition-colors ${activeDiv === div.name ? 'bg-sky-50 border-l-2 border-l-sky-500' : 'hover:bg-slate-50'}`}>
+                      <button onClick={() => selectDiv(div.name)} className="w-full text-left px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="inline-block w-3 h-3 rounded-full flex-shrink-0 border border-white shadow-sm"
+                            style={{ backgroundColor: divColors[div.name] || '#6366f1' }}
+                          />
+                          <p className={`text-sm font-semibold truncate ${activeDiv === div.name ? 'text-sky-700' : 'text-slate-700'}`}>{div.name}</p>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5 pl-5">{div.teamCount} teams · {div.poolCount} pools</p>
+                      </button>
+                      {activeDiv === div.name && (
+                        <div className="px-4 pb-2.5 flex items-center gap-2">
+                          <span className="text-xs text-slate-400">Color:</span>
+                          <input
+                            type="color"
+                            value={divColors[div.name] || '#6366f1'}
+                            onChange={e => saveDivColor(div.name, e.target.value)}
+                            className="w-7 h-7 rounded cursor-pointer border border-slate-200 p-0.5"
+                            title="Division color"
+                          />
+                          <span className="text-xs text-slate-400">{divColors[div.name] || '#6366f1'}</span>
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}
