@@ -373,6 +373,11 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
     if (scratchPad.includes(gameId)) return
     if (scratchPad.length >= 4) { toast.error('Scratch pad is full (max 4)'); return }
     setScratchPad(prev => [...prev, gameId])
+    // Unschedule if it was on the grid
+    const game = games.find(g => g.id === gameId)
+    if (game && (game.date || game.startTime || game.location)) {
+      patchGame(gameId, { date: '', startTime: '', location: '' })
+    }
   }
 
   function handleSwapClick(gameId: string) {
