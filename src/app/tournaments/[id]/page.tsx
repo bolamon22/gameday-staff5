@@ -461,10 +461,10 @@ export default function GridPage({ params }: { params:{id:string} }) {
         </div>
       )}
 
-      {/* Tournament Nav */}
       {/* ── Assigner header ────────────────────────────────────────── */}
-      <div className="bg-[#0f1f3d] -mx-6 px-6 pt-4 pb-0 mb-6">
-        <div className="flex items-center justify-between gap-4 pb-4">
+      <div className="bg-[#0f1f3d] -mx-6 px-6 pt-4 pb-0 mb-0">
+        {/* Row 1: logo + title + nav links */}
+        <div className="flex items-center justify-between gap-4 pb-3">
           <div className="flex items-center gap-3">
             <Link href={`/tournaments/${params.id}/dashboard`} className="flex-shrink-0">
               {tournament.logoUrl
@@ -480,7 +480,7 @@ export default function GridPage({ params }: { params:{id:string} }) {
                 <Link href={`/tournaments/${params.id}/dashboard`} className="text-lg font-bold text-white leading-tight hover:text-teal-300 transition-colors">{tournament.name}</Link>
                 <span className="text-[10px] font-semibold bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded-full tracking-wide">ASSIGNER</span>
               </div>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[11px] text-slate-400">{games.length} games</span>
                 <span className="text-slate-600">·</span>
                 <span className="text-[11px] text-sky-400">{assignedCount} assigned</span>
@@ -492,45 +492,50 @@ export default function GridPage({ params }: { params:{id:string} }) {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Link href={`/tournaments/${params.id}/dashboard`}
-              className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
-              ← Dashboard
-            </Link>
-            <Link href={`/tournaments/${params.id}/scheduler`}
-              className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
-              📅 Scheduler
-            </Link>
-            {/* Staff assignment counts */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5">
-              <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Assigned</span>
-              <span className="text-white/20">·</span>
-              <span className="text-[11px] text-sky-300 font-semibold">{assignedBoysRefs} Boys Refs</span>
-              <span className="text-white/20">·</span>
-              <span className="text-[11px] text-pink-300 font-semibold">{assignedGirlsRefs} Girls Refs</span>
-              {assignedBothRefs > 0 && <><span className="text-white/20">·</span><span className="text-[11px] text-slate-300 font-semibold">{assignedBothRefs} Both</span></>}
-              <span className="text-white/20">·</span>
-              <span className="text-[11px] text-emerald-300 font-semibold">{assignedSKs} Scorekeepers</span>
-            </div>
-            <Link href={`/tournaments/${params.id}/roster`}
-              className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
-              👥 Staff Roster
-            </Link>
-            <Link href={`/tournaments/${params.id}/pay-summary`}
-              className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
-              💰 Pay
-            </Link>
-            <button
-              onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/tournaments/${params.id}/public`);toast.success('Link copied!')}}
-              className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
-              🔗 Share
-            </button>
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+            <Link href={`/tournaments/${params.id}/dashboard`} className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">← Dashboard</Link>
+            <Link href={`/tournaments/${params.id}/scheduler`} className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">📅 Scheduler</Link>
+            <Link href={`/tournaments/${params.id}/roster`} className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">👥 Staff Roster</Link>
+            <Link href={`/tournaments/${params.id}/pay-summary`} className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">💰 Pay</Link>
+            <button onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/tournaments/${params.id}/public`);toast.success('Link copied!')}} className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">🔗 Share</button>
           </div>
         </div>
 
-        {/* Day tabs — inside header */}
+        {/* Row 2: stats + view switcher + actions — all in dark bar */}
+        <div className="flex items-center gap-3 py-2 border-t border-white/10 flex-wrap">
+          {/* Assignment counts */}
+          <div className="flex items-center gap-2 text-[11px] font-semibold">
+            <span className="text-sky-300">{assignedBoysRefs} Boys Refs</span>
+            <span className="text-white/20">·</span>
+            <span className="text-pink-300">{assignedGirlsRefs} Girls Refs</span>
+            {assignedBothRefs > 0 && <><span className="text-white/20">·</span><span className="text-slate-300">{assignedBothRefs} Both</span></>}
+            <span className="text-white/20">·</span>
+            <span className="text-emerald-300">{assignedSKs} SKs</span>
+          </div>
+          <div className="flex-1"/>
+          {/* View switcher */}
+          {games.length > 0 && (
+            <div className="flex items-center gap-0.5 bg-white/10 rounded-lg p-1">
+              {(['grid','list','division','staff'] as const).map(v => (
+                <button key={v} onClick={() => setViewMode(v)}
+                  className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${viewMode === v ? 'bg-white text-slate-800 shadow' : 'text-slate-300 hover:text-white'}`}>
+                  {v === 'grid' ? '⊞ Grid' : v === 'list' ? '≡ List' : v === 'division' ? '⬡ Division' : '👤 Staff'}
+                </button>
+              ))}
+            </div>
+          )}
+          {/* Action buttons */}
+          <div className="flex items-center gap-1.5">
+            {dayGames.length > 0 && <button onClick={() => { setShowAutoAssign(true); setAutoResult(null) }} className="text-xs font-semibold text-purple-200 border border-purple-400/40 hover:bg-purple-500/20 px-3 py-1.5 rounded-lg transition-colors">⚡ Auto-Assign</button>}
+            {dayGames.length > 0 && <button onClick={() => { setShowClear(true); setClearConfirm(''); setClearName(''); setClearCategories(new Set()) }} className="text-xs font-semibold text-red-300 border border-red-400/40 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transition-colors">🗑 Clear</button>}
+            <button onClick={openAddGame} className="text-xs font-semibold text-slate-200 border border-white/20 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors">+ Game</button>
+            <label className="text-xs font-semibold text-teal-200 border border-teal-400/40 hover:bg-teal-500/20 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">↑ Import<input type="file" ref={fileRef} accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileSelect}/></label>
+          </div>
+        </div>
+
+        {/* Row 3: Day tabs */}
         {dates.length > 0 && viewMode !== 'staff' && (
-          <div className="flex gap-0">
+          <div className="flex gap-0 mt-1">
             {dates.map(d => (
               <button key={d} onClick={() => setActiveDay(d)}
                 className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${activeDay === d ? 'border-teal-400 text-teal-300' : 'border-transparent text-slate-400 hover:text-white hover:border-white/20'}`}>
@@ -541,24 +546,20 @@ export default function GridPage({ params }: { params:{id:string} }) {
         )}
       </div>
 
-      {/* ── Control bar: views + actions ────────────────────────────── */}
-      <div className="flex items-center gap-2 mb-5 flex-wrap">
-        {games.length > 0 && (
-          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
-            {(['grid','list','division','staff'] as const).map(v => (
-              <button key={v} onClick={() => setViewMode(v)}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === v ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                {v === 'grid' ? '⊞ Grid' : v === 'list' ? '≡ List' : v === 'division' ? '⬡ Division' : '👤 Staff'}
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="flex-1" />
-        {dayGames.length > 0 && <button onClick={() => { setShowAutoAssign(true); setAutoResult(null) }} className="btn-secondary btn-sm text-purple-600 border-purple-200 hover:bg-purple-50">⚡ Auto-Assign</button>}
-        {dayGames.length > 0 && <button onClick={() => { setShowClear(true); setClearConfirm(''); setClearName(''); setClearCategories(new Set()) }} className="btn-secondary btn-sm text-red-500 border-red-200 hover:bg-red-50">🗑 Clear</button>}
-        <button onClick={openAddGame} className="btn-secondary btn-sm">+ Game</button>
-        <label className="btn-primary btn-sm cursor-pointer">↑ Import<input type="file" ref={fileRef} accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileSelect}/></label>
-      </div>
+      {/* ── Sub-bar: filters (only for grid/list/division views) ─────── */}
+      {viewMode !== 'staff' && (
+        <div className="bg-slate-800 -mx-6 px-6 py-2 mb-5 flex items-center gap-3 flex-wrap border-b border-slate-700">
+          <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wide">Filter</span>
+          <span className="text-slate-600 text-xs">|</span>
+          <select className="bg-slate-700 text-white border border-slate-600 rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-teal-500" value={listDivFilter} onChange={e=>setListDivFilter(e.target.value)}>
+            <option value="all">All Divisions</option>
+            {[...new Set(games.map(g=>g.division))].sort().map(d=><option key={d} value={d}>{d}</option>)}
+          </select>
+          <input className="bg-slate-700 text-white border border-slate-600 rounded-lg px-2.5 py-1 text-xs placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-500 w-44" placeholder="Search team, game…" value={listSearch} onChange={e=>setListSearch(e.target.value)}/>
+          {(listSearch||listDivFilter!=='all')&&<button className="text-xs text-slate-400 hover:text-white transition-colors" onClick={()=>{setListSearch('');setListDivFilter('all')}}>✕ Clear</button>}
+        </div>
+      )}
+      {viewMode === 'staff' && <div className="mb-5"/>}
 
       {/* ── LIST VIEW ── */}
       {viewMode==='list'&&games.length>0&&(()=>{
@@ -570,14 +571,8 @@ export default function GridPage({ params }: { params:{id:string} }) {
           .sort((a,b)=>a.startTime.localeCompare(b.startTime)||a.location.localeCompare(b.location))
         return(
           <div>
-            <div className="flex gap-3 mb-4 flex-wrap items-center">
-              <input className="input !w-52 text-sm" placeholder="Search game, team, field…" value={listSearch} onChange={e=>setListSearch(e.target.value)}/>
-              <select className="select !w-auto text-sm" value={listDivFilter} onChange={e=>setListDivFilter(e.target.value)}>
-                <option value="all">All divisions</option>
-                {allDivs.map(d=><option key={d} value={d}>{d}</option>)}
-              </select>
-              <span className="text-xs text-slate-400">{listGames.length} games</span>
-              {(listSearch||listDivFilter!=='all')&&<button className="text-xs text-slate-400 hover:text-slate-600" onClick={()=>{setListSearch('');setListDivFilter('all')}}>Clear</button>}
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xs text-slate-500">{listGames.length} games</span>
             </div>
             <div className="card overflow-hidden">
               <table className="w-full text-sm">
