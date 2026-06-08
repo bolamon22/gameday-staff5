@@ -32,10 +32,17 @@ const PALETTE = [
   '#ec4899',
   '#14b8a6',
   '#ef4444',
-  '#f59e0b',
+  '#b45309',
   '#6366f1',
   '#06b6d4',
 ]
+
+function getLuma(hex: string) {
+  const c = hex.replace('#', '')
+  const r = parseInt(c.slice(0,2),16)/255, g = parseInt(c.slice(2,4),16)/255, b = parseInt(c.slice(4,6),16)/255
+  return 0.2126*r + 0.7152*g + 0.0722*b
+}
+function textColor(hex: string) { return getLuma(hex) > 0.35 ? '#1e293b' : '#ffffff' }
 
 function divColor(div: string, divs: string[], colorMap: Record<string, string> = {}) {
   if (colorMap[div]) return colorMap[div]
@@ -803,8 +810,8 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                           draggable
                           onDragStart={e => handleDragStart(e, game.id)}
                           onDragEnd={handleDragEnd}
-                          className="text-white text-[9px] font-semibold px-1.5 py-1 cursor-grab w-full h-full flex flex-col justify-center leading-tight"
-                          style={{ backgroundColor: color }}
+                          className="text-[9px] font-semibold px-1.5 py-1 cursor-grab w-full h-full flex flex-col justify-center leading-tight"
+                          style={{ backgroundColor: color, color: textColor(color) }}
                         >
                           <div className="opacity-60 text-[8px]">{game.gameNumber} · {game.division}</div>
                           <div className="truncate">{game.team1}</div>
@@ -869,8 +876,8 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                         reorderLot(sourceId, g.id)
                       }
                     }}
-                    className={`relative rounded-lg px-3 py-2 cursor-grab active:cursor-grabbing text-white text-xs font-medium whitespace-nowrap select-none flex-shrink-0 shadow transition-all ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'} ${isLotOver && dragId !== g.id ? 'ring-2 ring-white scale-105' : ''}`}
-                    style={{ backgroundColor: color }}
+                    className={`relative rounded-lg px-3 py-2 cursor-grab active:cursor-grabbing text-xs font-medium whitespace-nowrap select-none flex-shrink-0 shadow transition-all ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'} ${isLotOver && dragId !== g.id ? 'ring-2 ring-white scale-105' : ''}`}
+                    style={{ backgroundColor: color, color: textColor(color) }}
                   >
                     {hasConflict && (
                       <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title={conflictMsgs.get(g.id) ?? 'Same-time conflict'}>⚠</span>
@@ -937,7 +944,8 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                         draggable
                         onDragStart={e => handleDragStart(e, game.id)}
                         onDragEnd={handleDragEnd}
-                        className={`${color} text-white text-[8px] font-semibold px-1 py-0.5 cursor-grab w-full h-full flex flex-col justify-center leading-tight`}
+                        className="text-[8px] font-semibold px-1 py-0.5 cursor-grab w-full h-full flex flex-col justify-center leading-tight"
+                        style={{ backgroundColor: color, color: textColor(color) }}
                       >
                         <div className="opacity-60 text-[7px]">{game.gameNumber}</div>
                         <div className="truncate">{game.team1}</div>
@@ -976,8 +984,8 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                   draggable={!swapMode}
                   onDragStart={e => handleDragStart(e, g.id)}
                   onDragEnd={() => { handleDragEnd(); setLotDragOver(null) }}
-                  className={`relative rounded-lg px-2.5 py-2 cursor-grab active:cursor-grabbing text-white text-xs font-medium select-none shadow transition-all ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'}`}
-                  style={{ backgroundColor: color }}
+                  className={`relative rounded-lg px-2.5 py-2 cursor-grab active:cursor-grabbing text-xs font-medium select-none shadow transition-all ${dragId === g.id ? 'opacity-30' : 'hover:brightness-110'}`}
+                  style={{ backgroundColor: color, color: textColor(color) }}
                 >
                   {hasConflict && (
                     <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title={conflictMsgs.get(g.id) ?? 'Same-time conflict'}>⚠</span>
@@ -1124,7 +1132,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                               ${!matchesGrid ? 'opacity-20' : 'hover:brightness-110'}
                               ${isSwapSource ? 'ring-2 ring-white ring-offset-1 brightness-125' : ''}
                             `}
-                            style={{ backgroundColor: divColor(game.division, divisions, divColorMap) }}
+                            style={{ backgroundColor: divColor(game.division, divisions, divColorMap), color: textColor(divColor(game.division, divisions, divColorMap)) }}
                           >
                             {conflictMsgs.has(game.id) && (
                               <span className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[9px] font-bold rounded px-1 leading-tight shadow" title={conflictMsgs.get(game.id) ?? 'Same-time conflict'}>⚠ Conflict</span>
@@ -1136,12 +1144,12 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                               <span className="absolute top-0.5 right-0.5 bg-blue-400 text-white text-[9px] font-bold rounded px-1 leading-tight shadow" title={longGapMsgs.get(game.id) ?? 'Long gap'}>⏱ Gap</span>
                             )}
                             <div className="flex items-center justify-between gap-1">
-                              <div className="font-bold text-[10px] text-white leading-none">{game.gameNumber}</div>
-                              <div className="text-[9px] text-white/70 leading-none truncate">{game.division}{game.pool ? ` · ${game.pool}` : ''}</div>
+                              <div className="font-bold text-[10px] leading-none" style={{ color: 'inherit' }}>{game.gameNumber}</div>
+                              <div className="text-[9px] leading-none truncate" style={{ opacity: 0.75 }}>{game.division}{game.pool ? ` · ${game.pool}` : ''}</div>
                             </div>
                             <div>
-                              <div className="text-white text-xs font-semibold truncate leading-tight">{game.team1}{(teamGames[game.team1]?.length ?? 0) > 0 && <span className="opacity-60 font-normal"> ({teamGames[game.team1]?.length})</span>}</div>
-                              <div className="text-white/80 text-[10px] truncate">vs {game.team2}{(teamGames[game.team2]?.length ?? 0) > 0 && <span className="opacity-60"> ({teamGames[game.team2]?.length})</span>}</div>
+                              <div className="text-xs font-semibold truncate leading-tight">{game.team1}{(teamGames[game.team1]?.length ?? 0) > 0 && <span className="opacity-60 font-normal"> ({teamGames[game.team1]?.length})</span>}</div>
+                              <div className="text-[10px] truncate" style={{ opacity: 0.85 }}>vs {game.team2}{(teamGames[game.team2]?.length ?? 0) > 0 && <span className="opacity-60"> ({teamGames[game.team2]?.length})</span>}</div>
                             </div>
                           </div>
                         ) : isTeamBusy ? (
