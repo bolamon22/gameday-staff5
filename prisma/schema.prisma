@@ -455,3 +455,17 @@ model IndividualRegistration {
   @@index([tournamentId])
   @@index([email])
 }
+
+model OrgPaymentProvider {
+  id        String   @id @default(cuid())
+  userId    String
+  provider  String   // 'stripe' | 'quickbooks' | 'paypal'
+  enabled   Boolean  @default(true)
+  config    String   @default("{}") // AES-encrypted JSON
+  mode      String   @default("live") // 'test' | 'live'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, provider])
+  @@index([userId])
+}

@@ -83,6 +83,7 @@ export default function NavBar() {
           <Link href="/admin/users" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">👥 Users</Link>
           <Link href="/admin/permissions" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">🔐 Permissions</Link>
           <Link href="/admin/roadmap" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">🗺 Roadmap</Link>
+          <Link href="/admin/payment-providers" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">💳 Payment Providers</Link>
         </>
       )}
 

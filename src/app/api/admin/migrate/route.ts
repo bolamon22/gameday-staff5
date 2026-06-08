@@ -43,3 +43,25 @@ export async function POST() {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 })
   }
 }
+
+export async function PUT() {
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "OrgPaymentProvider" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "userId" TEXT NOT NULL,
+        "provider" TEXT NOT NULL,
+        "enabled" INTEGER NOT NULL DEFAULT 1,
+        "config" TEXT NOT NULL DEFAULT '{}',
+        "mode" TEXT NOT NULL DEFAULT 'live',
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE("userId","provider")
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "OrgPaymentProvider_userId_idx" ON "OrgPaymentProvider"("userId")`)
+    return NextResponse.json({ ok: true, message: 'OrgPaymentProvider table created' })
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 })
+  }
+}
