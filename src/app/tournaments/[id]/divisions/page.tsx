@@ -6,6 +6,11 @@ import { useParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import TournamentNav from '../TournamentNav'
 
+const PALETTE = [
+  '#3b82f6', '#10b981', '#a855f7', '#f97316', '#ec4899',
+  '#14b8a6', '#ef4444', '#f59e0b', '#6366f1', '#06b6d4',
+]
+
 interface Division { name: string; teamCount: number; poolCount: number }
 interface Pool { id: string; name: string; teamNames: string[] }
 interface PoolGame {
@@ -233,7 +238,7 @@ if (loading) return (
                         <div className="flex items-center gap-2">
                           <span
                             className="inline-block w-3 h-3 rounded-full flex-shrink-0 border border-white shadow-sm"
-                            style={{ backgroundColor: divColors[div.name] || '#6366f1' }}
+                            style={{ backgroundColor: divColors[div.name] || PALETTE[divisions.indexOf(div) % PALETTE.length] }}
                           />
                           <p className={`text-sm font-semibold truncate ${activeDiv === div.name ? 'text-sky-700' : 'text-slate-700'}`}>{div.name}</p>
                         </div>
@@ -244,12 +249,12 @@ if (loading) return (
                           <span className="text-xs text-slate-400">Color:</span>
                           <input
                             type="color"
-                            value={divColors[div.name] || '#6366f1'}
+                            value={divColors[div.name] || PALETTE[divisions.indexOf(div) % PALETTE.length]}
                             onChange={e => saveDivColor(div.name, e.target.value)}
                             className="w-7 h-7 rounded cursor-pointer border border-slate-200 p-0.5"
                             title="Division color"
                           />
-                          <span className="text-xs text-slate-400">{divColors[div.name] || '#6366f1'}</span>
+                          <span className="text-xs text-slate-400">{divColors[div.name] || PALETTE[divisions.indexOf(div) % PALETTE.length]}</span>
                         </div>
                       )}
                     </div>
