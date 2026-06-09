@@ -86,7 +86,7 @@ export default function PlatformDashboard() {
     if ((session?.user as any)?.role !== 'admin') return
     fetch('/api/admin/platform-stats')
       .then(r => r.json())
-      .then(d => { setStats(d); setLoading(false) })
+      .then(d => { if (Array.isArray(d?.orgs)) { setStats(d); } setLoading(false) })
       .catch(() => setLoading(false))
   }, [session])
 
@@ -143,11 +143,11 @@ export default function PlatformDashboard() {
                 <Link href="/admin/orgs" className="text-xs text-sky-600 hover:underline font-medium">Manage all →</Link>
               </div>
 
-              {stats.orgs.length === 0 ? (
+              {(stats.orgs ?? []).length === 0 ? (
                 <div className="px-6 py-10 text-center text-slate-400 text-sm">No organizations yet. <Link href="/admin/orgs" className="text-sky-600 hover:underline">Create one →</Link></div>
               ) : (
                 <div className="divide-y divide-slate-100">
-                  {stats.orgs.map(org => (
+                  {(stats.orgs ?? []).map(org => (
                     <div key={org.id} className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition-colors group">
                       {/* Logo */}
                       <div className="flex-shrink-0">
@@ -217,9 +217,9 @@ export default function PlatformDashboard() {
                 <h2 className="font-semibold text-slate-800">Recent Tournaments</h2>
               </div>
               <div className="divide-y divide-slate-100">
-                {stats.recentTournaments.length === 0 ? (
+                {(stats.recentTournaments ?? []).length === 0 ? (
                   <p className="px-6 py-8 text-sm text-slate-400 text-center italic">No tournaments yet.</p>
-                ) : stats.recentTournaments.map(t => (
+                ) : (stats.recentTournaments ?? []).map(t => (
                   <Link key={t.id} href={`/tournaments/${t.id}/dashboard`}
                     className="flex items-center gap-4 px-6 py-3 hover:bg-slate-50 transition-colors">
                     {/* Org logo */}
