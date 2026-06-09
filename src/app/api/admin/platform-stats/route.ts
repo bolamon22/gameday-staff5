@@ -25,18 +25,23 @@ export async function GET() {
 
     const orgs = orgsRes.rows
 
-    // Per-org counts via individual queries
+    // Per-org counts — Worker.orgId may not exist yet if migration hasn't run
     const orgStats = await Promise.all(
       orgs.map(async (org) => {
-        const [tc, wc, uc] = await Promise.all([
-          client.execute({ sql: `SELECT COUNT(*) as c FROM "Tournament" WHERE orgId = ?`, args: [org.id as string] }),
-          client.execute({ sql: `SELECT COUNT(*) as c FROM "Worker" WHERE orgId = ?`, args: [org.id as string] }),
-          client.execute({ sql: `SELECT COUNT(*) as c FROM "User" WHERE orgId = ?`, args: [org.id as string] }),
+        const id = org.id as string
+        const [tc, uc] = await Promise.all([
+          client.execute({ sql: `SELECT COUNT(*) as c FROM "Tournament" WHERE orgId = ?`, args: [id] }),
+          client.execute({ sql: `SELECT COUNT(*) as c FROM "User" WHERE orgId = ?`, args: [id] }),
         ])
+        let workerCount = 0
+        try {
+          const wc = await client.execute({ sql: `SELECT COUNT(*) as c FROM "Worker" WHERE orgId = ?`, args: [id] })
+          workerCount = Number(wc.rows[0]?.c ?? 0)
+        } catch { /* orgId column not yet migrated */ }
         return {
           ...org,
           tournamentCount: Number(tc.rows[0]?.c ?? 0),
-          workerCount: Number(wc.rows[0]?.c ?? 0),
+          workerCount,
           userCount: Number(uc.rows[0]?.c ?? 0),
         }
       })
