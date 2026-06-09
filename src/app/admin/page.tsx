@@ -55,6 +55,9 @@ export default function AdminDashboard() {
             <Link href="/admin/roadmap" className="text-sm bg-white border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 text-gray-700">
               Roadmap
             </Link>
+            <Link href="/admin/orgs" className="text-sm bg-white border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 text-gray-700">
+              Organizations
+            </Link>
             <Link href="/admin/users" className="text-sm bg-white border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 text-gray-700">
               Users
             </Link>
