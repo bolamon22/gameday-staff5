@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
+import { TIERS, TierKey, getUpgradeTiers } from '@/lib/tiers'
 
 const TIER_COLORS: Record<string, string> = {
   starter:    'bg-slate-100 text-slate-600 border-slate-300',
@@ -85,7 +86,6 @@ export default function OrgSettingsPage() {
       if (data.ok) {
         toast.success('Migration complete!', { duration: 6000 })
         setMigrated(true)
-        // Reload org data
         const orgRes = await fetch('/api/admin/org')
         const orgData = await orgRes.json()
         if (orgData) { setOrg(orgData); setForm(orgData) }
@@ -94,14 +94,18 @@ export default function OrgSettingsPage() {
     finally { setMigrating(false) }
   }
 
-  if (loading) return <div className="p-8 text-slate-400 text-center">Loading…</div>
+  if (loading) return <div className="p-8 text-slate-400 text-center">Loading&hellip;</div>
+
+  const currentTierKey = ((org?.subscriptionTier || 'starter') as TierKey)
+  const currentTier = TIERS[currentTierKey] || TIERS.starter
+  const upgradeTiers = org ? getUpgradeTiers(currentTierKey) : []
 
   return (
     <div className="min-h-screen bg-slate-50">
       <Toaster />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-2">
-          <Link href="/admin/users" className="text-slate-400 hover:text-slate-600 text-sm">← Admin</Link>
+          <Link href="/admin/users" className="text-slate-400 hover:text-slate-600 text-sm">&#8592; Admin</Link>
         </div>
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -216,7 +220,7 @@ export default function OrgSettingsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Routing Number</label>
-                    <input value={form.achRoutingNumber || ''} onChange={e => set('achRoutingNumber', e.target.value)} placeholder="•••••••••" className={inputCls} />
+                    <input value={form.achRoutingNumber || ''} onChange={e => set('achRoutingNumber', e.target.value)} placeholder="••••••••" className={inputCls} />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Account Number</label>
@@ -224,6 +228,77 @@ export default function OrgSettingsPage() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Subscription */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+              <h2 className="font-semibold text-slate-800 border-b border-slate-100 pb-2">Subscription</h2>
+              <p className="text-xs text-slate-500">Your current plan and available upgrades.</p>
+
+              {/* Current plan card */}
+              <div className={`rounded-xl border-2 p-4 ${currentTier.color}`}>
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 mb-0.5">Current Plan</p>
+                    <p className="text-xl font-bold text-slate-900">{currentTier.label}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{currentTier.description}</p>
+                  </div>
+                  <span className="text-lg font-bold text-slate-700">{currentTier.price}</span>
+                </div>
+                <ul className="space-y-1.5 mt-2">
+                  {currentTier.features.map((f, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
+                      <span className="text-green-500 font-bold text-base leading-none">&#10003;</span>
+                      {f}
+                    </li>
+                  ))}
+                  {currentTier.locked.map((f, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm text-slate-400">
+                      <span className="text-slate-300 font-bold text-base leading-none">&#10005;</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Upgrade options */}
+              {upgradeTiers.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Upgrade</p>
+                  <div className="grid gap-3">
+                    {upgradeTiers.map(tierKey => {
+                      const t = TIERS[tierKey]
+                      return (
+                        <div key={tierKey} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <p className="font-semibold text-slate-800">{t.label}</p>
+                              <p className="text-xs text-slate-500">{t.description}</p>
+                            </div>
+                            <span className="text-sm font-bold text-slate-700 whitespace-nowrap ml-3">{t.price}</span>
+                          </div>
+                          <ul className="space-y-1 mb-3">
+                            {t.features.slice(0, 4).map((f, i) => (
+                              <li key={i} className="text-xs text-slate-600 flex items-center gap-1.5">
+                                <span className="text-blue-500 font-bold">+</span> {f}
+                              </li>
+                            ))}
+                            {t.features.length > 4 && (
+                              <li className="text-xs text-slate-400 pl-3">+ {t.features.length - 4} more</li>
+                            )}
+                          </ul>
+                          <a
+                            href={`mailto:info@gamedaystaff.com?subject=Upgrade to ${t.label}`}
+                            className="block w-full text-center text-xs bg-slate-800 text-white rounded-lg py-2 hover:bg-slate-700 font-medium"
+                          >
+                            Upgrade to {t.label}
+                          </a>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <button type="submit" disabled={saving}
