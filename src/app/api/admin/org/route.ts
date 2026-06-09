@@ -34,7 +34,7 @@ export async function PATCH(req: Request) {
 
   const fields = ['name','logoUrl','contactEmail','contactPhone','website',
     'achBankName','achRoutingNumber','achAccountNumber',
-    'paypalEmail','zelleHandle','checkPayableTo','checkAddress']
+    'paypalEmail','zelleHandle','checkPayableTo','checkAddress','subscriptionTier']
 
   const updates = fields.filter(f => body[f] !== undefined)
   if (!updates.length) return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
