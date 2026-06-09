@@ -469,3 +469,31 @@ model OrgPaymentProvider {
   @@unique([userId, provider])
   @@index([userId])
 }
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logoUrl     String   @default("")
+  contactEmail String  @default("")
+  contactPhone String  @default("")
+  website     String   @default("")
+
+  // Payment instructions shown on public registration forms
+  achBankName      String @default("")
+  achRoutingNumber String @default("")
+  achAccountNumber String @default("")
+  paypalEmail      String @default("")
+  zelleHandle      String @default("")
+  checkPayableTo   String @default("")
+  checkAddress     String @default("")
+
+  // Subscription
+  subscriptionTier   String @default("starter") // starter | pro | enterprise
+  subscriptionStatus String @default("active")  // active | past_due | canceled
+  stripeCustomerId   String @default("")
+  stripeSubscriptionId String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
