@@ -27,15 +27,19 @@ const DEFAULT_DIVISIONS = [
 const EMPTY_FORM = { name:'', sport:'Lacrosse', startDate:'', endDate:'', location:'', scheduleIncrement:'50' }
 
 const ADMIN_LINKS = [
-  { label: '👥 User Management',    href: '/admin/users',              desc: 'Add, edit, delete users and assign roles' },
-  { label: '🔐 Permissions',        href: '/admin/permissions',        desc: 'Control what each role can access' },
-  { label: '🏒 Club Director View', href: '/dashboard/club-director',  desc: 'Preview the Club Director dashboard' },
-  { label: '👤 My Profile',         href: '/profile',                  desc: 'Edit your name, email and password' },
+  { label: 'ð¥ User Management',    href: '/admin/users',              desc: 'Add, edit, delete users and assign roles' },
+  { label: 'ð Permissions',        href: '/admin/permissions',        desc: 'Control what each role can access' },
+  { label: 'ð Club Director View', href: '/dashboard/club-director',  desc: 'Preview the Club Director dashboard' },
+  { label: 'ð¤ My Profile',         href: '/profile',                  desc: 'Edit your name, email and password' },
 ]
 
 export default function HomePage() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'admin'
+  const orgId = (session?.user as any)?.orgId as string | null
+  const [orgs, setOrgs] = useState<{id:string;name:string}[]>([])
+  const [viewOrgId, setViewOrgId] = useState('')
+  const [orgName, setOrgName] = useState('')
   const [showAdminPanel, setShowAdminPanel] = useState(false)
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const [loading, setLoading] = useState(true)
@@ -81,11 +85,20 @@ export default function HomePage() {
   const [editLogoUrl, setEditLogoUrl] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  async function load() {
-    const r = await fetch('/api/tournaments')
+  async function load(filterOrgId?: string) {
+    const filter = filterOrgId !== undefined ? filterOrgId : viewOrgId
+    const url = filter ? '/api/tournaments' + '?viewOrgId=' + filter : '/api/tournaments'
+    const r = await fetch(url)
     setTournaments(await r.json()); setLoading(false)
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [viewOrgId])
+  useEffect(() => {
+    if (isAdmin) {
+      fetch('/api/admin/orgs').then(r=>r.json()).then((d: any[]) => setOrgs(Array.isArray(d) ? d : []))
+    } else if (orgId) {
+      fetch('/api/org').then(r=>r.json()).then((d: any) => { if(d && d.name) setOrgName(d.name) })
+    }
+  }, [isAdmin, orgId])
 
   function setF(k:string, v:string) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -168,16 +181,22 @@ export default function HomePage() {
     <div>
       <div className="page-header">
         <div>
-          <div className="flex items-center gap-3"><OrgLogoMark /><h1 className="section-title">Tournaments</h1></div>
+          <div className="flex items-center gap-3"><OrgLogoMark /><h1 className="section-title">Tournaments</h1>{!isAdmin && orgName && <span className="ml-2 text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{orgName}</span>}</div>
           <p className="text-sm text-slate-500 mt-1">Manage staff scheduling for each tournament</p>
         </div>
         <div className="flex items-center gap-2">
+          {isAdmin && orgs.length > 0 && (
+            <select value={viewOrgId} onChange={e => setViewOrgId(e.target.value)} className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">All Orgs</option>
+              {orgs.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+            </select>
+          )}
           {isAdmin && (
             <div className="relative">
               <button
                 onClick={() => setShowAdminPanel(v => !v)}
                 className={`border px-4 py-2 rounded-lg text-sm font-medium transition-colors ${showAdminPanel ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}`}>
-                ⚙ Admin
+                â Admin
               </button>
               {showAdminPanel && (
                 <>
@@ -237,10 +256,10 @@ export default function HomePage() {
               <button type="button" onClick={() => setShowDivisions(v => !v)}
                 className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-700">🏅 Divisions</span>
+                  <span className="text-sm font-medium text-gray-700">ð Divisions</span>
                   <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{divisions.length} selected</span>
                 </div>
-                <span className="text-gray-400 text-sm">{showDivisions ? '▲' : '▼'}</span>
+                <span className="text-gray-400 text-sm">{showDivisions ? 'â²' : 'â¼'}</span>
               </button>
 
               {showDivisions && (
@@ -248,7 +267,7 @@ export default function HomePage() {
                   <div className="flex gap-2 mb-3">
                     <button type="button" onClick={() => setDivisions([...DEFAULT_DIVISIONS])}
                       className="text-xs text-blue-600 hover:underline">Select all defaults</button>
-                    <span className="text-gray-300">·</span>
+                    <span className="text-gray-300">Â·</span>
                     <button type="button" onClick={() => setDivisions([])}
                       className="text-xs text-gray-400 hover:underline">Clear all</button>
                   </div>
@@ -267,11 +286,11 @@ export default function HomePage() {
                       <input type="checkbox" checked readOnly className="w-4 h-4 accent-blue-600 flex-shrink-0" />
                       <span className="text-sm text-gray-800 font-medium flex-1">{d}</span>
                       <button type="button" onClick={() => setDivisions(divs => divs.filter(v => v !== d))}
-                        className="text-red-400 hover:text-red-600 text-xs">✕</button>
+                        className="text-red-400 hover:text-red-600 text-xs">â</button>
                     </div>
                   ))}
                   <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
-                    <input className="input flex-1" placeholder="Add custom division…" value={newDivision}
+                    <input className="input flex-1" placeholder="Add custom divisionâ¦" value={newDivision}
                       onChange={e => setNewDivision(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomDivision() } }} />
                     <button type="button" onClick={addCustomDivision}
@@ -282,7 +301,7 @@ export default function HomePage() {
             </div>
 
             <div className="flex gap-2 pt-1">
-              <button type="submit" className="btn-primary" disabled={saving}>{saving?'Creating…':'Create Tournament'}</button>
+              <button type="submit" className="btn-primary" disabled={saving}>{saving?'Creatingâ¦':'Create Tournament'}</button>
               <button type="button" className="btn-secondary" onClick={()=>{setShowForm(false);setShowDivisions(false)}}>Cancel</button>
             </div>
           </form>
@@ -331,7 +350,7 @@ export default function HomePage() {
                   <div className="flex flex-col gap-1.5">
                     <button type="button" onClick={() => fileInputRef.current?.click()}
                       className="btn-secondary btn-sm" disabled={logoUploading}>
-                      {logoUploading ? 'Uploading…' : editLogoUrl ? '🔄 Replace Logo' : '📁 Upload Logo'}
+                      {logoUploading ? 'Uploadingâ¦' : editLogoUrl ? 'ð Replace Logo' : 'ð Upload Logo'}
                     </button>
                     {editLogoUrl && (
                       <button type="button" onClick={() => setEditLogoUrl('')}
@@ -343,7 +362,7 @@ export default function HomePage() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={editSaving} className="btn-primary flex-1">{editSaving ? 'Saving…' : 'Save Changes'}</button>
+                <button type="submit" disabled={editSaving} className="btn-primary flex-1">{editSaving ? 'Savingâ¦' : 'Save Changes'}</button>
                 <button type="button" onClick={() => setEditId(null)} className="btn-secondary">Cancel</button>
               </div>
             </form>
@@ -351,10 +370,10 @@ export default function HomePage() {
         </div>
       )}
 
-      {loading ? <div className="text-slate-400 text-center py-16">Loading…</div> :
+      {loading ? <div className="text-slate-400 text-center py-16">Loadingâ¦</div> :
        tournaments.length === 0 ? (
         <div className="card p-16 text-center">
-          <div className="text-5xl mb-4">🏆</div>
+          <div className="text-5xl mb-4">ð</div>
           <p className="font-semibold text-slate-700">No tournaments yet</p>
           <p className="text-sm text-slate-400 mt-1">Create your first tournament to get started</p>
         </div>
@@ -372,7 +391,7 @@ export default function HomePage() {
                   <div className="flex items-center gap-1.5">
                     <button onClick={e=>{e.preventDefault();openEdit(t)}} className="text-xs text-slate-400 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-2 py-0.5 rounded-md transition-colors">Edit</button>
                     <button onClick={e=>{e.preventDefault();setCopySourceId(t.id);setCopyName(t.name+' (Copy)');setCopyStart('');setCopyEnd('')}} className="text-xs text-slate-400 hover:text-emerald-600 border border-slate-200 hover:border-emerald-300 px-2 py-0.5 rounded-md transition-colors">Copy</button>
-                    <button onClick={()=>del(t.id,t.name)} className="text-slate-300 hover:text-red-400 transition-colors text-xl leading-none">×</button>
+                    <button onClick={()=>del(t.id,t.name)} className="text-slate-300 hover:text-red-400 transition-colors text-xl leading-none">Ã</button>
                   </div>
                 </div>
 
@@ -388,10 +407,10 @@ export default function HomePage() {
                     <h3 className="font-bold text-slate-900 text-lg truncate">{t.name}</h3>
                     {(t.startDate || dates.length > 0) && (
                       <p className="text-sm text-slate-500 mt-0.5">
-                        {t.startDate ? (t.endDate && t.endDate !== t.startDate ? `${fmtDate(t.startDate)} – ${fmtDate(t.endDate)}` : fmtDate(t.startDate)) : dates.map(d=>formatDate(d)).join(' & ')}
+                        {t.startDate ? (t.endDate && t.endDate !== t.startDate ? `${fmtDate(t.startDate)} â ${fmtDate(t.endDate)}` : fmtDate(t.startDate)) : dates.map(d=>formatDate(d)).join(' & ')}
                       </p>
                     )}
-                    {t.location && <p className="text-xs text-slate-400 mt-0.5 truncate">📍 {t.location}</p>}
+                    {t.location && <p className="text-xs text-slate-400 mt-0.5 truncate">ð {t.location}</p>}
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       <span className="badge bg-sky-100 text-sky-700">{t._count.games} games</span>
                       {t._count.teamRegistrations > 0 && <>
@@ -407,10 +426,10 @@ export default function HomePage() {
                 <div className="flex gap-2 flex-wrap">
                   <Link href={`/tournaments/${t.id}`} className="btn-primary btn-sm">Schedule</Link>
                   <Link href={`/tournaments/${t.id}/roster`} className="btn-secondary btn-sm">Staff</Link>
-                  <Link href={`/tournaments/${t.id}/registrations`} className="btn-secondary btn-sm text-purple-600 border-purple-200 hover:bg-purple-50">📋 Registrations</Link>
-                  <Link href={`/tournaments/${t.id}/player-registrations`} className="btn-secondary btn-sm text-teal-600 border-teal-200 hover:bg-teal-50">🏃 Players</Link>
+                  <Link href={`/tournaments/${t.id}/registrations`} className="btn-secondary btn-sm text-purple-600 border-purple-200 hover:bg-purple-50">ð Registrations</Link>
+                  <Link href={`/tournaments/${t.id}/player-registrations`} className="btn-secondary btn-sm text-teal-600 border-teal-200 hover:bg-teal-50">ð Players</Link>
                   <Link href={`/tournaments/${t.id}/pay-summary`} className="btn-secondary btn-sm">Pay Report</Link>
-                  <Link href={`/tournaments/${t.id}/builder`} className="btn-secondary btn-sm text-blue-600 border-blue-200 hover:bg-blue-50">🏗 Builder</Link>
+                  <Link href={`/tournaments/${t.id}/builder`} className="btn-secondary btn-sm text-blue-600 border-blue-200 hover:bg-blue-50">ð Builder</Link>
                 </div>
               </div>
             )
@@ -423,7 +442,7 @@ export default function HomePage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
             <div className="px-6 py-5 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-800">📋 Copy Tournament</h2>
+              <h2 className="text-lg font-bold text-gray-800">ð Copy Tournament</h2>
               <p className="text-sm text-gray-500 mt-1">Creates a new tournament with the same settings, venues, and staff roster. Games and registrations are not copied.</p>
             </div>
             <div className="px-6 py-5 space-y-4">
@@ -442,13 +461,13 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="bg-blue-50 rounded-xl px-4 py-3 text-xs text-blue-700 space-y-1">
-                <p className="font-semibold">Copies: venues & fields · divisions · pay rates · ref rules · staff roster · registration settings</p>
-                <p className="font-semibold text-slate-500">Leaves behind: games · schedule · registrations · assignments · availability</p>
+                <p className="font-semibold">Copies: venues & fields Â· divisions Â· pay rates Â· ref rules Â· staff roster Â· registration settings</p>
+                <p className="font-semibold text-slate-500">Leaves behind: games Â· schedule Â· registrations Â· assignments Â· availability</p>
               </div>
               <div className="flex gap-3 pt-1">
                 <button className="flex-1 btn-secondary" onClick={()=>setCopySourceId(null)}>Cancel</button>
                 <button className="flex-1 btn-primary disabled:opacity-40" onClick={copyTournament} disabled={!copyName.trim()||copying}>
-                  {copying?'Copying…':'Create Copy'}
+                  {copying?'Copyingâ¦':'Create Copy'}
                 </button>
               </div>
             </div>
