@@ -38,7 +38,11 @@ export default function HomePage() {
   const isAdmin = session?.user?.role === 'admin'
   const orgId = (session?.user as any)?.orgId as string | null
   const [orgs, setOrgs] = useState<{id:string;name:string}[]>([])
-  const [viewOrgId, setViewOrgId] = useState('')
+  const [viewOrgId, setViewOrgId] = useState(() => {
+    if (typeof document === 'undefined') return ''
+    const m = document.cookie.match(/(?:^|; )preview-org=([^;]*)/)
+    return m ? decodeURIComponent(m[1]) : ''
+  })
   const [orgName, setOrgName] = useState('')
   const [showAdminPanel, setShowAdminPanel] = useState(false)
   const [tournaments, setTournaments] = useState<Tournament[]>([])

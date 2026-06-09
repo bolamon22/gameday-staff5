@@ -35,7 +35,7 @@ export default function SuperAdminBar() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  async function switchOrg(orgId: string | null) {
+  async function switchOrg(orgId: string | null, navigate?: string) {
     await fetch('/api/admin/preview-org', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -43,7 +43,8 @@ export default function SuperAdminBar() {
     })
     setActiveOrgId(orgId)
     setOpen(false)
-    router.refresh()
+    if (navigate) router.push(navigate)
+    else router.refresh()
   }
 
   const activeOrg = orgs.find(o => o.id === activeOrgId)
@@ -129,6 +130,12 @@ export default function SuperAdminBar() {
                       <p className="text-white/40 capitalize">{org.subscriptionTier}</p>
                     </div>
                     {activeOrgId === org.id && <span className="ml-auto text-blue-400 text-[10px] font-bold shrink-0">ACTIVE</span>}
+                  </button>
+                  <button
+                    onClick={() => switchOrg(org.id, '/')}
+                    title="View portal"
+                    className="px-2 py-2.5 text-white/20 hover:text-white/80 transition-colors shrink-0 opacity-0 group-hover:opacity-100">
+                    →
                   </button>
                   <Link
                     href={`/admin/orgs/${org.id}`}
