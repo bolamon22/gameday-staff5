@@ -1,4 +1,5 @@
 'use client'
+import React from 'react'
 
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
@@ -46,7 +47,7 @@ const DEFAULT_DIVISIONS = [
 const emptyTeam = (): TeamRow => ({ clubName: '', teamName: '', division: '', coachName: '', coachPhone: '', coachEmail: '', logoUrl: '' })
 const inputCls = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
 const smallInputCls = "w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-const payLabel = (m: string) => m === 'credit_card' ? 'Credit Card' : m === 'zelle' ? 'Zelle' : m === 'ach' ? 'ACH Bank Transfer' : 'Check'
+const payLabel = (m: string) => m === 'credit_card' ? 'Credit Card' : m === 'zelle' ? 'Zelle' : m === 'ach' ? 'ACH Bank Transfer' : m === 'paypal' ? 'PayPal' : 'Check'
 const fmt = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -164,6 +165,72 @@ function CardPaymentForm({ base, registrationId, tournamentId, date, notes, onSu
         <button type="button" onClick={onCancel} className="px-4 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
       </div>
     </form>
+  )
+
+interface PayPalFormProps { amount: number; registrationId: string; onSuccess: () => void; onCancel: () => void }
+function PayPalForm({ amount, registrationId, onSuccess, onCancel }: PayPalFormProps) {
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const [status, setStatus] = React.useState<'loading' | 'ready' | 'processing' | 'error'>('loading')
+  const [errMsg, setErrMsg] = React.useState('')
+
+  React.useEffect(() => {
+    if (!amount || amount <= 0) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const cfg = await fetch('/api/payments/paypal/config').then(r => r.json())
+        if (!cfg.connected) { setErrMsg('PayPal not connected. Go to Admin → Payment Providers.'); setStatus('error'); return }
+        const sdkUrl = `https://www.${cfg.sandbox ? 'sandbox.' : ''}paypal.com/sdk/js?client-id=${cfg.clientId}&currency=USD&intent=capture`
+        await new Promise<void>((resolve, reject) => {
+          const existing = document.querySelector(`script[src="${sdkUrl}"]`)
+          if (existing) { resolve(); return }
+          const s = document.createElement('script'); s.src = sdkUrl; s.onload = () => resolve(); s.onerror = reject
+          document.body.appendChild(s)
+        })
+        if (cancelled || !(window as any).paypal) return
+        if (!containerRef.current) return
+        containerRef.current.innerHTML = ''
+        ;(window as any).paypal.Buttons({
+          createOrder: async () => {
+            setStatus('processing')
+            const res = await fetch('/api/payments/paypal/create-order', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ amount, registrationId, description: 'Tournament Registration' }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Failed to create PayPal order')
+            return data.orderId
+          },
+          onApprove: async (_data: any) => {
+            const res = await fetch('/api/payments/paypal/capture-order', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ orderId: _data.orderID, registrationId, amount }),
+            })
+            const result = await res.json()
+            if (!res.ok) throw new Error(result.error || 'Capture failed')
+            onSuccess()
+          },
+          onError: (err: any) => { setErrMsg(err?.message || 'PayPal error'); setStatus('error') },
+          onCancel: () => setStatus('ready'),
+          style: { layout: 'vertical', color: 'blue', shape: 'rect', label: 'pay' },
+        }).render(containerRef.current)
+        if (!cancelled) setStatus('ready')
+      } catch (e: any) { if (!cancelled) { setErrMsg(e.message || 'Failed to load PayPal'); setStatus('error') } }
+    })()
+    return () => { cancelled = true }
+  }, [amount, registrationId])
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+        💙 Pay securely via PayPal. Amount: <strong>${amount.toFixed(2)}</strong>
+      </p>
+      {status === 'loading' && <div className="text-center py-4 text-sm text-gray-400">Loading PayPal…</div>}
+      {status === 'error' && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{errMsg}</div>}
+      {status === 'processing' && <div className="text-center py-4 text-sm text-gray-400">Processing…</div>}
+      <div ref={containerRef} className={status === 'loading' || status === 'error' ? 'hidden' : ''} />
+      <button type="button" onClick={onCancel} className="w-full border border-gray-300 rounded-xl py-2 text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+    </div>
   )
 }
 
@@ -924,6 +991,7 @@ export default function RegistrationsPage() {
                     <option value="zelle">Zelle</option>
                     <option value="credit_card">Credit Card</option>
                     <option value="ach">ACH Bank Transfer (QBO)</option>
+                    <option value="paypal">PayPal</option>
                     <option value="cash">Cash</option>
                   </select>
                 </div>
@@ -981,6 +1049,13 @@ export default function RegistrationsPage() {
                 ) : (
                   <div className="text-center py-4 text-sm text-gray-400">Loading Stripe…</div>
                 )
+              ) : payMethod === 'paypal' ? (
+                <PayPalForm
+                  amount={parseFloat(payAmount) || 0}
+                  registrationId={payingRegId!}
+                  onSuccess={() => { setPayingRegId(null); setPayAmount(''); load() }}
+                  onCancel={() => setPayingRegId(null)}
+                />
               ) : payMethod === 'ach' ? (
                 <form onSubmit={handleAchPayment}>
                   <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
