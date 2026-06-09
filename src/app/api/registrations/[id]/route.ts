@@ -6,7 +6,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const {
     clubName, clubContact, contactEmail, contactPhone,
     clubBasedIn, clubWebsite, needsHotel, paymentMethod, notes, teams,
-    invoiceAmount, discountAmount, discountNote,
+    invoiceAmount, discountAmount, discountNote, clubLogoUrl,
   } = body
 
   await prisma.registeredTeam.deleteMany({ where: { registrationId: params.id } })
@@ -27,6 +27,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       invoiceAmount: Number(invoiceAmount) || 0,
       discountAmount: Number(discountAmount) || 0,
       discountNote: discountNote || '',
+      clubLogoUrl: clubLogoUrl || '',
       teams: {
         create: (teams || []).map((t: any) => ({
           clubName: t.clubName || '',
@@ -35,7 +36,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           coachName: t.coachName || '',
           coachPhone: t.coachPhone || '',
           coachEmail: t.coachEmail || '',
-          logoUrl: t.logoUrl || '',
+          logoUrl: t.logoUrl || (clubLogoUrl || ''),
         })),
       },
     },
@@ -46,6 +47,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  await prisma.teamRegistration.delete({ where: { id: params.id } })
+  await prisma.teamRegistration.update({
+    where: { id: params.id },
+    data: { deletedAt: new Date() },
+  })
   return NextResponse.json({ ok: true })
 }

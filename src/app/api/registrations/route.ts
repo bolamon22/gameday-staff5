@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   if (!tournamentId) return NextResponse.json({ error: 'tournamentId required' }, { status: 400 })
 
   const registrations = await prisma.teamRegistration.findMany({
-    where: { tournamentId },
+    where: { tournamentId, deletedAt: null },
     include: { teams: true, payments: { orderBy: { receivedAt: 'asc' } } },
     orderBy: { createdAt: 'desc' },
   })
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   const {
     tournamentId, clubName, clubContact, contactEmail, contactPhone,
     clubBasedIn, clubWebsite, numTeams, needsHotel, paymentMethod, notes, teams,
-    invoiceAmount, discountAmount, discountNote,
+    invoiceAmount, discountAmount, discountNote, clubLogoUrl,
   } = body
 
   if (!tournamentId || !clubContact || !contactEmail || !contactPhone) {
@@ -36,12 +36,13 @@ export async function POST(req: NextRequest) {
       clubBasedIn: clubBasedIn || '',
       clubWebsite: clubWebsite || '',
       numTeams: Number(numTeams) || 1,
-      needsHotel: needsHotel || 'No',
+      needsHotel: needsHotel === true ? 'Yes' : needsHotel === false ? 'No' : (needsHotel || 'No'),
       paymentMethod: paymentMethod || 'check',
       notes: notes || '',
       invoiceAmount: Number(invoiceAmount) || 0,
       discountAmount: Number(discountAmount) || 0,
       discountNote: discountNote || '',
+      clubLogoUrl: clubLogoUrl || '',
       teams: {
         create: (teams || []).map((t: any) => ({
           clubName: t.clubName || '',
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
           coachName: t.coachName || '',
           coachPhone: t.coachPhone || '',
           coachEmail: t.coachEmail || '',
-          logoUrl: t.logoUrl || '',
+          logoUrl: t.logoUrl || (clubLogoUrl || ''),
         })),
       },
     },
