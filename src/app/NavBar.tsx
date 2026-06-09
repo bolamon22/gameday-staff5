@@ -81,19 +81,6 @@ export default function NavBar() {
 
       {/* Nav links */}
       <a href="/" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">Tournaments</a>
-      {(role === 'admin' || role === 'director' || role === 'assigner') && (
-        <a href="/staff" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">Staff Pool</a>
-      )}
-      {realRole === 'admin' && (
-        <>
-          <Link href="/admin/users" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">👥 Users</Link>
-          <Link href="/admin/permissions" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">🔐 Permissions</Link>
-          <Link href="/admin/roadmap" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">🗺 Roadmap</Link>
-          <Link href="/admin/org-settings" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">🏢 Org Settings</Link>
-          <Link href="/admin/payment-providers" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">💳 Payment Providers</Link>
-        </>
-      )}
-
       {/* Tournament logos */}
       {tournaments.length > 0 && (
         <>
@@ -124,6 +111,19 @@ export default function NavBar() {
       )}
 
       {/* Auth section */}
+      {(role === 'admin' || role === 'director' || role === 'assigner') && (
+        <a href="/staff" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">Staff Pool</a>
+      )}
+      {realRole === 'admin' && (
+        <>
+          <Link href="/admin/users" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">👥 Users</Link>
+          <Link href="/admin/permissions" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">🔐 Permissions</Link>
+          <Link href="/admin/roadmap" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">🗺 Roadmap</Link>
+          <Link href="/admin/org-settings" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">🏢 Org Settings</Link>
+          <Link href="/admin/payment-providers" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">💳 Payment Providers</Link>
+        </>
+      )}
+
       <div className="ml-auto flex items-center gap-3 flex-shrink-0">
         {session ? (
           <>
