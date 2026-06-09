@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
@@ -24,7 +24,7 @@ const CERT_LEVELS = [
   { value: 'none', label: 'N/A' },
 ]
 
-export default function JoinStaffPage() {
+function JoinForm() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -186,5 +186,13 @@ export default function JoinStaffPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function JoinStaffPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="text-slate-400 text-sm">Loading…</div></div>}>
+      <JoinForm />
+    </Suspense>
   )
 }
