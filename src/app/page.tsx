@@ -165,6 +165,16 @@ export default function HomePage() {
     finally { setLogoUploading(false) }
   }
 
+  async function moveToOrg(tournamentId: string, orgId: string) {
+    await fetch(`/api/admin/tournaments/${tournamentId}/move-org`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orgId }),
+    })
+    toast.success('Tournament moved!')
+    load()
+  }
+
   async function saveEdit(e: React.FormEvent) {
     e.preventDefault()
     if (!editId) return
@@ -395,6 +405,16 @@ export default function HomePage() {
                   <div className="flex items-center gap-1.5">
                     <button onClick={e=>{e.preventDefault();openEdit(t)}} className="text-xs text-slate-400 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-2 py-0.5 rounded-md transition-colors">Edit</button>
                     <button onClick={e=>{e.preventDefault();setCopySourceId(t.id);setCopyName(t.name+' (Copy)');setCopyStart('');setCopyEnd('')}} className="text-xs text-slate-400 hover:text-emerald-600 border border-slate-200 hover:border-emerald-300 px-2 py-0.5 rounded-md transition-colors">Copy</button>
+                    {orgs.length > 0 && (
+                      <select
+                        defaultValue=""
+                        onChange={e => { if (e.target.value) { moveToOrg(t.id, e.target.value); e.target.value = '' } }}
+                        onClick={e => e.preventDefault()}
+                        className="text-xs text-slate-400 border border-slate-200 px-2 py-0.5 rounded-md bg-white cursor-pointer hover:border-orange-300 hover:text-orange-600 transition-colors">
+                        <option value="" disabled>Move to…</option>
+                        {orgs.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+                      </select>
+                    )}
                     <button onClick={()=>del(t.id,t.name)} className="text-slate-300 hover:text-red-400 transition-colors text-xl leading-none">×</button>
                   </div>
                 </div>
