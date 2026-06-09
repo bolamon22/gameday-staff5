@@ -372,7 +372,7 @@ export default function RegistrationsPage() {
     Promise.all([
       fetch(`/api/registrations?tournamentId=${tournamentId}`).then(r => r.json()),
       fetch(`/api/tournaments/${tournamentId}`).then(r => r.json()),
-      fetch(`/api/tournaments/${tournamentId}/individual-reg`).then(r => r.json()),
+      fetch(`/api/tournaments/${tournamentId}/individual-reg`).then(r => r.ok ? r.json() : []).catch(() => []),
     ]).then(([regs, t, indivRegs]) => {
       setRegistrations(regs)
       setIndividualRegs(Array.isArray(indivRegs) ? indivRegs : [])
