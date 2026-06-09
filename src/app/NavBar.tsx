@@ -73,11 +73,11 @@ export default function NavBar() {
         GameDay Staff
       </a>
 
+      <div className="h-5 w-px bg-slate-200 flex-shrink-0"/>
+
       {org?.logoUrl && (
         <img src={org.logoUrl} alt={org.name || 'Logo'} className="w-10 h-10 object-contain rounded-lg border border-slate-200 bg-white flex-shrink-0" />
       )}
-
-      <div className="h-5 w-px bg-slate-200 flex-shrink-0"/>
 
       {/* Nav links */}
       <a href="/" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">Tournaments</a>
