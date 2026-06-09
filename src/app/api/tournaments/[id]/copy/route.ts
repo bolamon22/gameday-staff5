@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/db'
 import { createClient } from '@libsql/client'
 
@@ -12,6 +14,11 @@ function getClient() {
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const { name, startDate, endDate, dates } = await req.json()
   if (!name?.trim()) return NextResponse.json({ error: 'name required' }, { status: 400 })
+
+  // Resolve orgId: prefer source tournament's orgId, fall back to preview-org cookie
+  const session = await getServerSession(authOptions)
+  const role = (session?.user as any)?.role
+  const sessionOrgId = (session?.user as any)?.orgId ?? null
 
   const src = await prisma.tournament.findUnique({ where: { id: params.id } })
   if (!src) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -47,6 +54,25 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       dates: dates ? JSON.stringify(dates) : '[]',
     }
   })
+
+  // Stamp orgId — inherit from source, or from admin preview cookie
+  const client2 = getClient()
+  let targetOrgId: string | null = null
+  try {
+    const r = await client2.execute({ sql: 'SELECT orgId FROM "Tournament" WHERE id = ?', args: [params.id] })
+    targetOrgId = (r.rows[0]?.orgId as string) ?? null
+  } catch { /* column may not exist */ }
+  if (!targetOrgId && role === 'admin' && !sessionOrgId) {
+    const cookieHeader = req.headers.get('cookie') ?? ''
+    const m = cookieHeader.match(/(?:^|; )preview-org=([^;]*)/)
+    if (m) targetOrgId = decodeURIComponent(m[1])
+  }
+  if (!targetOrgId) targetOrgId = sessionOrgId
+  if (targetOrgId) {
+    try {
+      await client2.execute({ sql: 'UPDATE "Tournament" SET orgId = ? WHERE id = ?', args: [targetOrgId, newT.id] })
+    } catch { /* non-fatal */ }
+  }
 
   // Copy venues to new tournament
   try {

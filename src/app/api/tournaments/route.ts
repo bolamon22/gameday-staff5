@@ -63,7 +63,17 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
-  const orgId = (session?.user as any)?.orgId
+  const role = (session?.user as any)?.role
+  const sessionOrgId = (session?.user as any)?.orgId ?? null
+
+  // For admins in preview mode, use the preview-org cookie as the target org
+  let orgId = sessionOrgId
+  if (role === 'admin' && !orgId) {
+    const cookieHeader = req.headers.get('cookie') ?? ''
+    const m = cookieHeader.match(/(?:^|; )preview-org=([^;]*)/)
+    if (m) orgId = decodeURIComponent(m[1])
+  }
+
   const { name, sport, startDate, endDate, location, scheduleIncrement, registrationDivisions } = await req.json()
   const tournament = await prisma.tournament.create({
     data: {
