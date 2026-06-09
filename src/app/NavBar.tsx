@@ -58,7 +58,7 @@ export default function NavBar() {
       {/* Preview banner */}
       {isPreview && (
         <div className="bg-amber-400 text-amber-900 text-xs font-semibold px-4 py-1.5 flex items-center justify-between">
-          <span>👁 Previewing as <strong>{role.charAt(0).toUpperCase() + role.slice(1)}</strong> — this is how the app looks to that role</span>
+          <span>ð Previewing as <strong>{role.charAt(0).toUpperCase() + role.slice(1)}</strong> â this is how the app looks to that role</span>
           <button onClick={() => setPreviewRole(null)} className="underline hover:no-underline ml-4">Exit Preview</button>
         </div>
       )}
@@ -116,18 +116,21 @@ export default function NavBar() {
       )}
       {realRole === 'admin' && (
         <>
-          <Link href="/admin/users" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">👥 Users</Link>
-          <Link href="/admin/permissions" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">🔐 Permissions</Link>
-          <Link href="/admin/roadmap" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">🗺 Roadmap</Link>
-          <Link href="/admin/org-settings" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">🏢 Org Settings</Link>
-          <Link href="/admin/payment-providers" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">💳 Payment Providers</Link>
+                    <Link href="/admin" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex items-center gap-1.5">
+            <span>Dashboard</span>
+          </Link>
+<Link href="/admin/users" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">ð¥ Users</Link>
+          <Link href="/admin/permissions" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">ð Permissions</Link>
+          <Link href="/admin/roadmap" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">ðº Roadmap</Link>
+          <Link href="/admin/org-settings" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">ð¢ Org Settings</Link>
+          <Link href="/admin/payment-providers" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">ð³ Payment Providers</Link>
         </>
       )}
 
       <div className="ml-auto flex items-center gap-3 flex-shrink-0">
         {session ? (
           <>
-            {/* View As dropdown — admin only */}
+            {/* View As dropdown â admin only */}
             {realRole === 'admin' && (
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-slate-400 hidden sm:block">View as:</span>
