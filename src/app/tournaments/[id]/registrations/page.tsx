@@ -167,6 +167,7 @@ function CardPaymentForm({ base, registrationId, tournamentId, date, notes, onSu
     </form>
   )
 
+}
 interface PayPalFormProps { amount: number; registrationId: string; onSuccess: () => void; onCancel: () => void }
 function PayPalForm({ amount, registrationId, onSuccess, onCancel }: PayPalFormProps) {
   const containerRef = React.useRef<HTMLDivElement>(null)
