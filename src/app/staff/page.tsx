@@ -1,4 +1,5 @@
 'use client'
+import OrgLogoMark from '@/app/OrgLogoMark'
 import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { certLabel, CERT_LEVELS, WORKER_ROLES, PAY_METHODS, isHourlyRole } from '@/lib/utils'
@@ -244,7 +245,7 @@ export default function StaffPage() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="section-title">Staff Pool</h1>
+          <div className="flex items-center gap-3"><OrgLogoMark /><h1 className="section-title">Staff Pool</h1></div>
           <p className="text-sm text-slate-500 mt-1">Global staff database · {workers.length} total</p>
         </div>
         <div className="flex gap-2">

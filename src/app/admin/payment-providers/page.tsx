@@ -1,5 +1,6 @@
 'use client'
 
+import OrgLogoMark from '@/app/OrgLogoMark'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -139,7 +140,7 @@ function PaymentProvidersPage() {
         <div className="flex items-center gap-3 mb-2">
           <Link href="/admin/users" className="text-slate-400 hover:text-slate-600 text-sm">← Admin</Link>
         </div>
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">Payment Providers</h1>
+        <div className="flex items-center gap-3"><OrgLogoMark /><h1 className="text-2xl font-bold text-slate-900 mb-1">Payment Providers</h1></div>
         <p className="text-slate-500 text-sm mb-8">
           Connect payment methods for your organization. Each future organization will connect their own credentials here.
         </p>

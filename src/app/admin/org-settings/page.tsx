@@ -1,5 +1,6 @@
 'use client'
 
+import OrgLogoMark from '@/app/OrgLogoMark'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -104,7 +105,7 @@ export default function OrgSettingsPage() {
         </div>
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Organization Settings</h1>
+            <div className="flex items-center gap-3"><OrgLogoMark /><h1 className="text-2xl font-bold text-slate-900">Organization Settings</h1></div>
             <p className="text-slate-500 text-sm mt-1">Manage your org profile and payment instructions.</p>
           </div>
           {org && (

@@ -1,4 +1,5 @@
 'use client'
+import OrgLogoMark from '@/app/OrgLogoMark'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
@@ -167,7 +168,7 @@ export default function HomePage() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="section-title">Tournaments</h1>
+          <div className="flex items-center gap-3"><OrgLogoMark /><h1 className="section-title">Tournaments</h1></div>
           <p className="text-sm text-slate-500 mt-1">Manage staff scheduling for each tournament</p>
         </div>
         <div className="flex items-center gap-2">

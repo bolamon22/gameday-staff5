@@ -1,5 +1,6 @@
 'use client'
 
+import OrgLogoMark from '@/app/OrgLogoMark'
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -183,7 +184,7 @@ export default function AdminUsersPage() {
       <Toaster />
       <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">User Management</h1>
+          <div className="flex items-center gap-3"><OrgLogoMark /><h1 className="text-2xl font-bold text-gray-800">User Management</h1></div>
           <p className="text-sm text-gray-500 mt-0.5">{users.length} registered users · <a href="/admin/permissions" className="text-sky-600 hover:underline">Manage Permissions →</a></p>
         </div>
         <div className="flex gap-2 items-center">

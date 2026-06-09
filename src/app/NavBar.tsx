@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { useRole } from '@/lib/role-context'
+import { useOrg } from '@/lib/org-context'
 
 interface Tournament {
   id: string
@@ -37,7 +38,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 export default function NavBar() {
   const [tournaments, setTournaments] = useState<Tournament[]>([])
-  const [org, setOrg] = useState<any>(null)
+  const org = useOrg()
   const { data: session } = useSession()
   const { effectiveRole, isPreview, setPreviewRole } = useRole()
 
@@ -45,10 +46,6 @@ export default function NavBar() {
     fetch('/api/tournaments')
       .then(r => r.json())
       .then((data: Tournament[]) => setTournaments(data))
-      .catch(() => {})
-    fetch('/api/admin/org')
-      .then(r => r.json())
-      .then(d => { if (d) setOrg(d) })
       .catch(() => {})
   }, [])
 
@@ -67,18 +64,18 @@ export default function NavBar() {
       )}
     <nav className="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-4 shadow-sm">
       {/* Brand */}
-      <a href="/" className="flex items-center gap-2.5 text-sky-700 font-bold text-lg tracking-tight flex-shrink-0">
-        {org?.logoUrl ? (
-          <img src={org.logoUrl} alt={org.name || 'Logo'} className="w-10 h-10 object-contain rounded-lg border border-slate-200 bg-white" />
-        ) : (
-          <div className="w-7 h-7 bg-sky-600 rounded-lg flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" strokeWidth="2.5" strokeLinecap="round"/>
-            </svg>
-          </div>
-        )}
+      <a href="/" className="flex items-center gap-2 text-sky-700 font-bold text-lg tracking-tight flex-shrink-0">
+        <div className="w-7 h-7 bg-sky-600 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" strokeWidth="2.5" strokeLinecap="round"/>
+          </svg>
+        </div>
         GameDay Staff
       </a>
+
+      {org?.logoUrl && (
+        <img src={org.logoUrl} alt={org.name || 'Logo'} className="w-10 h-10 object-contain rounded-lg border border-slate-200 bg-white flex-shrink-0" />
+      )}
 
       <div className="h-5 w-px bg-slate-200 flex-shrink-0"/>
 
