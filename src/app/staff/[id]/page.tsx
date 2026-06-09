@@ -5,12 +5,13 @@ import toast from 'react-hot-toast'
 import { certLabel, PAY_METHODS, WORKER_ROLES, formatDate } from '@/lib/utils'
 
 interface Worker { id:string;name:string;email:string|null;phone:string|null;certLevel:string;defaultRole:string;gender:string;payMethod:string;payHandle:string|null;isAssigner:boolean;hourlyRate:number|null;payRateOverride:number|null;notes:string|null;photoUrl:string|null }
-interface PayRecord { id:string;amount:number;method:string;paidAt:string;notes:string|null;tournament:{id:string;name:string} }
+interface PayRecord { id:string;amount:number;method:string;paidAt:string;notes:string|null;tournament:{id:string;name:string;startDate:string|null} }
 
 const pmLabel=(p:string)=>PAY_METHODS.find(x=>x.value===p)?.label??p
 const rLabel=(r:string)=>WORKER_ROLES.find(x=>x.value===r)?.label??r
 const GENDERS=[{value:'both',label:'Boys & Girls'},{value:'boys',label:'Boys only'},{value:'girls',label:'Girls only'}]
 const gLabel=(g:string)=>GENDERS.find(x=>x.value===g)?.label??g
+function parseGames(notes:string|null):number{if(!notes)return 0;const m=notes.match(/:\s*(\d+)/g);return m?m.reduce((s,x)=>s+parseInt(x.replace(/[^0-9]/g,''),10),0):0}
 
 export default function StaffProfilePage({ params }: { params:{id:string} }) {
   const [worker,setWorker]=useState<Worker|null>(null)
@@ -62,6 +63,8 @@ export default function StaffProfilePage({ params }: { params:{id:string} }) {
   if(!worker)return<div className="text-red-500">Not found</div>
 
   const totalEarned=payments.reduce((s,p)=>s+p.amount,0)
+  const totalGames=payments.reduce((s,p)=>s+parseGames(p.notes),0)
+  const uniqueTournaments=new Set(payments.map(p=>p.tournament.id)).size
 
   return(
     <div className="max-w-2xl">
@@ -139,35 +142,58 @@ export default function StaffProfilePage({ params }: { params:{id:string} }) {
       <div className="card overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="font-bold text-slate-900">Payment History</h2>
-          <div className="text-right">
-            <p className="text-sm text-slate-500">All-time paid</p>
-            <p className="text-xl font-bold text-emerald-600">${totalEarned.toFixed(2)}</p>
+          <div className="flex items-center gap-6">
+            {uniqueTournaments>0&&<div className="text-right">
+              <p className="text-xs text-slate-400 uppercase tracking-wide">Tournaments</p>
+              <p className="text-lg font-bold text-slate-700">{uniqueTournaments}</p>
+            </div>}
+            {totalGames>0&&<div className="text-right">
+              <p className="text-xs text-slate-400 uppercase tracking-wide">Games</p>
+              <p className="text-lg font-bold text-slate-700">{totalGames}</p>
+            </div>}
+            <div className="text-right">
+              <p className="text-xs text-slate-400 uppercase tracking-wide">Total Earned</p>
+              <p className="text-xl font-bold text-emerald-600">${totalEarned.toFixed(2)}</p>
+            </div>
           </div>
         </div>
         {payments.length===0?(
-          <div className="p-4 sm:p-8 text-center text-slate-400 text-sm">No payments recorded yet</div>
+          <div className="p-8 text-center text-slate-400 text-sm">No payments recorded yet</div>
         ):(
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-100"><tr>
               <th className="text-left px-5 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">Tournament</th>
-              <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">Date Paid</th>
+              <th className="text-center px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">Games</th>
               <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">Method</th>
               <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">Notes</th>
+              <th className="text-left px-4 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">Paid</th>
               <th className="text-right px-5 py-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">Amount</th>
             </tr></thead>
             <tbody className="divide-y divide-slate-100">
-              {payments.map(p=>(
-                <tr key={p.id} className="hover:bg-slate-50">
-                  <td className="px-5 py-3 font-medium text-slate-900">{p.tournament.name}</td>
-                  <td className="px-4 py-3 text-slate-600">{new Date(p.paidAt).toLocaleDateString()}</td>
-                  <td className="px-4 py-3"><span className="badge bg-slate-100 text-slate-600">{pmLabel(p.method)}</span></td>
-                  <td className="px-4 py-3 text-slate-400 text-xs">{p.notes||'—'}</td>
-                  <td className="px-5 py-3 text-right font-bold text-emerald-600">${p.amount.toFixed(2)}</td>
-                </tr>
-              ))}
+              {payments.map(p=>{
+                const games=parseGames(p.notes)
+                return(
+                  <tr key={p.id} className="hover:bg-slate-50">
+                    <td className="px-5 py-3">
+                      <p className="font-medium text-slate-900">{p.tournament.name}</p>
+                      {p.tournament.startDate&&<p className="text-xs text-slate-400">{new Date(p.tournament.startDate).toLocaleDateString()}</p>}
+                    </td>
+                    <td className="px-4 py-3 text-center text-slate-700 font-medium">{games||<span className="text-slate-300">—</span>}</td>
+                    <td className="px-4 py-3"><span className="badge bg-slate-100 text-slate-600">{pmLabel(p.method)}</span></td>
+                    <td className="px-4 py-3 text-slate-400 text-xs">{p.notes||'—'}</td>
+                    <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{new Date(p.paidAt).toLocaleDateString()}</td>
+                    <td className="px-5 py-3 text-right font-bold text-emerald-600">${p.amount.toFixed(2)}</td>
+                  </tr>
+                )
+              })}
             </tbody>
             <tfoot className="bg-emerald-50 border-t border-emerald-100">
-              <tr><td colSpan={4} className="px-5 py-3 font-bold text-emerald-800">Total</td><td className="px-5 py-3 text-right font-bold text-emerald-700 text-lg">${totalEarned.toFixed(2)}</td></tr>
+              <tr>
+                <td className="px-5 py-3 font-bold text-emerald-800">{uniqueTournaments} tournament{uniqueTournaments!==1?'s':''}</td>
+                <td className="px-4 py-3 text-center font-bold text-emerald-700">{totalGames||'—'}</td>
+                <td colSpan={3}></td>
+                <td className="px-5 py-3 text-right font-bold text-emerald-700 text-lg">${totalEarned.toFixed(2)}</td>
+              </tr>
             </tfoot>
           </table>
         )}
