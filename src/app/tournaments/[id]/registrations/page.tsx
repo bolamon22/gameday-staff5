@@ -46,7 +46,7 @@ const DEFAULT_DIVISIONS = [
 const emptyTeam = (): TeamRow => ({ clubName: '', teamName: '', division: '', coachName: '', coachPhone: '', coachEmail: '', logoUrl: '' })
 const inputCls = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
 const smallInputCls = "w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-const payLabel = (m: string) => m === 'credit_card' ? 'Credit Card' : m === 'zelle' ? 'Zelle' : 'Check'
+const payLabel = (m: string) => m === 'credit_card' ? 'Credit Card' : m === 'zelle' ? 'Zelle' : m === 'ach' ? 'ACH Bank Transfer' : 'Check'
 const fmt = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -249,6 +249,12 @@ export default function RegistrationsPage() {
   const [payNotes, setPayNotes] = useState('')
   const [addingPay, setAddingPay] = useState(false)
   const [stripePromise, setStripePromise] = useState<any>(null)
+  // ACH fields
+  const [achRouting, setAchRouting] = useState('')
+  const [achAccount, setAchAccount] = useState('')
+  const [achAccountType, setAchAccountType] = useState('PERSONAL_CHECKING')
+  const [achAccountName, setAchAccountName] = useState('')
+  const [achLoading, setAchLoading] = useState(false)
 
   // Load Stripe when credit_card selected
   useEffect(() => {
@@ -414,6 +420,38 @@ export default function RegistrationsPage() {
       load()
     } catch { toast.error('Failed to record payment.') }
     finally { setAddingPay(false) }
+  }
+
+  const handleAchPayment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!achRouting || !achAccount || !achAccountName) { toast.error('Please fill in all bank fields'); return }
+    setAchLoading(true)
+    try {
+      const res = await fetch('/api/payments/qbo-ach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registrationId: payingRegId, amount: parseFloat(payAmount), bankRoutingNumber: achRouting, bankAccountNumber: achAccount, accountType: achAccountType, accountName: achAccountName, notes: payNotes }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'ACH payment failed')
+      toast.success(`ACH payment submitted! Status: ${data.status || 'processing'}`)
+      setPayingRegId(null); setPayAmount(''); setAchRouting(''); setAchAccount(''); setAchAccountName(''); load()
+    } catch (err: any) { toast.error(err.message || 'ACH payment failed') }
+    finally { setAchLoading(false) }
+  }
+
+  const handleQboSync = async (registrationId: string) => {
+    toast.loading('Syncing to QuickBooks…', { id: 'qbo-sync' })
+    try {
+      const res = await fetch('/api/qbo/sync-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registrationId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Sync failed')
+      toast.success(`Synced! Invoice #${data.docNumber}`, { id: 'qbo-sync', duration: 5000 })
+    } catch (err: any) { toast.error(err.message, { id: 'qbo-sync', duration: 5000 }) }
   }
 
   // ── Import handlers ──
@@ -885,6 +923,7 @@ export default function RegistrationsPage() {
                     <option value="check">Check</option>
                     <option value="zelle">Zelle</option>
                     <option value="credit_card">Credit Card</option>
+                    <option value="ach">ACH Bank Transfer (QBO)</option>
                     <option value="cash">Cash</option>
                   </select>
                 </div>
@@ -894,7 +933,31 @@ export default function RegistrationsPage() {
                     <input value={payCheck} onChange={e => setPayCheck(e.target.value)} className={inputCls} />
                   </div>
                 )}
-                {payMethod !== 'credit_card' && (
+                {payMethod === 'ach' && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Account Holder Name *</label>
+                      <input value={achAccountName} onChange={e => setAchAccountName(e.target.value)} placeholder="Full name on account" className={inputCls} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Routing Number *</label>
+                      <input value={achRouting} onChange={e => setAchRouting(e.target.value)} placeholder="9-digit routing number" maxLength={9} className={inputCls} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Account Number *</label>
+                      <input value={achAccount} onChange={e => setAchAccount(e.target.value)} placeholder="Account number" className={inputCls} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Account Type</label>
+                      <select value={achAccountType} onChange={e => setAchAccountType(e.target.value)} className={inputCls}>
+                        <option value="PERSONAL_CHECKING">Personal Checking</option>
+                        <option value="PERSONAL_SAVINGS">Personal Savings</option>
+                        <option value="BUSINESS_CHECKING">Business Checking</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+                {payMethod !== 'credit_card' && payMethod !== 'ach' && (
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
                     <input value={payNotes} onChange={e => setPayNotes(e.target.value)} className={inputCls} />
@@ -918,6 +981,18 @@ export default function RegistrationsPage() {
                 ) : (
                   <div className="text-center py-4 text-sm text-gray-400">Loading Stripe…</div>
                 )
+              ) : payMethod === 'ach' ? (
+                <form onSubmit={handleAchPayment}>
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+                    🏦 ACH eCheck via QuickBooks Payments. Funds typically settle in 3–5 business days.
+                  </p>
+                  <div className="flex gap-3 pt-1">
+                    <button type="submit" disabled={achLoading} className="flex-1 bg-blue-600 text-white rounded-xl py-2 text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
+                      {achLoading ? 'Processing…' : 'Submit ACH Payment'}
+                    </button>
+                    <button type="button" onClick={() => setPayingRegId(null)} className="px-4 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+                  </div>
+                </form>
               ) : (
                 <form onSubmit={handleAddPayment}>
                   <div className="flex gap-3 pt-1">
@@ -1313,6 +1388,7 @@ export default function RegistrationsPage() {
                       <span className="hidden sm:block bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{reg.teams.length} team{reg.teams.length !== 1 ? 's' : ''}</span>
                       <button onClick={() => { setPayingRegId(reg.id); const _bal1=reg.invoiceAmount-reg.discountAmount-reg.payments.reduce((s:number,p:any)=>s+p.amount,0); setPayAmount(_bal1>0?String(_bal1):''); setPayCheck(''); setPayDate(today()); setPayNotes(''); setPayMethod(reg.paymentMethod||'check') }}
                         className="text-xs text-green-600 border border-green-300 hover:border-green-500 px-2.5 py-1 rounded-lg">+ Payment</button>
+                      <button onClick={() => handleQboSync(reg.id)} className="text-xs text-purple-600 border border-purple-200 hover:border-purple-400 px-2.5 py-1 rounded-lg">QB Sync</button>
                       <button onClick={() => openEdit(reg)} className="text-xs text-blue-600 border border-blue-200 hover:border-blue-400 px-2.5 py-1 rounded-lg">Edit</button>
                       <button onClick={() => handleDelete(reg.id, reg.clubName || reg.clubContact)} className="text-xs text-red-500 border border-red-200 hover:border-red-400 px-2.5 py-1 rounded-lg">Del</button>
                       <span className="text-gray-400 text-sm">{expanded === reg.id ? '▲' : '▼'}</span>
