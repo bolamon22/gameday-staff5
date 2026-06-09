@@ -1,10 +1,13 @@
 'use client'
+import React from 'react'
 
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import TournamentNav from '../TournamentNav'
 import toast, { Toaster } from 'react-hot-toast'
+import { loadStripe } from '@stripe/stripe-js'
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 
 interface RegisteredTeam {
   id: string; clubName: string; teamName: string; division: string
@@ -23,17 +26,28 @@ interface Registration {
 }
 interface TeamRow { clubName: string; teamName: string; division: string; coachName: string; coachPhone: string; coachEmail: string; logoUrl: string }
 interface Pricing { tier1: number; tier1Max: number; tier2: number; tier2Max: number; tier3: number; sevenVSeven: number }
+interface IndividualReg {
+  id: string; firstName: string; lastName: string; email: string; phone: string
+  position: string; jerseySize: string; shortsSize: string; numberRequest: string
+  usLacrosseNumber: string; dateOfBirth: string
+  guardianName: string; guardianPhone: string; guardianEmail: string
+  feeTierId: string; feeTierName: string; feeTierAmount: number
+  paymentStatus: string; waiverSigned: boolean; createdAt: string
+}
 
 const DEFAULT_PRICING: Pricing = { tier1: 1495, tier1Max: 3, tier2: 1450, tier2Max: 6, tier3: 1395, sevenVSeven: 1095 }
 const DEFAULT_DIVISIONS = [
-  'Boys 2030','Boys 2029','Boys 2028','Boys 2027','Boys 2026','Boys 2025','Boys 2024','Boys 2023',
-  'Girls 2030','Girls 2029','Girls 2028','Girls 2027','Girls 2026','Girls 2025','Girls 2024','Girls 2023',
-  'HS Boys JV','HS Boys Varsity','HS Girls JV','HS Girls Varsity',
+  'Boys High School A','Boys High School B','Boys High School B2',
+  'Boys U14 A and B','Boys U12 A and B',
+  'Boys U10 A and B (7v7)','Boys U10 A and B (10v10)','Boys U8 (7v7)',
+  'Girls High School A','Girls High School B','Girls High School B2',
+  'Girls Middle School A',"Girls Middle School B (No 2030's)",
+  "Girls Lower School A (7v7)","Girls Lower School B (7v7 â No 2033's)",
 ]
 const emptyTeam = (): TeamRow => ({ clubName: '', teamName: '', division: '', coachName: '', coachPhone: '', coachEmail: '', logoUrl: '' })
 const inputCls = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
 const smallInputCls = "w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-const payLabel = (m: string) => m === 'credit_card' ? 'Credit Card' : m === 'zelle' ? 'Zelle' : 'Check'
+const payLabel = (m: string) => m === 'credit_card' ? 'Credit Card' : m === 'zelle' ? 'Zelle' : m === 'ach' ? 'ACH Bank Transfer' : m === 'paypal' ? 'PayPal' : 'Check'
 const fmt = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -76,9 +90,157 @@ function downloadCSV(registrations: Registration[]) {
   a.download = `registrations-${today()}.csv`; a.click()
 }
 
+
+const STRIPE_FEE_RATE = 0.029
+const STRIPE_FEE_FIXED = 0.30
+function calcFee(base: number) { return Math.round((base * STRIPE_FEE_RATE + STRIPE_FEE_FIXED) * 100) / 100 }
+
+interface CardFormProps {
+  base: number; registrationId: string; tournamentId: string
+  date: string; notes: string
+  onSuccess: () => void; onCancel: () => void
+}
+function CardPaymentForm({ base, registrationId, tournamentId, date, notes, onSuccess, onCancel }: CardFormProps) {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [paying, setPaying] = useState(false)
+  const [err, setErr] = useState('')
+  const fee = calcFee(base)
+  const total = base + fee
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!stripe || !elements) return
+    setPaying(true); setErr('')
+    try {
+      // Create PaymentIntent
+      const res = await fetch('/api/stripe/create-team-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: total, tournamentName: '', clubName: '', registrationId }),
+      })
+      const { clientSecret, publishableKey, accountId, error } = await res.json()
+      if (error) throw new Error(error)
+
+      // Confirm card payment
+      const card = elements.getElement(CardElement)!
+      const { error: stripeErr, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: { card },
+      })
+      if (stripeErr) throw new Error(stripeErr.message)
+      if (paymentIntent?.status !== 'succeeded') throw new Error('Payment did not complete')
+
+      // Record payment
+      const recRes = await fetch('/api/registration-payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registrationId, amount: base, method: 'credit_card', receivedAt: date, notes: notes ? `${notes} (fee: $${fee.toFixed(2)})` : `Processing fee: $${fee.toFixed(2)}` }),
+      })
+      if (!recRes.ok) throw new Error('Payment succeeded but failed to record')
+      toast.success('Card payment recorded!')
+      onSuccess()
+    } catch (e: any) {
+      setErr(e.message || 'Payment failed')
+    } finally { setPaying(false) }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm space-y-1">
+        <div className="flex justify-between text-gray-600"><span>Registration amount</span><span>${base.toFixed(2)}</span></div>
+        <div className="flex justify-between text-gray-500"><span>Processing fee (2.9% + $0.30)</span><span>+${fee.toFixed(2)}</span></div>
+        <div className="flex justify-between font-bold text-gray-900 border-t border-blue-200 pt-1"><span>Total charged</span><span>${total.toFixed(2)}</span></div>
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Card Details</label>
+        <div className="border border-gray-300 rounded-xl px-3 py-3">
+          <CardElement options={{ style: { base: { fontSize: '15px', color: '#1f2937', '::placeholder': { color: '#9ca3af' } } } }} />
+        </div>
+      </div>
+      {err && <p className="text-xs text-red-500">{err}</p>}
+      <div className="flex gap-3 pt-1">
+        <button type="submit" disabled={paying || !stripe} className="flex-1 bg-green-600 text-white rounded-xl py-2 text-sm font-semibold hover:bg-green-700 disabled:opacity-60">
+          {paying ? 'Processingâ¦' : `Charge $${total.toFixed(2)}`}
+        </button>
+        <button type="button" onClick={onCancel} className="px-4 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+      </div>
+    </form>
+  )
+
+}
+interface PayPalFormProps { amount: number; registrationId: string; onSuccess: () => void; onCancel: () => void }
+function PayPalForm({ amount, registrationId, onSuccess, onCancel }: PayPalFormProps) {
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const [status, setStatus] = React.useState<'loading' | 'ready' | 'processing' | 'error'>('loading')
+  const [errMsg, setErrMsg] = React.useState('')
+
+  React.useEffect(() => {
+    if (!amount || amount <= 0) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const cfg = await fetch('/api/payments/paypal/config').then(r => r.json())
+        if (!cfg.connected) { setErrMsg('PayPal not connected. Go to Admin â Payment Providers.'); setStatus('error'); return }
+        const sdkUrl = `https://www.${cfg.sandbox ? 'sandbox.' : ''}paypal.com/sdk/js?client-id=${cfg.clientId}&currency=USD&intent=capture`
+        await new Promise<void>((resolve, reject) => {
+          const existing = document.querySelector(`script[src="${sdkUrl}"]`)
+          if (existing) { resolve(); return }
+          const s = document.createElement('script'); s.src = sdkUrl; s.onload = () => resolve(); s.onerror = reject
+          document.body.appendChild(s)
+        })
+        if (cancelled || !(window as any).paypal) return
+        if (!containerRef.current) return
+        containerRef.current.innerHTML = ''
+        ;(window as any).paypal.Buttons({
+          createOrder: async () => {
+            setStatus('processing')
+            const res = await fetch('/api/payments/paypal/create-order', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ amount, registrationId, description: 'Tournament Registration' }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Failed to create PayPal order')
+            return data.orderId
+          },
+          onApprove: async (_data: any) => {
+            const res = await fetch('/api/payments/paypal/capture-order', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ orderId: _data.orderID, registrationId, amount }),
+            })
+            const result = await res.json()
+            if (!res.ok) throw new Error(result.error || 'Capture failed')
+            onSuccess()
+          },
+          onError: (err: any) => { setErrMsg(err?.message || 'PayPal error'); setStatus('error') },
+          onCancel: () => setStatus('ready'),
+          style: { layout: 'vertical', color: 'blue', shape: 'rect', label: 'pay' },
+        }).render(containerRef.current)
+        if (!cancelled) setStatus('ready')
+      } catch (e: any) { if (!cancelled) { setErrMsg(e.message || 'Failed to load PayPal'); setStatus('error') } }
+    })()
+    return () => { cancelled = true }
+  }, [amount, registrationId])
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+        ð Pay securely via PayPal. Amount: <strong>${amount.toFixed(2)}</strong>
+      </p>
+      {status === 'loading' && <div className="text-center py-4 text-sm text-gray-400">Loading PayPalâ¦</div>}
+      {status === 'error' && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{errMsg}</div>}
+      {status === 'processing' && <div className="text-center py-4 text-sm text-gray-400">Processingâ¦</div>}
+      <div ref={containerRef} className={status === 'loading' || status === 'error' ? 'hidden' : ''} />
+      <button type="button" onClick={onCancel} className="w-full border border-gray-300 rounded-xl py-2 text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+    </div>
+  )
+}
+
 export default function RegistrationsPage() {
   const { id: tournamentId } = useParams()
   const [registrations, setRegistrations] = useState<Registration[]>([])
+  const [deletedRegs, setDeletedRegs] = useState<any[]>([])
+  const [showDeleted, setShowDeleted] = useState(false)
+  const [restoringId, setRestoringId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [tournamentName, setTournamentName] = useState('')
@@ -107,6 +269,8 @@ export default function RegistrationsPage() {
   const [invoiceAmount, setInvoiceAmount] = useState(0)
   const [discountAmount, setDiscountAmount] = useState(0)
   const [discountNote, setDiscountNote] = useState('')
+  const [clubLogoUrl, setClubLogoUrl] = useState('')
+  const [clubLogoUploading, setClubLogoUploading] = useState(false)
   const [logoUploading, setLogoUploading] = useState<number | null>(null)
 
   const uploadTeamLogo = async (i: number, file: File) => {
@@ -119,6 +283,19 @@ export default function RegistrationsPage() {
       toast.success('Logo uploaded!')
     } catch { toast.error('Upload failed') }
     finally { setLogoUploading(null) }
+  }
+
+  const uploadClubLogo = async (file: File) => {
+    setClubLogoUploading(true)
+    try {
+      const fd = new FormData(); fd.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const { url } = await res.json()
+      setClubLogoUrl(url)
+      setTeams(prev => prev.map(t => t.logoUrl ? t : { ...t, logoUrl: url }))
+      toast.success('Club logo uploaded!')
+    } catch { toast.error('Upload failed') }
+    finally { setClubLogoUploading(false) }
   }
 
   // Import
@@ -142,15 +319,72 @@ export default function RegistrationsPage() {
   const [payDate, setPayDate] = useState(today())
   const [payNotes, setPayNotes] = useState('')
   const [addingPay, setAddingPay] = useState(false)
+  const [stripePromise, setStripePromise] = useState<any>(null)
+  // ACH fields
+  const [achRouting, setAchRouting] = useState('')
+  const [achAccount, setAchAccount] = useState('')
+  const [achAccountType, setAchAccountType] = useState('PERSONAL_CHECKING')
+  const [achAccountName, setAchAccountName] = useState('')
+  const [achLoading, setAchLoading] = useState(false)
+
+  // Load Stripe when credit_card selected
+  useEffect(() => {
+    if (payMethod === 'credit_card' && !stripePromise) {
+      fetch('/api/stripe/create-team-intent', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({amount:1,tournamentName:'',clubName:'',registrationId:''}) })
+        .then(r => r.json()).then(d => {
+          if (d.publishableKey) {
+            const sp = loadStripe(d.publishableKey, d.accountId ? { stripeAccount: d.accountId } : undefined)
+            setStripePromise(sp)
+          }
+        }).catch(() => {})
+    }
+  }, [payMethod])
+
+  // Tabs & individual reg
+  const [activeTab, setActiveTab] = useState<'team' | 'individual'>('team')
+  const [teamRegEnabled, setTeamRegEnabled] = useState(true)
+  const [indivRegEnabled, setIndivRegEnabled] = useState(false)
+  const [indivRegTiers, setIndivRegTiers] = useState<{id:string;name:string;price:number;description:string}[]>([])
+  const [indivRegPositions, setIndivRegPositions] = useState<string[]>([])
+  const [individualRegs, setIndividualRegs] = useState<IndividualReg[]>([])
+  const [showIndivForm, setShowIndivForm] = useState(false)
+  const [savingIndiv, setSavingIndiv] = useState(false)
+  const [editingIndivId, setEditingIndivId] = useState<string | null>(null)
+  const [indivFirstName, setIndivFirstName] = useState('')
+  const [indivLastName, setIndivLastName] = useState('')
+  const [indivEmail, setIndivEmail] = useState('')
+  const [indivPhone, setIndivPhone] = useState('')
+  const [indivPosition, setIndivPosition] = useState('')
+  const [indivJerseySize, setIndivJerseySize] = useState('')
+  const [indivShortsSize, setIndivShortsSize] = useState('')
+  const [indivNumberRequest, setIndivNumberRequest] = useState('')
+  const [indivUsLacrosse, setIndivUsLacrosse] = useState('')
+  const [indivDob, setIndivDob] = useState('')
+  const [indivGuardianName, setIndivGuardianName] = useState('')
+  const [indivGuardianPhone, setIndivGuardianPhone] = useState('')
+  const [indivGuardianEmail, setIndivGuardianEmail] = useState('')
+  const [indivFeeTierId, setIndivFeeTierId] = useState('')
+  const [indivFeeTierName, setIndivFeeTierName] = useState('')
+  const [indivFeeTierAmount, setIndivFeeTierAmount] = useState(0)
+  const [indivPaymentStatus, setIndivPaymentStatus] = useState('pending')
 
   const load = () => {
     Promise.all([
       fetch(`/api/registrations?tournamentId=${tournamentId}`).then(r => r.json()),
       fetch(`/api/tournaments/${tournamentId}`).then(r => r.json()),
-    ]).then(([regs, t]) => {
+      fetch(`/api/tournaments/${tournamentId}/individual-reg`).then(r => r.json()),
+    ]).then(([regs, t, indivRegs]) => {
       setRegistrations(regs)
+      setIndividualRegs(Array.isArray(indivRegs) ? indivRegs : [])
       setTournamentName(t.name || '')
       if (t.logoUrl) setTournamentLogo(t.logoUrl)
+      const tEnabled = t.teamRegEnabled !== false
+      const iEnabled = Boolean(t.individualRegEnabled)
+      setTeamRegEnabled(tEnabled)
+      setIndivRegEnabled(iEnabled)
+      if (!tEnabled && iEnabled) setActiveTab('individual')
+      try { const tiers = JSON.parse(t.individualRegTiers || '[]'); if (tiers.length) setIndivRegTiers(tiers) } catch {}
+      try { const pos = JSON.parse(t.individualRegPositions || '[]'); if (pos.length) setIndivRegPositions(pos) } catch {}
       try {
         const p = JSON.parse(t.registrationPricing || '{}')
         if (p.tier1) { setPricing(p); setPricingDraft(p) }
@@ -186,7 +420,7 @@ export default function RegistrationsPage() {
   const updateTeam = (i: number, f: keyof TeamRow, v: string) =>
     setTeams(prev => prev.map((t, idx) => idx === i ? { ...t, [f]: v } : t))
   const addTeam = () => {
-    const newTeams = [...teams, { ...emptyTeam(), clubName }]
+    const newTeams = [...teams, { ...emptyTeam(), clubName, logoUrl: clubLogoUrl }]
     setTeams(newTeams)
     setInvoiceAmount(calcInvoice(newTeams, pricing))
   }
@@ -204,7 +438,7 @@ export default function RegistrationsPage() {
   const resetForm = () => {
     setEditingId(null); setClubName(''); setClubContact(''); setContactEmail(''); setContactPhone('')
     setClubBasedIn(''); setClubWebsite(''); setNeedsHotel('No'); setPaymentMethod('check')
-    setNotes(''); setTeams([emptyTeam()]); setInvoiceAmount(0); setDiscountAmount(0); setDiscountNote('')
+    setNotes(''); setTeams([emptyTeam()]); setInvoiceAmount(0); setDiscountAmount(0); setDiscountNote(''); setClubLogoUrl('')
   }
 
   const openNew = () => { resetForm(); setShowForm(true) }
@@ -214,6 +448,7 @@ export default function RegistrationsPage() {
     setClubBasedIn(reg.clubBasedIn); setClubWebsite(reg.clubWebsite)
     setNeedsHotel(reg.needsHotel); setPaymentMethod(reg.paymentMethod); setNotes(reg.notes)
     setInvoiceAmount(reg.invoiceAmount); setDiscountAmount(reg.discountAmount); setDiscountNote(reg.discountNote)
+    setClubLogoUrl((reg as any).clubLogoUrl || '')
     setTeams(reg.teams.map(t => ({ clubName: t.clubName, teamName: t.teamName, division: t.division, coachName: t.coachName, coachPhone: t.coachPhone, coachEmail: t.coachEmail, logoUrl: (t as any).logoUrl || '' })))
     setShowForm(true)
   }
@@ -225,7 +460,7 @@ export default function RegistrationsPage() {
       const res = await fetch(url, {
         method: editingId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tournamentId, clubName, clubContact, contactEmail, contactPhone, clubBasedIn, clubWebsite, needsHotel, paymentMethod, notes, teams, invoiceAmount, discountAmount, discountNote }),
+        body: JSON.stringify({ tournamentId, clubName, clubContact, contactEmail, contactPhone, clubBasedIn, clubWebsite, needsHotel, paymentMethod, notes, teams, invoiceAmount, discountAmount, discountNote, clubLogoUrl }),
       })
       if (!res.ok) throw new Error()
       toast.success(editingId ? 'Updated!' : 'Registration added!')
@@ -240,6 +475,19 @@ export default function RegistrationsPage() {
       await fetch(`/api/registrations/${id}`, { method: 'DELETE' })
       toast.success('Deleted.'); setExpanded(null); load()
     } catch { toast.error('Failed to delete.') }
+  }
+
+  const fetchDeleted = async () => {
+    const res = await fetch(`/api/registrations/deleted?tournamentId=${tournamentId}`)
+    if (res.ok) setDeletedRegs(await res.json())
+  }
+
+  const handleRestore = async (id: string) => {
+    setRestoringId(id)
+    await fetch(`/api/registrations/${id}/restore`, { method: 'POST' })
+    setRestoringId(null)
+    setDeletedRegs(prev => prev.filter(r => r.id !== id))
+    load()
   }
 
   const handleAddPayment = async (e: React.FormEvent) => {
@@ -258,7 +506,44 @@ export default function RegistrationsPage() {
     finally { setAddingPay(false) }
   }
 
-  // ── Import handlers ──
+  const handleAchPayment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!achRouting || !achAccount || !achAccountName) { toast.error('Please fill in all bank fields'); return }
+    setAchLoading(true)
+    try {
+      const res = await fetch('/api/payments/qbo-ach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registrationId: payingRegId, amount: parseFloat(payAmount), bankRoutingNumber: achRouting, bankAccountNumber: achAccount, accountType: achAccountType, accountName: achAccountName, notes: payNotes }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'ACH payment failed')
+      toast.success(`ACH payment submitted! Status: ${data.status || 'processing'}`)
+      setPayingRegId(null); setPayAmount(''); setAchRouting(''); setAchAccount(''); setAchAccountName(''); load()
+    } catch (err: any) { toast.error(err.message || 'ACH payment failed') }
+    finally { setAchLoading(false) }
+  }
+
+  const handleQboSync = async (registrationId: string) => {
+    toast.loading('Syncing to QuickBooksâ¦', { id: 'qbo-sync' })
+    try {
+      const res = await fetch('/api/qbo/sync-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registrationId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Sync failed')
+      if (data.alreadySynced) {
+        toast.success(`Already synced â Invoice #${data.invoiceId}`, { id: 'qbo-sync', duration: 5000 })
+      } else {
+        toast.success(`Synced! Invoice #${data.docNumber}`, { id: 'qbo-sync', duration: 5000 })
+      }
+      load()
+    } catch (err: any) { toast.error(err.message, { id: 'qbo-sync', duration: 5000 }) }
+  }
+
+  // ââ Import handlers ââ
   const IMPORT_FIELDS = [
     { key: 'clubName',     label: 'Club Name' },
     { key: 'clubContact',  label: 'Club Contact *' },
@@ -270,12 +555,12 @@ export default function RegistrationsPage() {
     { key: 'paymentMethod',label: 'Payment Method' },
     { key: 'notes',        label: 'Notes' },
     // team sub-fields (repeated per team row)
-    { key: 'teamClubName', label: 'Team – Club Name' },
-    { key: 'teamName',     label: 'Team – Team Name' },
-    { key: 'division',     label: 'Team – Division' },
-    { key: 'coachName',    label: 'Team – Coach Name' },
-    { key: 'coachPhone',   label: 'Team – Coach Phone' },
-    { key: 'coachEmail',   label: 'Team – Coach Email' },
+    { key: 'teamClubName', label: 'Team â Club Name' },
+    { key: 'teamName',     label: 'Team â Team Name' },
+    { key: 'division',     label: 'Team â Division' },
+    { key: 'coachName',    label: 'Team â Coach Name' },
+    { key: 'coachPhone',   label: 'Team â Coach Phone' },
+    { key: 'coachEmail',   label: 'Team â Coach Email' },
   ]
 
   function autoMap(headers: string[]) {
@@ -385,6 +670,68 @@ export default function RegistrationsPage() {
     a.download = 'registration_import_template.csv'; a.click()
   }
 
+  const resetIndivForm = () => {
+    setEditingIndivId(null)
+    setIndivFirstName(''); setIndivLastName(''); setIndivEmail(''); setIndivPhone('')
+    setIndivPosition(''); setIndivJerseySize(''); setIndivShortsSize('')
+    setIndivNumberRequest(''); setIndivUsLacrosse(''); setIndivDob('')
+    setIndivGuardianName(''); setIndivGuardianPhone(''); setIndivGuardianEmail('')
+    setIndivFeeTierId(''); setIndivFeeTierName(''); setIndivFeeTierAmount(0)
+    setIndivPaymentStatus('pending')
+  }
+
+  const openIndivNew = () => { resetIndivForm(); setShowIndivForm(true) }
+  const openIndivEdit = (reg: IndividualReg) => {
+    setEditingIndivId(reg.id)
+    setIndivFirstName(reg.firstName); setIndivLastName(reg.lastName)
+    setIndivEmail(reg.email); setIndivPhone(reg.phone)
+    setIndivPosition(reg.position); setIndivJerseySize(reg.jerseySize)
+    setIndivShortsSize(reg.shortsSize); setIndivNumberRequest(reg.numberRequest)
+    setIndivUsLacrosse(reg.usLacrosseNumber); setIndivDob(reg.dateOfBirth)
+    setIndivGuardianName(reg.guardianName); setIndivGuardianPhone(reg.guardianPhone)
+    setIndivGuardianEmail(reg.guardianEmail)
+    setIndivFeeTierId(reg.feeTierId); setIndivFeeTierName(reg.feeTierName)
+    setIndivFeeTierAmount(reg.feeTierAmount); setIndivPaymentStatus(reg.paymentStatus)
+    setShowIndivForm(true)
+  }
+
+  const handleSaveIndiv = async (e: React.FormEvent) => {
+    e.preventDefault(); setSavingIndiv(true)
+    try {
+      const url = editingIndivId
+        ? `/api/tournaments/${tournamentId}/individual-reg/${editingIndivId}`
+        : `/api/tournaments/${tournamentId}/individual-reg`
+      const res = await fetch(url, {
+        method: editingIndivId ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: indivFirstName, lastName: indivLastName,
+          email: indivEmail, phone: indivPhone,
+          position: indivPosition, jerseySize: indivJerseySize,
+          shortsSize: indivShortsSize, numberRequest: indivNumberRequest,
+          usLacrosseNumber: indivUsLacrosse, dateOfBirth: indivDob,
+          guardianName: indivGuardianName, guardianPhone: indivGuardianPhone,
+          guardianEmail: indivGuardianEmail,
+          feeTierId: indivFeeTierId, feeTierName: indivFeeTierName,
+          feeTierAmount: indivFeeTierAmount, paymentStatus: indivPaymentStatus,
+          waiverSigned: false,
+        }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success(editingIndivId ? 'Updated!' : 'Player added!')
+      setShowIndivForm(false); resetIndivForm(); load()
+    } catch { toast.error('Failed to save.') }
+    finally { setSavingIndiv(false) }
+  }
+
+  const handleDeleteIndiv = async (id: string, name: string) => {
+    if (!confirm(`Delete registration for "${name}"?`)) return
+    try {
+      await fetch(`/api/tournaments/${tournamentId}/individual-reg/${id}`, { method: 'DELETE' })
+      toast.success('Deleted.'); load()
+    } catch { toast.error('Failed to delete.') }
+  }
+
   const allDivisionsInData = Array.from(new Set(registrations.flatMap(r => r.teams.map(t => t.division)).filter(Boolean))).sort()
 
   const filteredRegistrations = registrations.filter(reg => {
@@ -420,20 +767,52 @@ export default function RegistrationsPage() {
 
         {/* Header */}
         <TournamentNav id={tournamentId as string} name={tournamentName || 'Tournament'} logoUrl={tournamentLogo} />
+
+        {/* Tab switcher */}
+        {(teamRegEnabled && indivRegEnabled) && (
+          <div className="flex gap-1 mb-5 bg-gray-100 rounded-xl p-1 w-fit">
+            <button
+              onClick={() => setActiveTab('team')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'team' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Team Registrations
+            </button>
+            <button
+              onClick={() => setActiveTab('individual')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'individual' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Individual Players
+              {individualRegs.length > 0 && (
+                <span className="ml-1.5 bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded-full">{individualRegs.length}</span>
+              )}
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">Team Registrations</h1>
+              <h1 className="text-2xl font-bold text-gray-800">
+                {activeTab === 'individual' ? 'Individual Players' : 'Team Registrations'}
+              </h1>
             </div>
           </div>
+          <Link href={`/tournaments/${tournamentId}/returning-teams`} className="text-sm font-semibold text-teal-600 hover:text-teal-800 border border-teal-200 hover:bg-teal-50 px-3 py-1.5 rounded-xl transition-colors">
+            ð Returning Teams
+          </Link>
           <div className="flex gap-2 flex-wrap justify-end">
-            {[
+            {(activeTab === 'team' ? [
               { label: 'Clubs', value: registrations.length, color: 'text-blue-600' },
               { label: 'Teams', value: totalTeams, color: 'text-green-600' },
               { label: 'Invoiced', value: fmt(totalInvoiced), color: 'text-gray-800' },
               { label: 'Received', value: fmt(totalReceived), color: 'text-green-700' },
               { label: 'Balance', value: fmt(totalBalance), color: totalBalance > 0 ? 'text-red-600' : 'text-green-600' },
-            ].map(s => (
+            ] : [
+              { label: 'Players', value: individualRegs.length, color: 'text-blue-600' },
+              { label: 'Paid', value: individualRegs.filter(r => r.paymentStatus === 'paid').length, color: 'text-green-600' },
+              { label: 'Pending', value: individualRegs.filter(r => r.paymentStatus === 'pending').length, color: 'text-orange-500' },
+              { label: 'Revenue', value: fmt(individualRegs.filter(r => r.paymentStatus === 'paid').reduce((s, r) => s + r.feeTierAmount, 0)), color: 'text-green-700' },
+            ]).map(s => (
               <div key={s.label} className="bg-white border rounded-xl px-3 py-2 text-center min-w-[70px]">
                 <div className={`text-lg font-bold ${s.color}`}>{s.value}</div>
                 <div className="text-xs text-gray-500">{s.label}</div>
@@ -444,11 +823,14 @@ export default function RegistrationsPage() {
 
         {/* Action bar */}
         <div className="mb-5 flex gap-2 flex-wrap">
-          <button onClick={openNew} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">+ Add Entry</button>
-          <button onClick={() => { setShowImport(v => !v); setImportData(null) }} className={`px-4 py-2 rounded-lg text-sm font-medium border ${showImport ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>↑ Import Excel</button>
-          <button onClick={() => { setPricingDraft(pricing); setDivisionsDraft(divisions); setNewDivision(''); setShowPricing(true) }} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">⚙ Settings</button>
-          <button onClick={() => downloadCSV(registrations)} disabled={!registrations.length} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-40">⬇ CSV</button>
-          <Link href={`/tournaments/${tournamentId}/register`} target="_blank" className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">🔗 Public Form</Link>
+          <button
+            onClick={() => activeTab === 'individual' ? openIndivNew() : openNew()}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
+          >+ Add Entry</button>
+          <button onClick={() => { setShowImport(v => !v); setImportData(null) }} className={`px-4 py-2 rounded-lg text-sm font-medium border ${showImport ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>â Import Excel</button>
+          <button onClick={() => { setPricingDraft(pricing); setDivisionsDraft(divisions); setNewDivision(''); setShowPricing(true) }} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">â Settings</button>
+          <button onClick={() => downloadCSV(registrations)} disabled={!registrations.length} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-40">â¬ CSV</button>
+          <Link href={`/tournaments/${tournamentId}/register`} target="_blank" className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">ð Public Form</Link>
         </div>
 
         {/* Import panel */}
@@ -459,16 +841,16 @@ export default function RegistrationsPage() {
 
             {!importData ? (
               <div className="flex gap-2">
-                <button onClick={downloadImportTemplate} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">↓ Download Template</button>
+                <button onClick={downloadImportTemplate} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">â Download Template</button>
                 <label className={`px-4 py-2 rounded-lg text-sm font-medium cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700 ${importLoading ? 'opacity-60 pointer-events-none' : ''}`}>
-                  {importLoading ? 'Parsing…' : '↑ Upload File'}
+                  {importLoading ? 'Parsingâ¦' : 'â Upload File'}
                   <input ref={importFileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImportFile} disabled={importLoading} />
                 </label>
               </div>
             ) : (
               <div>
                 {/* Column mapping */}
-                <p className="text-sm font-semibold text-gray-700 mb-3">Map your columns — {importData.rows.length} rows detected</p>
+                <p className="text-sm font-semibold text-gray-700 mb-3">Map your columns â {importData.rows.length} rows detected</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
                   {IMPORT_FIELDS.map(f => (
                     <div key={f.key}>
@@ -476,7 +858,7 @@ export default function RegistrationsPage() {
                       <select className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         value={importMapping[f.key] ?? ''}
                         onChange={e => setImportMapping(m => ({ ...m, [f.key]: e.target.value }))}>
-                        <option value="">— not mapped —</option>
+                        <option value="">â not mapped â</option>
                         {importData.headers.map(h => <option key={h} value={h}>{h}</option>)}
                       </select>
                     </div>
@@ -488,7 +870,7 @@ export default function RegistrationsPage() {
                   const preview = buildImportPreview()
                   return (
                     <>
-                      <p className="text-sm font-semibold text-gray-700 mb-2">Preview — {preview.length} registrations, {preview.reduce((s,r)=>s+r.teams.length,0)} teams</p>
+                      <p className="text-sm font-semibold text-gray-700 mb-2">Preview â {preview.length} registrations, {preview.reduce((s,r)=>s+r.teams.length,0)} teams</p>
                       <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 max-h-64 overflow-y-auto">
                         <table className="w-full text-xs">
                           <thead className="bg-gray-50 sticky top-0">
@@ -525,7 +907,7 @@ export default function RegistrationsPage() {
                       <div className="flex gap-2">
                         <button onClick={confirmImport} disabled={importing || !preview.length}
                           className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
-                          {importing ? 'Importing…' : `Import ${preview.length} Registration${preview.length !== 1 ? 's' : ''}`}
+                          {importing ? 'Importingâ¦' : `Import ${preview.length} Registration${preview.length !== 1 ? 's' : ''}`}
                         </button>
                         <button onClick={() => { setImportData(null); setImportMapping({}) }} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">Cancel</button>
                       </div>
@@ -545,9 +927,9 @@ export default function RegistrationsPage() {
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Registration Pricing</h2>
               <div className="space-y-3 text-sm">
                 {([
-                  { key: 'tier1', label: `Tier 1 (1–${pricingDraft.tier1Max} teams) per team` },
+                  { key: 'tier1', label: `Tier 1 (1â${pricingDraft.tier1Max} teams) per team` },
                   { key: 'tier1Max', label: 'Tier 1 max teams' },
-                  { key: 'tier2', label: `Tier 2 (${pricingDraft.tier1Max+1}–${pricingDraft.tier2Max} teams) per team` },
+                  { key: 'tier2', label: `Tier 2 (${pricingDraft.tier1Max+1}â${pricingDraft.tier2Max} teams) per team` },
                   { key: 'tier2Max', label: 'Tier 2 max teams' },
                   { key: 'tier3', label: `Tier 3 (${pricingDraft.tier2Max+1}+ teams) per team` },
                   { key: 'sevenVSeven', label: '7v7 per team' },
@@ -572,13 +954,13 @@ export default function RegistrationsPage() {
                         className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <button type="button" onClick={() => setDivisionsDraft(prev => prev.filter((_, idx) => idx !== i))}
-                        className="text-red-400 hover:text-red-600 text-lg leading-none px-1">✕</button>
+                        className="text-red-400 hover:text-red-600 text-lg leading-none px-1">â</button>
                       <button type="button" disabled={i === 0}
                         onClick={() => setDivisionsDraft(prev => { const a = [...prev]; [a[i-1], a[i]] = [a[i], a[i-1]]; return a })}
-                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs">▲</button>
+                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs">â²</button>
                       <button type="button" disabled={i === divisionsDraft.length - 1}
                         onClick={() => setDivisionsDraft(prev => { const a = [...prev]; [a[i], a[i+1]] = [a[i+1], a[i]]; return a })}
-                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs">▼</button>
+                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs">â¼</button>
                     </div>
                   ))}
                 </div>
@@ -610,11 +992,15 @@ export default function RegistrationsPage() {
             <div className="absolute inset-0 bg-black/40" onClick={() => setPayingRegId(null)} />
             <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-10">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Record Payment</h2>
-              <form onSubmit={handleAddPayment} className="space-y-3">
+              <div className="space-y-3 mb-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Amount *</label>
-                  <input required type="number" step="0.01" min="0" placeholder="0.00"
-                    value={payAmount} onChange={e => setPayAmount(e.target.value)} className={inputCls} />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">$</span>
+                    <input required type="number" step="0.01" min="0" placeholder="0.00"
+                      value={payAmount} onChange={e => setPayAmount(e.target.value)}
+                      className={`${inputCls} pl-7`} />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Date Received *</label>
@@ -626,6 +1012,8 @@ export default function RegistrationsPage() {
                     <option value="check">Check</option>
                     <option value="zelle">Zelle</option>
                     <option value="credit_card">Credit Card</option>
+                    <option value="ach">ACH Bank Transfer (QBO)</option>
+                    <option value="paypal">PayPal</option>
                     <option value="cash">Cash</option>
                   </select>
                 </div>
@@ -635,15 +1023,185 @@ export default function RegistrationsPage() {
                     <input value={payCheck} onChange={e => setPayCheck(e.target.value)} className={inputCls} />
                   </div>
                 )}
+                {payMethod === 'ach' && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Account Holder Name *</label>
+                      <input value={achAccountName} onChange={e => setAchAccountName(e.target.value)} placeholder="Full name on account" className={inputCls} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Routing Number *</label>
+                      <input value={achRouting} onChange={e => setAchRouting(e.target.value)} placeholder="9-digit routing number" maxLength={9} className={inputCls} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Account Number *</label>
+                      <input value={achAccount} onChange={e => setAchAccount(e.target.value)} placeholder="Account number" className={inputCls} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Account Type</label>
+                      <select value={achAccountType} onChange={e => setAchAccountType(e.target.value)} className={inputCls}>
+                        <option value="PERSONAL_CHECKING">Personal Checking</option>
+                        <option value="PERSONAL_SAVINGS">Personal Savings</option>
+                        <option value="BUSINESS_CHECKING">Business Checking</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+                {payMethod !== 'credit_card' && payMethod !== 'ach' && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                    <input value={payNotes} onChange={e => setPayNotes(e.target.value)} className={inputCls} />
+                  </div>
+                )}
+              </div>
+
+              {payMethod === 'credit_card' ? (
+                stripePromise ? (
+                  <Elements stripe={stripePromise}>
+                    <CardPaymentForm
+                      base={parseFloat(payAmount) || 0}
+                      registrationId={payingRegId}
+                      tournamentId={String(tournamentId)}
+                      date={payDate}
+                      notes={payNotes}
+                      onSuccess={() => { setPayingRegId(null); setPayAmount(''); load() }}
+                      onCancel={() => setPayingRegId(null)}
+                    />
+                  </Elements>
+                ) : (
+                  <div className="text-center py-4 text-sm text-gray-400">Loading Stripeâ¦</div>
+                )
+              ) : payMethod === 'paypal' ? (
+                <PayPalForm
+                  amount={parseFloat(payAmount) || 0}
+                  registrationId={payingRegId!}
+                  onSuccess={() => { setPayingRegId(null); setPayAmount(''); load() }}
+                  onCancel={() => setPayingRegId(null)}
+                />
+              ) : payMethod === 'ach' ? (
+                <form onSubmit={handleAchPayment}>
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+                    ð¦ ACH eCheck via QuickBooks Payments. Funds typically settle in 3â5 business days.
+                  </p>
+                  <div className="flex gap-3 pt-1">
+                    <button type="submit" disabled={achLoading} className="flex-1 bg-blue-600 text-white rounded-xl py-2 text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
+                      {achLoading ? 'Processingâ¦' : 'Submit ACH Payment'}
+                    </button>
+                    <button type="button" onClick={() => setPayingRegId(null)} className="px-4 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleAddPayment}>
+                  <div className="flex gap-3 pt-1">
+                    <button type="submit" disabled={addingPay} className="flex-1 bg-green-600 text-white rounded-xl py-2 text-sm font-semibold hover:bg-green-700 disabled:opacity-60">
+                      {addingPay ? 'Saving...' : 'Record Payment'}
+                    </button>
+                    <button type="button" onClick={() => setPayingRegId(null)} className="px-4 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Individual registration form drawer */}
+        {showIndivForm && (
+          <div className="fixed inset-0 z-50 flex">
+            <div className="flex-1 bg-black/40" onClick={() => setShowIndivForm(false)} />
+            <div className="w-full max-w-2xl bg-white shadow-2xl overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b px-4 sm:px-6 py-4 flex items-center justify-between z-10 flex-wrap gap-2">
+                <h2 className="text-lg font-semibold text-gray-800">{editingIndivId ? 'Edit Player' : 'Add Individual Player'}</h2>
+                <button onClick={() => setShowIndivForm(false)} className="text-gray-400 hover:text-gray-600 text-xl">â</button>
+              </div>
+              <form onSubmit={handleSaveIndiv} className="px-4 sm:px-6 py-5 sm:py-6 space-y-5">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
-                  <input value={payNotes} onChange={e => setPayNotes(e.target.value)} className={inputCls} />
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Player Info</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                      <input required value={indivFirstName} onChange={e => setIndivFirstName(e.target.value)} className={inputCls} /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                      <input required value={indivLastName} onChange={e => setIndivLastName(e.target.value)} className={inputCls} /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                      <input required type="email" value={indivEmail} onChange={e => setIndivEmail(e.target.value)} className={inputCls} /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                      <input type="tel" value={indivPhone} onChange={e => setIndivPhone(e.target.value)} className={inputCls} /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                      <input type="date" value={indivDob} onChange={e => setIndivDob(e.target.value)} className={inputCls} /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">US Lacrosse #</label>
+                      <input value={indivUsLacrosse} onChange={e => setIndivUsLacrosse(e.target.value)} className={inputCls} /></div>
+                  </div>
                 </div>
-                <div className="flex gap-3 pt-1">
-                  <button type="submit" disabled={addingPay} className="flex-1 bg-green-600 text-white rounded-xl py-2 text-sm font-semibold hover:bg-green-700 disabled:opacity-60">
-                    {addingPay ? 'Saving...' : 'Record Payment'}
+
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Position & Gear</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Position *</label>
+                      {indivRegPositions.length > 0 ? (
+                        <select required value={indivPosition} onChange={e => setIndivPosition(e.target.value)} className={inputCls}>
+                          <option value="">Choose</option>
+                          {indivRegPositions.map(p => <option key={p}>{p}</option>)}
+                        </select>
+                      ) : (
+                        <input required value={indivPosition} onChange={e => setIndivPosition(e.target.value)} className={inputCls} />
+                      )}</div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Jersey Size *</label>
+                      <input required value={indivJerseySize} onChange={e => setIndivJerseySize(e.target.value)} className={inputCls} placeholder="e.g. M, L" /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Shorts Size *</label>
+                      <input required value={indivShortsSize} onChange={e => setIndivShortsSize(e.target.value)} className={inputCls} placeholder="e.g. M, L" /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Number Request</label>
+                      <input value={indivNumberRequest} onChange={e => setIndivNumberRequest(e.target.value)} className={inputCls} placeholder="e.g. 12" /></div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Guardian (if minor)</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Guardian Name</label>
+                      <input value={indivGuardianName} onChange={e => setIndivGuardianName(e.target.value)} className={inputCls} /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Guardian Phone</label>
+                      <input type="tel" value={indivGuardianPhone} onChange={e => setIndivGuardianPhone(e.target.value)} className={inputCls} /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Guardian Email</label>
+                      <input type="email" value={indivGuardianEmail} onChange={e => setIndivGuardianEmail(e.target.value)} className={inputCls} /></div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Fee & Payment</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {indivRegTiers.length > 0 ? (
+                      <div className="sm:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Fee Tier *</label>
+                        <select required value={indivFeeTierId} onChange={e => {
+                          const t = indivRegTiers.find(t => t.id === e.target.value)
+                          if (t) { setIndivFeeTierId(t.id); setIndivFeeTierName(t.name); setIndivFeeTierAmount(t.price) }
+                        }} className={inputCls}>
+                          <option value="">Choose tier</option>
+                          {indivRegTiers.map(t => <option key={t.id} value={t.id}>{t.name} â {fmt(t.price)}</option>)}
+                        </select>
+                      </div>
+                    ) : (
+                      <>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Fee Tier Name</label>
+                          <input value={indivFeeTierName} onChange={e => setIndivFeeTierName(e.target.value)} className={inputCls} placeholder="e.g. Standard" /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+                          <input type="number" step="0.01" min="0" value={indivFeeTierAmount} onChange={e => setIndivFeeTierAmount(Number(e.target.value))} className={inputCls} /></div>
+                      </>
+                    )}
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+                      <select value={indivPaymentStatus} onChange={e => setIndivPaymentStatus(e.target.value)} className={inputCls}>
+                        <option value="pending">Pending</option>
+                        <option value="paid">Paid</option>
+                        <option value="refunded">Refunded</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button type="submit" disabled={savingIndiv} className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold rounded-xl py-2.5 text-sm">
+                    {savingIndiv ? 'Saving...' : editingIndivId ? 'Save Changes' : 'Add Player'}
                   </button>
-                  <button type="button" onClick={() => setPayingRegId(null)} className="px-4 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+                  <button type="button" onClick={() => setShowIndivForm(false)} className="px-5 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
                 </div>
               </form>
             </div>
@@ -657,9 +1215,9 @@ export default function RegistrationsPage() {
             <div className="w-full max-w-2xl bg-white shadow-2xl overflow-y-auto">
               <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
                 <h2 className="text-lg font-semibold text-gray-800">{editingId ? 'Edit Registration' : 'Add Registration'}</h2>
-                <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-xl">â</button>
               </div>
-              <form onSubmit={handleSave} className="px-6 py-6 space-y-6" autoComplete="on">
+              <form onSubmit={handleSave} className="px-4 sm:px-6 py-5 sm:py-6 space-y-6" autoComplete="on">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div><label className="block text-sm font-medium text-gray-700 mb-1">Club Name</label>
                     <input autoComplete="organization" value={clubName} onChange={e => setClubName(e.target.value)} className={inputCls} /></div>
@@ -679,6 +1237,21 @@ export default function RegistrationsPage() {
                   <div><label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
                     <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className={inputCls}>
                       <option value="check">Check</option><option value="zelle">Zelle</option><option value="credit_card">Credit Card</option></select></div>
+                </div>
+
+                {/* Club Logo */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Club Logo</h3>
+                  <p className="text-xs text-gray-400 mb-2">Auto-applied to all teams. Each team can have its own logo too.</p>
+                  <div className="flex items-center gap-3">
+                    {clubLogoUrl && <img src={clubLogoUrl} alt="Club logo" className="h-12 w-12 object-contain rounded-lg border border-gray-200" />}
+                    <label className={`cursor-pointer border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 ${clubLogoUploading ? 'opacity-50' : ''}`}>
+                      {clubLogoUploading ? 'Uploadingâ¦' : clubLogoUrl ? 'Change Logo' : 'Upload Club Logo'}
+                      <input type="file" accept="image/*" className="hidden" disabled={clubLogoUploading}
+                        onChange={e => e.target.files?.[0] && uploadClubLogo(e.target.files[0])} />
+                    </label>
+                    {clubLogoUrl && <button type="button" onClick={() => { setClubLogoUrl(''); setTeams(prev => prev.map(t => t.logoUrl === clubLogoUrl ? { ...t, logoUrl: '' } : t)) }} className="text-xs text-red-400 hover:text-red-600">Remove</button>}
+                  </div>
                 </div>
 
                 {/* Teams */}
@@ -714,7 +1287,7 @@ export default function RegistrationsPage() {
                             <img src={team.logoUrl} alt="logo" className="h-10 w-10 object-contain rounded-lg border border-gray-200 bg-white" />
                           )}
                           <label className="cursor-pointer text-xs text-blue-600 border border-blue-200 hover:bg-blue-50 rounded-lg px-2.5 py-1.5 font-medium">
-                            {logoUploading === i ? 'Uploading…' : team.logoUrl ? '🔄 Replace Logo' : '📁 Upload Team Logo'}
+                            {logoUploading === i ? 'Uploadingâ¦' : team.logoUrl ? 'ð Replace Logo' : 'ð Upload Team Logo'}
                             <input type="file" accept="image/*" className="hidden" disabled={logoUploading === i}
                               onChange={e => { const f = e.target.files?.[0]; if (f) uploadTeamLogo(i, f) }} />
                           </label>
@@ -732,11 +1305,11 @@ export default function RegistrationsPage() {
                 {/* Invoice */}
                 <div className="border border-gray-200 rounded-xl p-4 bg-blue-50 space-y-3">
                   <h3 className="text-sm font-semibold text-gray-700">Invoice</h3>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Amount ($)</label>
                       <input type="number" step="0.01" min="0" value={invoiceAmount} onChange={e => setInvoiceAmount(Number(e.target.value))} className={inputCls} />
-                      <p className="text-xs text-gray-400 mt-0.5">Auto-calculated · edit to override</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Auto-calculated Â· edit to override</p>
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Discount ($)</label>
@@ -768,8 +1341,68 @@ export default function RegistrationsPage() {
           </div>
         )}
 
+        {/* Individual registrations list */}
+        {activeTab === 'individual' && (
+          <>
+            {loading ? (
+              <div className="text-center py-20 text-gray-400">Loading...</div>
+            ) : individualRegs.length === 0 ? (
+              <div className="text-center py-20">
+                <p className="text-gray-400 mb-3">No individual players registered yet.</p>
+                {indivRegEnabled && (
+                  <button onClick={openIndivNew} className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">+ Add First Player</button>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-100">
+                      <tr>
+                        {['Player','Position','Jersey / Shorts','Fee Tier','Amount','Status','Registered',''].map(h => (
+                          <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {individualRegs.map(reg => (
+                        <tr key={reg.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-gray-800">{reg.firstName} {reg.lastName}</div>
+                            <div className="text-xs text-gray-400">{reg.email}</div>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">{reg.position}</td>
+                          <td className="px-4 py-3 text-gray-600">{reg.jerseySize} / {reg.shortsSize}</td>
+                          <td className="px-4 py-3 text-gray-600">{reg.feeTierName || 'â'}</td>
+                          <td className="px-4 py-3 font-medium text-gray-800">{fmt(reg.feeTierAmount)}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
+                              reg.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
+                              reg.paymentStatus === 'refunded' ? 'bg-red-100 text-red-600' :
+                              'bg-orange-100 text-orange-600'
+                            }`}>
+                              {reg.paymentStatus.charAt(0).toUpperCase() + reg.paymentStatus.slice(1)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">{new Date(reg.createdAt).toLocaleDateString()}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-1.5 justify-end">
+                              <button onClick={() => openIndivEdit(reg)} className="text-xs text-blue-600 border border-blue-200 hover:border-blue-400 px-2.5 py-1 rounded-lg">Edit</button>
+                              <button onClick={() => handleDeleteIndiv(reg.id, `${reg.firstName} ${reg.lastName}`)} className="text-xs text-red-500 border border-red-200 hover:border-red-400 px-2.5 py-1 rounded-lg">Del</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
         {/* Filter bar */}
-        {!loading && registrations.length > 0 && (
+        {activeTab === 'team' && !loading && registrations.length > 0 && (
           <div className="mb-4 flex flex-wrap gap-2 items-center">
             <input
               type="search"
@@ -810,8 +1443,8 @@ export default function RegistrationsPage() {
           </div>
         )}
 
-        {/* List */}
-        {loading ? (
+        {/* Team list */}
+        {activeTab === 'team' && (loading ? (
           <div className="text-center py-20 text-gray-400">Loading...</div>
         ) : registrations.length === 0 ? (
           <div className="text-center py-20 text-gray-400">No registrations yet.</div>
@@ -829,7 +1462,7 @@ export default function RegistrationsPage() {
                   <div className="px-5 py-4 flex items-center justify-between gap-3">
                     <button onClick={() => setExpanded(expanded === reg.id ? null : reg.id)} className="flex-1 text-left min-w-0">
                       <div className="font-semibold text-gray-800 truncate">{reg.clubName || reg.clubContact}</div>
-                      <div className="text-sm text-gray-500">{reg.contactEmail} · {reg.contactPhone}</div>
+                      <div className="text-sm text-gray-500">{reg.contactEmail} Â· {reg.contactPhone}</div>
                     </button>
 
                     {/* Billing summary */}
@@ -850,11 +1483,16 @@ export default function RegistrationsPage() {
 
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <span className="hidden sm:block bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{reg.teams.length} team{reg.teams.length !== 1 ? 's' : ''}</span>
-                      <button onClick={() => { setPayingRegId(reg.id); setPayAmount(''); setPayCheck(''); setPayDate(today()); setPayNotes(''); setPayMethod('check') }}
+                      <button onClick={() => { setPayingRegId(reg.id); const _bal1=reg.invoiceAmount-reg.discountAmount-reg.payments.reduce((s:number,p:any)=>s+p.amount,0); setPayAmount(_bal1>0?String(_bal1):''); setPayCheck(''); setPayDate(today()); setPayNotes(''); setPayMethod(reg.paymentMethod||'check') }}
                         className="text-xs text-green-600 border border-green-300 hover:border-green-500 px-2.5 py-1 rounded-lg">+ Payment</button>
+                      {reg.qboInvoiceId ? (
+                        <span className="text-xs text-green-600 border border-green-200 bg-green-50 px-2.5 py-1 rounded-lg">â QB Synced</span>
+                      ) : (
+                        <button onClick={() => handleQboSync(reg.id)} className="text-xs text-purple-600 border border-purple-200 hover:border-purple-400 px-2.5 py-1 rounded-lg">QB Sync</button>
+                      )}
                       <button onClick={() => openEdit(reg)} className="text-xs text-blue-600 border border-blue-200 hover:border-blue-400 px-2.5 py-1 rounded-lg">Edit</button>
                       <button onClick={() => handleDelete(reg.id, reg.clubName || reg.clubContact)} className="text-xs text-red-500 border border-red-200 hover:border-red-400 px-2.5 py-1 rounded-lg">Del</button>
-                      <span className="text-gray-400 text-sm">{expanded === reg.id ? '▲' : '▼'}</span>
+                      <span className="text-gray-400 text-sm">{expanded === reg.id ? 'â²' : 'â¼'}</span>
                     </div>
                   </div>
 
@@ -898,10 +1536,10 @@ export default function RegistrationsPage() {
                       <div className="bg-white border border-gray-200 rounded-xl p-4">
                         <div className="flex items-center justify-between mb-3">
                           <h3 className="text-sm font-semibold text-gray-700">Invoice & Payments</h3>
-                          <button onClick={() => { setPayingRegId(reg.id); setPayAmount(''); setPayCheck(''); setPayDate(today()); setPayNotes(''); setPayMethod('check') }}
+                          <button onClick={() => { setPayingRegId(reg.id); const _bal2=reg.invoiceAmount-reg.discountAmount-reg.payments.reduce((s:number,p:any)=>s+p.amount,0); setPayAmount(_bal2>0?String(_bal2):''); setPayCheck(''); setPayDate(today()); setPayNotes(''); setPayMethod(reg.paymentMethod||'check') }}
                             className="text-xs bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700">+ Record Payment</button>
                         </div>
-                        <div className="grid grid-cols-3 gap-3 text-sm mb-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm mb-4">
                           <div><span className="text-gray-500">Invoice: </span><span className="font-medium">{fmt(reg.invoiceAmount)}</span></div>
                           {reg.discountAmount > 0 && (
                             <div><span className="text-gray-500">Discount: </span><span className="font-medium text-orange-600">-{fmt(reg.discountAmount)}{reg.discountNote ? ` (${reg.discountNote})` : ''}</span></div>
@@ -925,7 +1563,7 @@ export default function RegistrationsPage() {
                                 <tr key={p.id} className="border-b border-gray-50">
                                   <td className="py-1.5">{new Date(p.receivedAt).toLocaleDateString()}</td>
                                   <td className="py-1.5">{payLabel(p.method)}</td>
-                                  <td className="py-1.5 text-gray-500">{p.checkNumber || p.notes || '—'}</td>
+                                  <td className="py-1.5 text-gray-500">{p.checkNumber || p.notes || 'â'}</td>
                                   <td className="py-1.5 text-right font-medium text-green-700">{fmt(p.amount)}</td>
                                   <td className="py-1.5 text-right">
                                     <button onClick={() => handleDeletePayment(p.id, p.amount)} className="text-xs text-red-500 border border-red-200 hover:bg-red-50 hover:border-red-400 px-2 py-0.5 rounded-lg ml-2">Delete</button>
@@ -950,6 +1588,43 @@ export default function RegistrationsPage() {
                 </div>
               )
             })}
+          </div>
+        ))}
+      </div>
+
+      {/* Recently Deleted */}
+      <div className="mt-10">
+        <button
+          onClick={() => { setShowDeleted(v => !v); if (!showDeleted) fetchDeleted() }}
+          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
+        >
+          <span>{showDeleted ? '▾' : '▸'}</span>
+          <span>Recently Deleted <span className="text-xs text-gray-400">(restored within 15 days)</span></span>
+        </button>
+        {showDeleted && (
+          <div className="mt-3 border border-gray-200 rounded-lg divide-y divide-gray-200">
+            {deletedRegs.length === 0 ? (
+              <p className="p-4 text-sm text-gray-400 italic">No recently deleted registrations.</p>
+            ) : (
+              deletedRegs.map(reg => (
+                <div key={reg.id} className="flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100">
+                  <div>
+                    <span className="font-medium text-sm text-gray-800">{reg.clubName}</span>
+                    <span className="ml-3 text-xs text-gray-500">
+                      Deleted {new Date(reg.deletedAt).toLocaleDateString()}
+                    </span>
+                    <span className="ml-3 text-xs text-gray-400">{reg.teams?.length || 0} teams</span>
+                  </div>
+                  <button
+                    onClick={() => handleRestore(reg.id)}
+                    disabled={restoringId === reg.id}
+                    className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {restoringId === reg.id ? 'Restoring…' : 'Restore'}
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>
