@@ -141,6 +141,7 @@ export default function RegisterPage() {
   const searchParams = useSearchParams()
   const [tournamentName, setTournamentName] = useState('')
   const [tournamentLogo, setTournamentLogo] = useState('')
+  const [org, setOrg] = useState<any>(null)
   const [divisions, setDivisions] = useState<string[]>(DEFAULT_DIVISIONS)
   const [submitted, setSubmitted] = useState(false)
   const paid = searchParams.get('paid') === '1'
@@ -186,6 +187,7 @@ export default function RegisterPage() {
         } catch {}
       })
       .catch(() => {})
+    fetch('/api/admin/org').then(r => r.json()).then(d => { if (d) setOrg(d) }).catch(() => {})
   }, [tournamentId])
 
   const updateTeam = (i: number, field: keyof TeamRow, value: string) => {
@@ -541,16 +543,24 @@ export default function RegisterPage() {
                 <p className="text-sm text-blue-600 mt-3 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">You will enter your card details on the next step. A 3% processing fee applies.</p>
               )}
               {paymentMethod === 'zelle' && (
-                <p className="text-sm text-gray-600 mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">Please send Zelle to <strong>info@sunshinelax.com</strong></p>
+                <p className="text-sm text-gray-600 mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">Please send Zelle to <strong>{org?.zelleHandle || 'info@sunshinelax.com'}</strong></p>
               )}
               {paymentMethod === 'check' && (
-                <p className="text-sm text-gray-600 mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">Please mail checks payable to <strong>Sunshine Events Group</strong> to:<br/>11830 Wiles Rd. Coral Springs, FL 33076</p>
+                <p className="text-sm text-gray-600 mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">Please mail checks payable to <strong>{org?.checkPayableTo || 'Sunshine Events Group'}</strong> to:<br/>{org?.checkAddress || '11830 Wiles Rd. Coral Springs, FL 33076'}</p>
               )}
               {paymentMethod === 'ach' && (
-                <p className="text-sm text-gray-600 mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">ACH payment instructions will be provided after registration is confirmed.</p>
+                {org?.achBankName ? (
+                  <div className="text-sm text-gray-600 mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 space-y-1">
+                    <p><strong>Bank:</strong> {org.achBankName}</p>
+                    {org.achRoutingNumber && <p><strong>Routing:</strong> {org.achRoutingNumber}</p>}
+                    {org.achAccountNumber && <p><strong>Account:</strong> {org.achAccountNumber}</p>}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">ACH payment instructions will be provided after registration is confirmed.</p>
+                )}
               )}
               {paymentMethod === 'paypal' && (
-                <p className="text-sm text-gray-600 mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">PayPal payment instructions will be provided after registration is confirmed.</p>
+                <p className="text-sm text-gray-600 mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">Send PayPal to <strong>{org?.paypalEmail || 'info@sunshinelax.com'}</strong></p>
               )}
             </section>
 
