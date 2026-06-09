@@ -13,37 +13,57 @@ export async function GET() {
 
   const client = db()
 
-  const [orgsRes, tournamentsRes, workersRes, usersRes, recentTournamentsRes] = await Promise.all([
-    client.execute(`
-      SELECT
-        o.id, o.name, o.slug, o.logoUrl, o.subscriptionTier, o.subscriptionStatus, o.createdAt,
-        COUNT(DISTINCT t.id) as tournamentCount,
-        COUNT(DISTINCT w.id) as workerCount,
-        COUNT(DISTINCT u.id) as userCount
-      FROM "Organization" o
-      LEFT JOIN "Tournament" t ON t.orgId = o.id
-      LEFT JOIN "Worker" w ON w.orgId = o.id
-      LEFT JOIN "User" u ON u.orgId = o.id
-      GROUP BY o.id
-      ORDER BY o.createdAt DESC
-    `),
-    client.execute(`SELECT COUNT(*) as total FROM "Tournament"`),
-    client.execute(`SELECT COUNT(*) as total FROM "Worker"`),
-    client.execute(`SELECT COUNT(*) as total FROM "User"`),
-    client.execute(`
-      SELECT t.id, t.name, t.sport, t.startDate, t.orgId, o.name as orgName, o.logoUrl as orgLogoUrl
-      FROM "Tournament" t
-      LEFT JOIN "Organization" o ON o.id = t.orgId
-      ORDER BY t.createdAt DESC LIMIT 8
-    `),
-  ])
+  try {
+    // Simple separate queries — avoids complex JOIN/GROUP BY issues in libSQL
+    const [orgsRes, tournamentsRes, workersRes, usersRes, recentRes] = await Promise.all([
+      client.execute(`SELECT id, name, slug, logoUrl, subscriptionTier, subscriptionStatus, createdAt FROM "Organization" ORDER BY createdAt DESC`),
+      client.execute(`SELECT COUNT(*) as total FROM "Tournament"`),
+      client.execute(`SELECT COUNT(*) as total FROM "Worker"`),
+      client.execute(`SELECT COUNT(*) as total FROM "User"`),
+      client.execute(`SELECT t.id, t.name, t.sport, t.startDate, t.orgId FROM "Tournament" t ORDER BY t.createdAt DESC LIMIT 8`),
+    ])
 
-  return NextResponse.json({
-    orgCount: orgsRes.rows.length,
-    tournamentTotal: Number(tournamentsRes.rows[0]?.total ?? 0),
-    workerTotal: Number(workersRes.rows[0]?.total ?? 0),
-    userTotal: Number(usersRes.rows[0]?.total ?? 0),
-    orgs: orgsRes.rows,
-    recentTournaments: recentTournamentsRes.rows,
-  })
+    const orgs = orgsRes.rows
+
+    // Per-org counts via individual queries
+    const orgStats = await Promise.all(
+      orgs.map(async (org) => {
+        const [tc, wc, uc] = await Promise.all([
+          client.execute({ sql: `SELECT COUNT(*) as c FROM "Tournament" WHERE orgId = ?`, args: [org.id as string] }),
+          client.execute({ sql: `SELECT COUNT(*) as c FROM "Worker" WHERE orgId = ?`, args: [org.id as string] }),
+          client.execute({ sql: `SELECT COUNT(*) as c FROM "User" WHERE orgId = ?`, args: [org.id as string] }),
+        ])
+        return {
+          ...org,
+          tournamentCount: Number(tc.rows[0]?.c ?? 0),
+          workerCount: Number(wc.rows[0]?.c ?? 0),
+          userCount: Number(uc.rows[0]?.c ?? 0),
+        }
+      })
+    )
+
+    // Build org lookup for recent tournaments
+    const orgMap: Record<string, { name: string; logoUrl: string | null }> = {}
+    for (const o of orgs) {
+      orgMap[o.id as string] = { name: o.name as string, logoUrl: (o.logoUrl as string) ?? null }
+    }
+
+    const recentTournaments = recentRes.rows.map(t => ({
+      ...t,
+      orgName: t.orgId ? (orgMap[t.orgId as string]?.name ?? null) : null,
+      orgLogoUrl: t.orgId ? (orgMap[t.orgId as string]?.logoUrl ?? null) : null,
+    }))
+
+    return NextResponse.json({
+      orgCount: orgs.length,
+      tournamentTotal: Number(tournamentsRes.rows[0]?.total ?? 0),
+      workerTotal: Number(workersRes.rows[0]?.total ?? 0),
+      userTotal: Number(usersRes.rows[0]?.total ?? 0),
+      orgs: orgStats,
+      recentTournaments,
+    })
+  } catch (e: any) {
+    console.error('platform-stats error:', e)
+    return NextResponse.json({ error: e.message }, { status: 500 })
+  }
 }
