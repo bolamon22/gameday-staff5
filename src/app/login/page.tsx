@@ -51,7 +51,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-800">GameDay Staff</h1>
-          <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
+          <p className="text-sm text-gray-500 mt-1">Sign in to continue</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

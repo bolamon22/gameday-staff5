@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
 
     // Get tournament name if provided
-    let tournamentName = 'GameDay Staff'
+    let tournamentName = 'Staff Invite'
     if (tournamentId) {
       const t = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { name: true } })
       if (t) tournamentName = t.name
