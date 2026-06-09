@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   if (!tournamentId) return NextResponse.json({ error: 'tournamentId required' }, { status: 400 })
 
   const registrations = await prisma.teamRegistration.findMany({
-    where: { tournamentId },
+    where: { tournamentId, deletedAt: null },
     include: { teams: true, payments: { orderBy: { receivedAt: 'asc' } } },
     orderBy: { createdAt: 'desc' },
   })

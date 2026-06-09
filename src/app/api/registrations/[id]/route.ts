@@ -47,6 +47,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  await prisma.teamRegistration.delete({ where: { id: params.id } })
+  await prisma.teamRegistration.update({
+    where: { id: params.id },
+    data: { deletedAt: new Date() },
+  })
   return NextResponse.json({ ok: true })
 }

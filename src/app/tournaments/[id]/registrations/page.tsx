@@ -42,7 +42,7 @@ const DEFAULT_DIVISIONS = [
   'Boys U10 A and B (7v7)','Boys U10 A and B (10v10)','Boys U8 (7v7)',
   'Girls High School A','Girls High School B','Girls High School B2',
   'Girls Middle School A',"Girls Middle School B (No 2030's)",
-  "Girls Lower School A (7v7)","Girls Lower School B (7v7 – No 2033's)",
+  "Girls Lower School A (7v7)","Girls Lower School B (7v7 â No 2033's)",
 ]
 const emptyTeam = (): TeamRow => ({ clubName: '', teamName: '', division: '', coachName: '', coachPhone: '', coachEmail: '', logoUrl: '' })
 const inputCls = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -160,7 +160,7 @@ function CardPaymentForm({ base, registrationId, tournamentId, date, notes, onSu
       {err && <p className="text-xs text-red-500">{err}</p>}
       <div className="flex gap-3 pt-1">
         <button type="submit" disabled={paying || !stripe} className="flex-1 bg-green-600 text-white rounded-xl py-2 text-sm font-semibold hover:bg-green-700 disabled:opacity-60">
-          {paying ? 'Processing…' : `Charge $${total.toFixed(2)}`}
+          {paying ? 'Processingâ¦' : `Charge $${total.toFixed(2)}`}
         </button>
         <button type="button" onClick={onCancel} className="px-4 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
       </div>
@@ -180,7 +180,7 @@ function PayPalForm({ amount, registrationId, onSuccess, onCancel }: PayPalFormP
     ;(async () => {
       try {
         const cfg = await fetch('/api/payments/paypal/config').then(r => r.json())
-        if (!cfg.connected) { setErrMsg('PayPal not connected. Go to Admin → Payment Providers.'); setStatus('error'); return }
+        if (!cfg.connected) { setErrMsg('PayPal not connected. Go to Admin â Payment Providers.'); setStatus('error'); return }
         const sdkUrl = `https://www.${cfg.sandbox ? 'sandbox.' : ''}paypal.com/sdk/js?client-id=${cfg.clientId}&currency=USD&intent=capture`
         await new Promise<void>((resolve, reject) => {
           const existing = document.querySelector(`script[src="${sdkUrl}"]`)
@@ -224,11 +224,11 @@ function PayPalForm({ amount, registrationId, onSuccess, onCancel }: PayPalFormP
   return (
     <div className="space-y-3">
       <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-        💙 Pay securely via PayPal. Amount: <strong>${amount.toFixed(2)}</strong>
+        ð Pay securely via PayPal. Amount: <strong>${amount.toFixed(2)}</strong>
       </p>
-      {status === 'loading' && <div className="text-center py-4 text-sm text-gray-400">Loading PayPal…</div>}
+      {status === 'loading' && <div className="text-center py-4 text-sm text-gray-400">Loading PayPalâ¦</div>}
       {status === 'error' && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{errMsg}</div>}
-      {status === 'processing' && <div className="text-center py-4 text-sm text-gray-400">Processing…</div>}
+      {status === 'processing' && <div className="text-center py-4 text-sm text-gray-400">Processingâ¦</div>}
       <div ref={containerRef} className={status === 'loading' || status === 'error' ? 'hidden' : ''} />
       <button type="button" onClick={onCancel} className="w-full border border-gray-300 rounded-xl py-2 text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
     </div>
@@ -238,6 +238,9 @@ function PayPalForm({ amount, registrationId, onSuccess, onCancel }: PayPalFormP
 export default function RegistrationsPage() {
   const { id: tournamentId } = useParams()
   const [registrations, setRegistrations] = useState<Registration[]>([])
+  const [deletedRegs, setDeletedRegs] = useState<any[]>([])
+  const [showDeleted, setShowDeleted] = useState(false)
+  const [restoringId, setRestoringId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [tournamentName, setTournamentName] = useState('')
@@ -474,6 +477,19 @@ export default function RegistrationsPage() {
     } catch { toast.error('Failed to delete.') }
   }
 
+  const fetchDeleted = async () => {
+    const res = await fetch(`/api/registrations/deleted?tournamentId=${tournamentId}`)
+    if (res.ok) setDeletedRegs(await res.json())
+  }
+
+  const handleRestore = async (id: string) => {
+    setRestoringId(id)
+    await fetch(`/api/registrations/${id}/restore`, { method: 'POST' })
+    setRestoringId(null)
+    setDeletedRegs(prev => prev.filter(r => r.id !== id))
+    load()
+  }
+
   const handleAddPayment = async (e: React.FormEvent) => {
     e.preventDefault(); setAddingPay(true)
     try {
@@ -509,7 +525,7 @@ export default function RegistrationsPage() {
   }
 
   const handleQboSync = async (registrationId: string) => {
-    toast.loading('Syncing to QuickBooks…', { id: 'qbo-sync' })
+    toast.loading('Syncing to QuickBooksâ¦', { id: 'qbo-sync' })
     try {
       const res = await fetch('/api/qbo/sync-invoice', {
         method: 'POST',
@@ -519,7 +535,7 @@ export default function RegistrationsPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Sync failed')
       if (data.alreadySynced) {
-        toast.success(`Already synced — Invoice #${data.invoiceId}`, { id: 'qbo-sync', duration: 5000 })
+        toast.success(`Already synced â Invoice #${data.invoiceId}`, { id: 'qbo-sync', duration: 5000 })
       } else {
         toast.success(`Synced! Invoice #${data.docNumber}`, { id: 'qbo-sync', duration: 5000 })
       }
@@ -527,7 +543,7 @@ export default function RegistrationsPage() {
     } catch (err: any) { toast.error(err.message, { id: 'qbo-sync', duration: 5000 }) }
   }
 
-  // ── Import handlers ──
+  // ââ Import handlers ââ
   const IMPORT_FIELDS = [
     { key: 'clubName',     label: 'Club Name' },
     { key: 'clubContact',  label: 'Club Contact *' },
@@ -539,12 +555,12 @@ export default function RegistrationsPage() {
     { key: 'paymentMethod',label: 'Payment Method' },
     { key: 'notes',        label: 'Notes' },
     // team sub-fields (repeated per team row)
-    { key: 'teamClubName', label: 'Team – Club Name' },
-    { key: 'teamName',     label: 'Team – Team Name' },
-    { key: 'division',     label: 'Team – Division' },
-    { key: 'coachName',    label: 'Team – Coach Name' },
-    { key: 'coachPhone',   label: 'Team – Coach Phone' },
-    { key: 'coachEmail',   label: 'Team – Coach Email' },
+    { key: 'teamClubName', label: 'Team â Club Name' },
+    { key: 'teamName',     label: 'Team â Team Name' },
+    { key: 'division',     label: 'Team â Division' },
+    { key: 'coachName',    label: 'Team â Coach Name' },
+    { key: 'coachPhone',   label: 'Team â Coach Phone' },
+    { key: 'coachEmail',   label: 'Team â Coach Email' },
   ]
 
   function autoMap(headers: string[]) {
@@ -782,7 +798,7 @@ export default function RegistrationsPage() {
             </div>
           </div>
           <Link href={`/tournaments/${tournamentId}/returning-teams`} className="text-sm font-semibold text-teal-600 hover:text-teal-800 border border-teal-200 hover:bg-teal-50 px-3 py-1.5 rounded-xl transition-colors">
-            🔄 Returning Teams
+            ð Returning Teams
           </Link>
           <div className="flex gap-2 flex-wrap justify-end">
             {(activeTab === 'team' ? [
@@ -811,10 +827,10 @@ export default function RegistrationsPage() {
             onClick={() => activeTab === 'individual' ? openIndivNew() : openNew()}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
           >+ Add Entry</button>
-          <button onClick={() => { setShowImport(v => !v); setImportData(null) }} className={`px-4 py-2 rounded-lg text-sm font-medium border ${showImport ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>↑ Import Excel</button>
-          <button onClick={() => { setPricingDraft(pricing); setDivisionsDraft(divisions); setNewDivision(''); setShowPricing(true) }} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">⚙ Settings</button>
-          <button onClick={() => downloadCSV(registrations)} disabled={!registrations.length} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-40">⬇ CSV</button>
-          <Link href={`/tournaments/${tournamentId}/register`} target="_blank" className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">🔗 Public Form</Link>
+          <button onClick={() => { setShowImport(v => !v); setImportData(null) }} className={`px-4 py-2 rounded-lg text-sm font-medium border ${showImport ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>â Import Excel</button>
+          <button onClick={() => { setPricingDraft(pricing); setDivisionsDraft(divisions); setNewDivision(''); setShowPricing(true) }} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">â Settings</button>
+          <button onClick={() => downloadCSV(registrations)} disabled={!registrations.length} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-40">â¬ CSV</button>
+          <Link href={`/tournaments/${tournamentId}/register`} target="_blank" className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">ð Public Form</Link>
         </div>
 
         {/* Import panel */}
@@ -825,16 +841,16 @@ export default function RegistrationsPage() {
 
             {!importData ? (
               <div className="flex gap-2">
-                <button onClick={downloadImportTemplate} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">↓ Download Template</button>
+                <button onClick={downloadImportTemplate} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">â Download Template</button>
                 <label className={`px-4 py-2 rounded-lg text-sm font-medium cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700 ${importLoading ? 'opacity-60 pointer-events-none' : ''}`}>
-                  {importLoading ? 'Parsing…' : '↑ Upload File'}
+                  {importLoading ? 'Parsingâ¦' : 'â Upload File'}
                   <input ref={importFileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImportFile} disabled={importLoading} />
                 </label>
               </div>
             ) : (
               <div>
                 {/* Column mapping */}
-                <p className="text-sm font-semibold text-gray-700 mb-3">Map your columns — {importData.rows.length} rows detected</p>
+                <p className="text-sm font-semibold text-gray-700 mb-3">Map your columns â {importData.rows.length} rows detected</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
                   {IMPORT_FIELDS.map(f => (
                     <div key={f.key}>
@@ -842,7 +858,7 @@ export default function RegistrationsPage() {
                       <select className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         value={importMapping[f.key] ?? ''}
                         onChange={e => setImportMapping(m => ({ ...m, [f.key]: e.target.value }))}>
-                        <option value="">— not mapped —</option>
+                        <option value="">â not mapped â</option>
                         {importData.headers.map(h => <option key={h} value={h}>{h}</option>)}
                       </select>
                     </div>
@@ -854,7 +870,7 @@ export default function RegistrationsPage() {
                   const preview = buildImportPreview()
                   return (
                     <>
-                      <p className="text-sm font-semibold text-gray-700 mb-2">Preview — {preview.length} registrations, {preview.reduce((s,r)=>s+r.teams.length,0)} teams</p>
+                      <p className="text-sm font-semibold text-gray-700 mb-2">Preview â {preview.length} registrations, {preview.reduce((s,r)=>s+r.teams.length,0)} teams</p>
                       <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 max-h-64 overflow-y-auto">
                         <table className="w-full text-xs">
                           <thead className="bg-gray-50 sticky top-0">
@@ -891,7 +907,7 @@ export default function RegistrationsPage() {
                       <div className="flex gap-2">
                         <button onClick={confirmImport} disabled={importing || !preview.length}
                           className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
-                          {importing ? 'Importing…' : `Import ${preview.length} Registration${preview.length !== 1 ? 's' : ''}`}
+                          {importing ? 'Importingâ¦' : `Import ${preview.length} Registration${preview.length !== 1 ? 's' : ''}`}
                         </button>
                         <button onClick={() => { setImportData(null); setImportMapping({}) }} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">Cancel</button>
                       </div>
@@ -911,9 +927,9 @@ export default function RegistrationsPage() {
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Registration Pricing</h2>
               <div className="space-y-3 text-sm">
                 {([
-                  { key: 'tier1', label: `Tier 1 (1–${pricingDraft.tier1Max} teams) per team` },
+                  { key: 'tier1', label: `Tier 1 (1â${pricingDraft.tier1Max} teams) per team` },
                   { key: 'tier1Max', label: 'Tier 1 max teams' },
-                  { key: 'tier2', label: `Tier 2 (${pricingDraft.tier1Max+1}–${pricingDraft.tier2Max} teams) per team` },
+                  { key: 'tier2', label: `Tier 2 (${pricingDraft.tier1Max+1}â${pricingDraft.tier2Max} teams) per team` },
                   { key: 'tier2Max', label: 'Tier 2 max teams' },
                   { key: 'tier3', label: `Tier 3 (${pricingDraft.tier2Max+1}+ teams) per team` },
                   { key: 'sevenVSeven', label: '7v7 per team' },
@@ -938,13 +954,13 @@ export default function RegistrationsPage() {
                         className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <button type="button" onClick={() => setDivisionsDraft(prev => prev.filter((_, idx) => idx !== i))}
-                        className="text-red-400 hover:text-red-600 text-lg leading-none px-1">✕</button>
+                        className="text-red-400 hover:text-red-600 text-lg leading-none px-1">â</button>
                       <button type="button" disabled={i === 0}
                         onClick={() => setDivisionsDraft(prev => { const a = [...prev]; [a[i-1], a[i]] = [a[i], a[i-1]]; return a })}
-                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs">▲</button>
+                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs">â²</button>
                       <button type="button" disabled={i === divisionsDraft.length - 1}
                         onClick={() => setDivisionsDraft(prev => { const a = [...prev]; [a[i], a[i+1]] = [a[i+1], a[i]]; return a })}
-                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs">▼</button>
+                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs">â¼</button>
                     </div>
                   ))}
                 </div>
@@ -1053,7 +1069,7 @@ export default function RegistrationsPage() {
                     />
                   </Elements>
                 ) : (
-                  <div className="text-center py-4 text-sm text-gray-400">Loading Stripe…</div>
+                  <div className="text-center py-4 text-sm text-gray-400">Loading Stripeâ¦</div>
                 )
               ) : payMethod === 'paypal' ? (
                 <PayPalForm
@@ -1065,11 +1081,11 @@ export default function RegistrationsPage() {
               ) : payMethod === 'ach' ? (
                 <form onSubmit={handleAchPayment}>
                   <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
-                    🏦 ACH eCheck via QuickBooks Payments. Funds typically settle in 3–5 business days.
+                    ð¦ ACH eCheck via QuickBooks Payments. Funds typically settle in 3â5 business days.
                   </p>
                   <div className="flex gap-3 pt-1">
                     <button type="submit" disabled={achLoading} className="flex-1 bg-blue-600 text-white rounded-xl py-2 text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
-                      {achLoading ? 'Processing…' : 'Submit ACH Payment'}
+                      {achLoading ? 'Processingâ¦' : 'Submit ACH Payment'}
                     </button>
                     <button type="button" onClick={() => setPayingRegId(null)} className="px-4 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
                   </div>
@@ -1095,7 +1111,7 @@ export default function RegistrationsPage() {
             <div className="w-full max-w-2xl bg-white shadow-2xl overflow-y-auto">
               <div className="sticky top-0 bg-white border-b px-4 sm:px-6 py-4 flex items-center justify-between z-10 flex-wrap gap-2">
                 <h2 className="text-lg font-semibold text-gray-800">{editingIndivId ? 'Edit Player' : 'Add Individual Player'}</h2>
-                <button onClick={() => setShowIndivForm(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                <button onClick={() => setShowIndivForm(false)} className="text-gray-400 hover:text-gray-600 text-xl">â</button>
               </div>
               <form onSubmit={handleSaveIndiv} className="px-4 sm:px-6 py-5 sm:py-6 space-y-5">
                 <div>
@@ -1160,7 +1176,7 @@ export default function RegistrationsPage() {
                           if (t) { setIndivFeeTierId(t.id); setIndivFeeTierName(t.name); setIndivFeeTierAmount(t.price) }
                         }} className={inputCls}>
                           <option value="">Choose tier</option>
-                          {indivRegTiers.map(t => <option key={t.id} value={t.id}>{t.name} — {fmt(t.price)}</option>)}
+                          {indivRegTiers.map(t => <option key={t.id} value={t.id}>{t.name} â {fmt(t.price)}</option>)}
                         </select>
                       </div>
                     ) : (
@@ -1199,7 +1215,7 @@ export default function RegistrationsPage() {
             <div className="w-full max-w-2xl bg-white shadow-2xl overflow-y-auto">
               <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
                 <h2 className="text-lg font-semibold text-gray-800">{editingId ? 'Edit Registration' : 'Add Registration'}</h2>
-                <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-xl">â</button>
               </div>
               <form onSubmit={handleSave} className="px-4 sm:px-6 py-5 sm:py-6 space-y-6" autoComplete="on">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1230,7 +1246,7 @@ export default function RegistrationsPage() {
                   <div className="flex items-center gap-3">
                     {clubLogoUrl && <img src={clubLogoUrl} alt="Club logo" className="h-12 w-12 object-contain rounded-lg border border-gray-200" />}
                     <label className={`cursor-pointer border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 ${clubLogoUploading ? 'opacity-50' : ''}`}>
-                      {clubLogoUploading ? 'Uploading…' : clubLogoUrl ? 'Change Logo' : 'Upload Club Logo'}
+                      {clubLogoUploading ? 'Uploadingâ¦' : clubLogoUrl ? 'Change Logo' : 'Upload Club Logo'}
                       <input type="file" accept="image/*" className="hidden" disabled={clubLogoUploading}
                         onChange={e => e.target.files?.[0] && uploadClubLogo(e.target.files[0])} />
                     </label>
@@ -1271,7 +1287,7 @@ export default function RegistrationsPage() {
                             <img src={team.logoUrl} alt="logo" className="h-10 w-10 object-contain rounded-lg border border-gray-200 bg-white" />
                           )}
                           <label className="cursor-pointer text-xs text-blue-600 border border-blue-200 hover:bg-blue-50 rounded-lg px-2.5 py-1.5 font-medium">
-                            {logoUploading === i ? 'Uploading…' : team.logoUrl ? '🔄 Replace Logo' : '📁 Upload Team Logo'}
+                            {logoUploading === i ? 'Uploadingâ¦' : team.logoUrl ? 'ð Replace Logo' : 'ð Upload Team Logo'}
                             <input type="file" accept="image/*" className="hidden" disabled={logoUploading === i}
                               onChange={e => { const f = e.target.files?.[0]; if (f) uploadTeamLogo(i, f) }} />
                           </label>
@@ -1293,7 +1309,7 @@ export default function RegistrationsPage() {
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Amount ($)</label>
                       <input type="number" step="0.01" min="0" value={invoiceAmount} onChange={e => setInvoiceAmount(Number(e.target.value))} className={inputCls} />
-                      <p className="text-xs text-gray-400 mt-0.5">Auto-calculated · edit to override</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Auto-calculated Â· edit to override</p>
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Discount ($)</label>
@@ -1357,7 +1373,7 @@ export default function RegistrationsPage() {
                           </td>
                           <td className="px-4 py-3 text-gray-600">{reg.position}</td>
                           <td className="px-4 py-3 text-gray-600">{reg.jerseySize} / {reg.shortsSize}</td>
-                          <td className="px-4 py-3 text-gray-600">{reg.feeTierName || '—'}</td>
+                          <td className="px-4 py-3 text-gray-600">{reg.feeTierName || 'â'}</td>
                           <td className="px-4 py-3 font-medium text-gray-800">{fmt(reg.feeTierAmount)}</td>
                           <td className="px-4 py-3">
                             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
@@ -1446,7 +1462,7 @@ export default function RegistrationsPage() {
                   <div className="px-5 py-4 flex items-center justify-between gap-3">
                     <button onClick={() => setExpanded(expanded === reg.id ? null : reg.id)} className="flex-1 text-left min-w-0">
                       <div className="font-semibold text-gray-800 truncate">{reg.clubName || reg.clubContact}</div>
-                      <div className="text-sm text-gray-500">{reg.contactEmail} · {reg.contactPhone}</div>
+                      <div className="text-sm text-gray-500">{reg.contactEmail} Â· {reg.contactPhone}</div>
                     </button>
 
                     {/* Billing summary */}
@@ -1470,13 +1486,13 @@ export default function RegistrationsPage() {
                       <button onClick={() => { setPayingRegId(reg.id); const _bal1=reg.invoiceAmount-reg.discountAmount-reg.payments.reduce((s:number,p:any)=>s+p.amount,0); setPayAmount(_bal1>0?String(_bal1):''); setPayCheck(''); setPayDate(today()); setPayNotes(''); setPayMethod(reg.paymentMethod||'check') }}
                         className="text-xs text-green-600 border border-green-300 hover:border-green-500 px-2.5 py-1 rounded-lg">+ Payment</button>
                       {reg.qboInvoiceId ? (
-                        <span className="text-xs text-green-600 border border-green-200 bg-green-50 px-2.5 py-1 rounded-lg">✓ QB Synced</span>
+                        <span className="text-xs text-green-600 border border-green-200 bg-green-50 px-2.5 py-1 rounded-lg">â QB Synced</span>
                       ) : (
                         <button onClick={() => handleQboSync(reg.id)} className="text-xs text-purple-600 border border-purple-200 hover:border-purple-400 px-2.5 py-1 rounded-lg">QB Sync</button>
                       )}
                       <button onClick={() => openEdit(reg)} className="text-xs text-blue-600 border border-blue-200 hover:border-blue-400 px-2.5 py-1 rounded-lg">Edit</button>
                       <button onClick={() => handleDelete(reg.id, reg.clubName || reg.clubContact)} className="text-xs text-red-500 border border-red-200 hover:border-red-400 px-2.5 py-1 rounded-lg">Del</button>
-                      <span className="text-gray-400 text-sm">{expanded === reg.id ? '▲' : '▼'}</span>
+                      <span className="text-gray-400 text-sm">{expanded === reg.id ? 'â²' : 'â¼'}</span>
                     </div>
                   </div>
 
@@ -1547,7 +1563,7 @@ export default function RegistrationsPage() {
                                 <tr key={p.id} className="border-b border-gray-50">
                                   <td className="py-1.5">{new Date(p.receivedAt).toLocaleDateString()}</td>
                                   <td className="py-1.5">{payLabel(p.method)}</td>
-                                  <td className="py-1.5 text-gray-500">{p.checkNumber || p.notes || '—'}</td>
+                                  <td className="py-1.5 text-gray-500">{p.checkNumber || p.notes || 'â'}</td>
                                   <td className="py-1.5 text-right font-medium text-green-700">{fmt(p.amount)}</td>
                                   <td className="py-1.5 text-right">
                                     <button onClick={() => handleDeletePayment(p.id, p.amount)} className="text-xs text-red-500 border border-red-200 hover:bg-red-50 hover:border-red-400 px-2 py-0.5 rounded-lg ml-2">Delete</button>
@@ -1574,6 +1590,43 @@ export default function RegistrationsPage() {
             })}
           </div>
         ))}
+      </div>
+
+      {/* Recently Deleted */}
+      <div className="mt-10">
+        <button
+          onClick={() => { setShowDeleted(v => !v); if (!showDeleted) fetchDeleted() }}
+          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
+        >
+          <span>{showDeleted ? '▾' : '▸'}</span>
+          <span>Recently Deleted <span className="text-xs text-gray-400">(restored within 15 days)</span></span>
+        </button>
+        {showDeleted && (
+          <div className="mt-3 border border-gray-200 rounded-lg divide-y divide-gray-200">
+            {deletedRegs.length === 0 ? (
+              <p className="p-4 text-sm text-gray-400 italic">No recently deleted registrations.</p>
+            ) : (
+              deletedRegs.map(reg => (
+                <div key={reg.id} className="flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100">
+                  <div>
+                    <span className="font-medium text-sm text-gray-800">{reg.clubName}</span>
+                    <span className="ml-3 text-xs text-gray-500">
+                      Deleted {new Date(reg.deletedAt).toLocaleDateString()}
+                    </span>
+                    <span className="ml-3 text-xs text-gray-400">{reg.teams?.length || 0} teams</span>
+                  </div>
+                  <button
+                    onClick={() => handleRestore(reg.id)}
+                    disabled={restoringId === reg.id}
+                    className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {restoringId === reg.id ? 'Restoring…' : 'Restore'}
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
