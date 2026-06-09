@@ -119,17 +119,25 @@ export default function SuperAdminBar() {
               </button>
               <div className="border-t border-white/10" />
               {orgs.map(org => (
-                <button
-                  key={org.id}
-                  onClick={() => switchOrg(org.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs hover:bg-white/10 transition-colors ${activeOrgId === org.id ? 'bg-white/10' : ''}`}>
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${TIER_DOT[org.subscriptionTier] ?? 'bg-slate-400'}`} />
-                  <div className="text-left min-w-0">
-                    <p className="font-semibold text-white truncate">{org.name}</p>
-                    <p className="text-white/40 capitalize">{org.subscriptionTier}</p>
-                  </div>
-                  {activeOrgId === org.id && <span className="ml-auto text-blue-400 text-[10px] font-bold shrink-0">ACTIVE</span>}
-                </button>
+                <div key={org.id} className={`flex items-center group ${activeOrgId === org.id ? 'bg-white/10' : ''}`}>
+                  <button
+                    onClick={() => switchOrg(org.id)}
+                    className="flex items-center gap-3 px-3 py-2.5 text-xs hover:bg-white/10 transition-colors flex-1 min-w-0">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${TIER_DOT[org.subscriptionTier] ?? 'bg-slate-400'}`} />
+                    <div className="text-left min-w-0">
+                      <p className="font-semibold text-white truncate">{org.name}</p>
+                      <p className="text-white/40 capitalize">{org.subscriptionTier}</p>
+                    </div>
+                    {activeOrgId === org.id && <span className="ml-auto text-blue-400 text-[10px] font-bold shrink-0">ACTIVE</span>}
+                  </button>
+                  <Link
+                    href={`/admin/orgs/${org.id}`}
+                    onClick={() => setOpen(false)}
+                    title="Edit org"
+                    className="px-2 py-2.5 text-white/20 hover:text-white/80 transition-colors shrink-0 opacity-0 group-hover:opacity-100">
+                    ✏️
+                  </Link>
+                </div>
               ))}
               {orgs.length === 0 && (
                 <p className="px-3 py-3 text-white/30 text-xs">No organizations yet</p>
