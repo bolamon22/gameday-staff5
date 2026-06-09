@@ -294,12 +294,12 @@ export default function RegisterPage() {
         <Toaster />
         <div className="bg-[#0f1f3d] px-4 py-4">
           <div className="max-w-2xl mx-auto flex items-center gap-3">
-            {tournamentLogo && (
-              <img src={tournamentLogo} alt="logo" className="h-11 w-11 object-contain rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />
+            {(tournamentLogo || org?.logoUrl) && (
+              <img src={tournamentLogo || org?.logoUrl} alt="logo" className="h-11 w-11 object-contain rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />
             )}
             <div>
               <h1 className="text-base font-bold text-white leading-tight">{tournamentName}</h1>
-              <p className="text-[11px] text-blue-300 mt-0.5 font-medium">Team Registration</p>
+              <p className="text-[11px] text-blue-300 mt-0.5 font-medium">{org?.name || 'Team Registration'}</p>
             </div>
           </div>
         </div>
@@ -549,7 +549,7 @@ export default function RegisterPage() {
                 <p className="text-sm text-gray-600 mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">Please mail checks payable to <strong>{org?.checkPayableTo || 'Sunshine Events Group'}</strong> to:<br/>{org?.checkAddress || '11830 Wiles Rd. Coral Springs, FL 33076'}</p>
               )}
               {paymentMethod === 'ach' && (
-                {org?.achBankName ? (
+                org?.achBankName ? (
                   <div className="text-sm text-gray-600 mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 space-y-1">
                     <p><strong>Bank:</strong> {org.achBankName}</p>
                     {org.achRoutingNumber && <p><strong>Routing:</strong> {org.achRoutingNumber}</p>}
@@ -557,7 +557,7 @@ export default function RegisterPage() {
                   </div>
                 ) : (
                   <p className="text-sm text-gray-600 mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">ACH payment instructions will be provided after registration is confirmed.</p>
-                )}
+                )
               )}
               {paymentMethod === 'paypal' && (
                 <p className="text-sm text-gray-600 mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">Send PayPal to <strong>{org?.paypalEmail || 'info@sunshinelax.com'}</strong></p>
