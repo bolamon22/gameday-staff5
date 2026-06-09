@@ -13,9 +13,14 @@ export async function POST(req: Request) {
   const tokens = await getQBOAccessToken(userId)
   if (!tokens) return NextResponse.json({ error: 'QuickBooks not connected' }, { status: 503 })
 
-  const regs = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM TeamRegistration WHERE id = ?`, registrationId)
-  if (!regs.length) return NextResponse.json({ error: 'Registration not found' }, { status: 404 })
-  const reg = regs[0]
+  const regsRaw = await prisma.$queryRawUnsafe<any[]>('SELECT * FROM TeamRegistration WHERE id = ?', registrationId)
+  if (!regsRaw.length) return NextResponse.json({ error: 'Registration not found' }, { status: 404 })
+  const reg = regsRaw[0]
+
+  // If already synced, return existing invoice ID — no duplicate
+  if (reg.qboInvoiceId) {
+    return NextResponse.json({ ok: true, alreadySynced: true, invoiceId: reg.qboInvoiceId, docNumber: reg.qboInvoiceId })
+  }
 
   const baseUrl = `https://quickbooks.api.intuit.com/v3/company/${tokens.companyId}`
   const headers = {
@@ -26,27 +31,34 @@ export async function POST(req: Request) {
 
   try {
     // Find or create customer
-    const custSearch = await fetch(
-      `${baseUrl}/query?query=${encodeURIComponent(`SELECT * FROM Customer WHERE DisplayName = '${reg.clubName.replace(/'/g, "\\'")}'`)}&minorversion=65`,
-      { headers }
-    )
-    const custData = await custSearch.json()
-    let customerId = custData?.QueryResponse?.Customer?.[0]?.Id
+    let customerId = reg.qboCustomerId || null
 
     if (!customerId) {
-      const createCust = await fetch(`${baseUrl}/customer?minorversion=65`, {
-        method: 'POST', headers,
-        body: JSON.stringify({
-          DisplayName: reg.clubName,
-          PrimaryEmailAddr: { Address: reg.contactEmail },
-          PrimaryPhone: { FreeFormNumber: reg.contactPhone },
-        }),
-      })
-      const newCust = await createCust.json()
-      customerId = newCust?.Customer?.Id
+      const custSearch = await fetch(
+        `${baseUrl}/query?query=${encodeURIComponent(`SELECT * FROM Customer WHERE DisplayName = '${String(reg.clubName).replace(/'/g, "\\'")}'`)}&minorversion=65`,
+        { headers }
+      )
+      const custData = await custSearch.json()
+      customerId = custData?.QueryResponse?.Customer?.[0]?.Id
+
+      if (!customerId) {
+        const createCust = await fetch(`${baseUrl}/customer?minorversion=65`, {
+          method: 'POST', headers,
+          body: JSON.stringify({
+            DisplayName: reg.clubName,
+            PrimaryEmailAddr: { Address: reg.contactEmail },
+            PrimaryPhone: { FreeFormNumber: reg.contactPhone },
+          }),
+        })
+        const newCust = await createCust.json()
+        customerId = newCust?.Customer?.Id
+      }
+
+      // Save customer ID so we don't search again next time
+      await prisma.$executeRawUnsafe('UPDATE TeamRegistration SET qboCustomerId = ? WHERE id = ?', customerId, registrationId)
     }
 
-    const due = reg.invoiceAmount - reg.discountAmount
+    const due = (reg.invoiceAmount || 0) - (reg.discountAmount || 0)
     const invoiceRes = await fetch(`${baseUrl}/invoice?minorversion=65`, {
       method: 'POST', headers,
       body: JSON.stringify({
@@ -61,7 +73,15 @@ export async function POST(req: Request) {
       }),
     })
     const invoiceData = await invoiceRes.json()
-    return NextResponse.json({ ok: true, customerId, invoiceId: invoiceData?.Invoice?.Id, docNumber: invoiceData?.Invoice?.DocNumber })
+    const invoiceId = invoiceData?.Invoice?.Id
+    const docNumber = invoiceData?.Invoice?.DocNumber
+
+    if (!invoiceId) throw new Error(invoiceData?.Fault?.Error?.[0]?.Message || 'Invoice creation failed')
+
+    // Save invoice ID — prevents any future duplicates
+    await prisma.$executeRawUnsafe('UPDATE TeamRegistration SET qboInvoiceId = ? WHERE id = ?', invoiceId, registrationId)
+
+    return NextResponse.json({ ok: true, customerId, invoiceId, docNumber })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

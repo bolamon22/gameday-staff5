@@ -518,7 +518,12 @@ export default function RegistrationsPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Sync failed')
-      toast.success(`Synced! Invoice #${data.docNumber}`, { id: 'qbo-sync', duration: 5000 })
+      if (data.alreadySynced) {
+        toast.success(`Already synced — Invoice #${data.invoiceId}`, { id: 'qbo-sync', duration: 5000 })
+      } else {
+        toast.success(`Synced! Invoice #${data.docNumber}`, { id: 'qbo-sync', duration: 5000 })
+      }
+      load()
     } catch (err: any) { toast.error(err.message, { id: 'qbo-sync', duration: 5000 }) }
   }
 
@@ -1464,7 +1469,11 @@ export default function RegistrationsPage() {
                       <span className="hidden sm:block bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{reg.teams.length} team{reg.teams.length !== 1 ? 's' : ''}</span>
                       <button onClick={() => { setPayingRegId(reg.id); const _bal1=reg.invoiceAmount-reg.discountAmount-reg.payments.reduce((s:number,p:any)=>s+p.amount,0); setPayAmount(_bal1>0?String(_bal1):''); setPayCheck(''); setPayDate(today()); setPayNotes(''); setPayMethod(reg.paymentMethod||'check') }}
                         className="text-xs text-green-600 border border-green-300 hover:border-green-500 px-2.5 py-1 rounded-lg">+ Payment</button>
-                      <button onClick={() => handleQboSync(reg.id)} className="text-xs text-purple-600 border border-purple-200 hover:border-purple-400 px-2.5 py-1 rounded-lg">QB Sync</button>
+                      reg.qboInvoiceId ? (
+                        <span className="text-xs text-green-600 border border-green-200 bg-green-50 px-2.5 py-1 rounded-lg">✓ QB Synced</span>
+                      ) : (
+                        <button onClick={() => handleQboSync(reg.id)} className="text-xs text-purple-600 border border-purple-200 hover:border-purple-400 px-2.5 py-1 rounded-lg">QB Sync</button>
+                      )
                       <button onClick={() => openEdit(reg)} className="text-xs text-blue-600 border border-blue-200 hover:border-blue-400 px-2.5 py-1 rounded-lg">Edit</button>
                       <button onClick={() => handleDelete(reg.id, reg.clubName || reg.clubContact)} className="text-xs text-red-500 border border-red-200 hover:border-red-400 px-2.5 py-1 rounded-lg">Del</button>
                       <span className="text-gray-400 text-sm">{expanded === reg.id ? '▲' : '▼'}</span>

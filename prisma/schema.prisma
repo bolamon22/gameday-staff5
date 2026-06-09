@@ -184,6 +184,8 @@ model TeamRegistration {
   discountAmount  Float    @default(0)
   discountNote    String   @default("")
   clubLogoUrl     String   @default("")
+  qboInvoiceId    String   @default("")
+  qboCustomerId   String   @default("")
   createdAt       DateTime @default(now())
 
   tournament Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
