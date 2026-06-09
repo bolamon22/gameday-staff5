@@ -22,12 +22,6 @@ model Tournament {
   registrationPricing   String @default("{\"tier1\":1495,\"tier1Max\":3,\"tier2\":1450,\"tier2Max\":6,\"tier3\":1395,\"sevenVSeven\":1095}")
   registrationDivisions String @default("[\"Boys 2030\",\"Boys 2029\",\"Boys 2028\",\"Boys 2027\",\"Boys 2026\",\"Boys 2025\",\"Boys 2024\",\"Boys 2023\",\"Girls 2030\",\"Girls 2029\",\"Girls 2028\",\"Girls 2027\",\"Girls 2026\",\"Girls 2025\",\"Girls 2024\",\"Girls 2023\",\"HS Boys JV\",\"HS Boys Varsity\",\"HS Girls JV\",\"HS Girls Varsity\"]")
   divisionRules     String   @default("{}")
-  teamRegEnabled           Boolean  @default(true)
-  individualRegEnabled     Boolean  @default(false)
-  individualRegDescription String   @default("")
-  individualRegTiers       String   @default("[]")
-  individualRegPositions   String   @default("[]")
-  individualRegSizes       String   @default("[]")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -38,7 +32,6 @@ model Tournament {
   teamRegistrations   TeamRegistration[]
   playerRegistrations PlayerRegistration[]
   transactions        TournamentTransaction[]
-  individualRegistrations IndividualRegistration[]
 }
 
 model Game {
@@ -72,7 +65,6 @@ model Worker {
   email           String?
   phone           String?
   certLevel       String   @default("youth")
-  association      String   @default("")
   defaultRole     String   @default("ref")
   isAssigner      Boolean  @default(false)
   gender          String   @default("both")
@@ -169,25 +161,23 @@ model AuditLog {
 }
 
 model TeamRegistration {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   tournamentId    String
   clubName        String
   clubContact     String
   contactEmail    String
   contactPhone    String
-  clubBasedIn     String   @default("")
-  clubWebsite     String   @default("")
-  numTeams        Int      @default(1)
-  needsHotel      String   @default("No")
-  paymentMethod   String   @default("check")
+  clubBasedIn     String    @default("")
+  clubWebsite     String    @default("")
+  numTeams        Int       @default(1)
+  needsHotel      String    @default("No")
+  paymentMethod   String    @default("check")
   notes           String?
-  invoiceAmount   Float    @default(0)
-  discountAmount  Float    @default(0)
-  discountNote    String   @default("")
-  clubLogoUrl     String   @default("")
-  qboInvoiceId    String   @default("")
-  qboCustomerId   String   @default("")
-  createdAt       DateTime @default(now())
+  invoiceAmount   Float     @default(0)
+  discountAmount  Float     @default(0)
+  discountNote    String    @default("")
+  createdAt       DateTime  @default(now())
+  deletedAt       DateTime?
 
   tournament Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   teams      RegisteredTeam[]
@@ -228,28 +218,29 @@ model RegisteredTeam {
 }
 
 model PlayerRegistration {
-  id                   String   @id @default(cuid())
+  id                   String    @id @default(cuid())
   tournamentId         String
   playerName           String
-  playerEmail          String   @default("")
+  playerEmail          String    @default("")
   usLacrosseNumber     String
   gender               String
-  dob                  String   @default("")
+  dob                  String    @default("")
   grade                String
   teamClubName         String
-  jerseyNumber         String   @default("")
+  jerseyNumber         String    @default("")
   parentName           String
   parentEmail          String
   parentPhone          String
-  parent2Name          String   @default("")
-  parent2Email         String   @default("")
-  parent2Phone         String   @default("")
+  parent2Name          String    @default("")
+  parent2Email         String    @default("")
+  parent2Phone         String    @default("")
   emergencyContactName  String
   emergencyContactPhone String
   waiverSignature      String
-  needsHotel           String   @default("")
-  wantsUpdates         Boolean  @default(false)
-  createdAt            DateTime @default(now())
+  needsHotel           String    @default("")
+  wantsUpdates         Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  deletedAt            DateTime?
 
   tournament   Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   parentLinks  ParentPlayerLink[]
@@ -358,145 +349,4 @@ model TournamentTransaction {
 
   @@index([tournamentId])
   @@index([type])
-}
-
-model StaffInvite {
-  id           String    @id @default(cuid())
-  token        String    @unique
-  email        String
-  name         String?
-  tournamentId String?
-  usedAt       DateTime?
-  expiresAt    DateTime
-  createdAt    DateTime  @default(now())
-
-  @@index([token])
-  @@index([email])
-}
-
-model Pool {
-  id           String   @id @default(cuid())
-  tournamentId String
-  division     String
-  name         String
-  teamNames    String   @default("[]")
-  createdAt    DateTime @default(now())
-
-  @@index([tournamentId, division])
-}
-
-model Bracket {
-  id           String        @id
-  tournamentId String
-  division     String
-  format       String        @default("single")
-  teamCount    Int           @default(8)
-  seeds        String        @default("{}")
-  createdAt    DateTime      @default(now())
-  games        BracketGame[]
-
-  @@index([tournamentId, division])
-}
-
-model BracketGame {
-  id          String   @id
-  bracketId   String
-  gameNumber  Int
-  round       Int
-  section     String   @default("winners")
-  team1Source String   @default("")
-  team2Source String   @default("")
-  label       String   @default("")
-  team1       String   @default("")
-  team2       String   @default("")
-  score1      Int?
-  score2      Int?
-  winner      String   @default("")
-  loser       String   @default("")
-  field       String   @default("")
-  startTime   String   @default("")
-  gameDate    String   @default("")
-  createdAt   DateTime @default(now())
-
-  bracket Bracket @relation(fields: [bracketId], references: [id], onDelete: Cascade)
-
-  @@index([bracketId])
-}
-
-model IndividualRegistration {
-  id                   String   @id @default(cuid())
-  tournamentId         String
-  firstName            String
-  lastName             String
-  email                String
-  phone                String   @default("")
-  position             String
-  numberRequest        String   @default("")
-  jerseySize           String
-  shortsSize           String
-  usLacrosseNumber     String   @default("")
-  dateOfBirth          String   @default("")
-  guardianName         String   @default("")
-  guardianPhone        String   @default("")
-  guardianEmail        String   @default("")
-  emergencyContactName  String  @default("")
-  emergencyContactPhone String  @default("")
-  emergencyRelationship String  @default("")
-  medicalNotes         String   @default("")
-  waiverSigned         Boolean  @default(false)
-  waiverSignature      String   @default("")
-  feeTierId            String
-  feeTierName          String
-  feeTierAmount        Float
-  paymentStatus        String   @default("pending")
-  stripePaymentIntent  String?
-  stripeSessionId      String?
-  createdAt            DateTime @default(now())
-
-  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-
-  @@index([tournamentId])
-  @@index([email])
-}
-
-model OrgPaymentProvider {
-  id        String   @id @default(cuid())
-  userId    String
-  provider  String   // 'stripe' | 'quickbooks' | 'paypal'
-  enabled   Boolean  @default(true)
-  config    String   @default("{}") // AES-encrypted JSON
-  mode      String   @default("live") // 'test' | 'live'
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, provider])
-  @@index([userId])
-}
-
-model Organization {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  logoUrl     String   @default("")
-  contactEmail String  @default("")
-  contactPhone String  @default("")
-  website     String   @default("")
-
-  // Payment instructions shown on public registration forms
-  achBankName      String @default("")
-  achRoutingNumber String @default("")
-  achAccountNumber String @default("")
-  paypalEmail      String @default("")
-  zelleHandle      String @default("")
-  checkPayableTo   String @default("")
-  checkAddress     String @default("")
-
-  // Subscription
-  subscriptionTier   String @default("starter") // starter | pro | enterprise
-  subscriptionStatus String @default("active")  // active | past_due | canceled
-  stripeCustomerId   String @default("")
-  stripeSubscriptionId String @default("")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
