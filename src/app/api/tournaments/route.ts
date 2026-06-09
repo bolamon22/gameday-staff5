@@ -21,13 +21,23 @@ function shape(t: any) {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const url = new URL(req.url)
+  const viewOrgId = url.searchParams.get('viewOrgId')
   const session = await getServerSession(authOptions)
   const role = (session?.user as any)?.role
   const orgId = (session?.user as any)?.orgId
 
   // Platform admin sees all tournaments
   if (role === 'admin') {
+    if (viewOrgId) {
+      const client = db()
+      const res = await client.execute({ sql: 'SELECT id FROM "Tournament" WHERE orgId = ?', args: [viewOrgId] })
+      const ids = res.rows.map((r: any) => r.id as string)
+      if (ids.length === 0) return NextResponse.json([])
+      const ts = await prisma.tournament.findMany({ where: { id: { in: ids } }, orderBy: { startDate: 'desc' }, include: INCLUDE })
+      return NextResponse.json(ts.map(shape))
+    }
     const all = await prisma.tournament.findMany({ orderBy: { startDate: 'desc' }, include: INCLUDE })
     return NextResponse.json(all.map(shape))
   }
@@ -46,7 +56,7 @@ export async function GET() {
     return NextResponse.json(tournaments.map(shape))
   }
 
-  // No session / no orgId — return all (temporary until all users are org-assigned)
+  // No session / no orgId â return all (temporary until all users are org-assigned)
   const all = await prisma.tournament.findMany({ orderBy: { startDate: 'desc' }, include: INCLUDE })
   return NextResponse.json(all.map(shape))
 }
