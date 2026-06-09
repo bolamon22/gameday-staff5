@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { useRole } from '@/lib/role-context'
@@ -33,6 +34,7 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 export default function NavBar() {
+  const pathname = usePathname()
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const org = useOrg()
   const { data: session } = useSession()
@@ -40,6 +42,7 @@ export default function NavBar() {
 
   const realRole = session?.user?.role ?? 'staff'
   const role = effectiveRole
+
   const roleColor = ROLE_COLORS[role] || 'bg-slate-100 text-slate-600'
   const isAdmin = realRole === 'admin'
   const hasOrg = !!org?.id
@@ -56,6 +59,8 @@ export default function NavBar() {
       .catch(() => {})
   }, [isAdmin])
 
+  // Admin pages use SuperAdminBar as sole header
+  if (pathname?.startsWith('/admin')) return null
 
   return (
     <div className="sticky top-0 z-40">
