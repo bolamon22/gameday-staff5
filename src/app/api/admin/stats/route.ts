@@ -14,7 +14,7 @@ export async function GET() {
   ] = await Promise.all([
     prisma.tournament.count(),
     prisma.worker.count(),
-    prisma.teamRegistration.count({ where: { deletedAt: null } }),
+    prisma.teamRegistration.count({ where: { deletedAt: null, OR: [{ numTeams: { gt: 0 } }, { invoiceAmount: { gt: 0 } }] } }),
     prisma.registeredTeam.count(),
     prisma.registrationPayment.aggregate({ _sum: { amount: true } }),
     prisma.teamRegistration.aggregate({
