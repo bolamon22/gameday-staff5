@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
-export default function PlayerRegisterRedirect({ params }: { params: { id: string } }) {
+export default function IndividualRegisterRedirect({ params }: { params: { id: string } }) {
   redirect('/tournaments/' + params.id + '/register/individual')
 }
