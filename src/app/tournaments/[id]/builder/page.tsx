@@ -37,7 +37,7 @@ function toDivItems(stored: string[]): DivisionItem[] {
 }
 function isLegacyDivision(s: string): boolean {
   // Filter out old year-based divisions like "Boys 2030", "HS Boys JV", etc.
-  return /20\d{2}/.test(s) || /^HS (Boys|Girls)/.test(s)
+  return /\b20\d{2}\b/.test(s) || /^HS (Boys|Girls)/.test(s)
 }
 function fromDivItems(items: DivisionItem[], customs: string[]): string[] {
   return [...items.filter(i => i.checked).map(i => i.display), ...customs]

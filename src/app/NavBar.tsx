@@ -80,7 +80,7 @@ export default function NavBar() {
 
       <nav className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center gap-3 shadow-sm">
 
-        {/* ââ LEFT: Brand ââ */}
+        {/* ── LEFT: Brand ── */}
         {hasOrg ? (
           /* Org user: org logo + name on the left */
           <a href="/" className="flex items-center gap-2.5 flex-shrink-0 group">
@@ -159,7 +159,7 @@ export default function NavBar() {
           </>
         )}
 
-        {/* ââ RIGHT: GameDay badge (org users only) + auth ââ */}
+        {/* ── RIGHT: GameDay badge (org users only) + auth ── */}
         <div className="ml-auto flex items-center gap-3 flex-shrink-0">
 
           {/* Gameday Blueprint platform badge — shown to org users */}

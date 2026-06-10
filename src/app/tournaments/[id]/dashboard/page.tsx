@@ -3,6 +3,11 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import {
+  Target, ClipboardList, Eye, Wrench, Users, Flag, SlidersHorizontal,
+  Settings, Medal, Calendar, FileText, MapPin, Banknote, BarChart3,
+  Wallet, Trophy, ChevronDown, Contact, type LucideIcon,
+} from 'lucide-react'
 import ChatWidget from '../ChatWidget'
 import TournamentNav from '../TournamentNav'
 
@@ -29,11 +34,11 @@ interface DashData {
 const fmt = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const payLabel = (m: string) => m === 'credit_card' ? 'Credit Card' : m === 'zelle' ? 'Zelle' : 'Check'
 
-function StatCard({ label, value, sub, color = 'text-slate-800', href }: { label: string; value: string | number; sub?: string; color?: string; href?: string }) {
+function StatCard({ label, value, sub, href }: { label: string; value: string | number; sub?: string; href?: string }) {
   const inner = (
-    <div className={`bg-white border border-slate-200 rounded-xl p-4 transition-shadow${href ? ' hover:shadow-md hover:border-slate-300 cursor-pointer' : ''}`}>
-      <div className={`text-2xl font-bold ${color}`}>{value}</div>
-      <div className="text-sm font-medium text-slate-600 mt-0.5">{label}</div>
+    <div className={`bg-white border border-slate-200 rounded-xl p-4 transition-colors${href ? ' hover:border-slate-300 cursor-pointer' : ''}`}>
+      <div className="text-2xl font-semibold text-slate-900">{value}</div>
+      <div className="text-sm text-slate-500 mt-0.5">{label}</div>
       {sub && <div className="text-xs text-slate-400 mt-0.5">{sub}</div>}
     </div>
   )
@@ -41,39 +46,29 @@ function StatCard({ label, value, sub, color = 'text-slate-800', href }: { label
 }
 
 // ── Hub component ─────────────────────────────────────────────────────────────
-function Hub({ icon, label, count, accent, children, solid = false }: {
-  icon: string; label: string; count: number; accent: string; children: React.ReactNode; solid?: boolean
+function Hub({ icon: Icon, label, count, children }: {
+  icon: LucideIcon; label: string; count: number; children: React.ReactNode
 }) {
   const [open, setOpen] = useState(false)
-  const isSolid = accent.includes('teal-500') || solid
-
   return (
-    <div className={`rounded-xl overflow-hidden transition-all border ${
-      isSolid
-        ? open ? 'border-teal-400' : 'border-teal-500'
-        : open ? 'border-slate-300' : 'border-slate-200'
-    } ${isSolid ? 'bg-teal-500' : 'bg-white'}`}>
+    <div className={`rounded-xl overflow-hidden border bg-white transition-colors ${open ? 'border-slate-300' : 'border-slate-200'}`}>
       <button
         onClick={() => setOpen(o => !o)}
-        className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 transition-colors text-left ${
-          isSolid ? 'hover:bg-teal-400' : 'hover:bg-slate-50'
-        }`}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-slate-50 transition-colors text-left"
       >
         <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0 ${
-            isSolid ? 'bg-white/20 text-white' : accent
-          }`}>
-            {icon}
-          </div>
+          <span className="w-9 h-9 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center flex-shrink-0">
+            <Icon size={18} />
+          </span>
           <div>
-            <div className={`text-sm font-semibold ${isSolid ? 'text-white' : 'text-slate-700'}`}>{label}</div>
-            <div className={`text-xs ${isSolid ? 'text-teal-100' : 'text-slate-400'}`}>{count} sections</div>
+            <div className="text-sm font-medium text-slate-800">{label}</div>
+            <div className="text-xs text-slate-400">{count} sections</div>
           </div>
         </div>
-        <span className={`text-xs transition-transform duration-200 ${open ? 'rotate-180' : ''} ${isSolid ? 'text-white/70' : 'text-slate-400'}`}>▾</span>
+        <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className={`border-t ${isSolid ? 'border-teal-400 bg-white' : 'border-slate-100'}`}>
+        <div className="border-t border-slate-100">
           {children}
         </div>
       )}
@@ -81,10 +76,10 @@ function Hub({ icon, label, count, accent, children, solid = false }: {
   )
 }
 
-function HubItem({ href, icon, label }: { href: string; icon: string; label: string }) {
+function HubItem({ href, icon: Icon, label }: { href: string; icon: LucideIcon; label: string }) {
   return (
     <Link href={href} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-b border-slate-100 last:border-b-0 transition-colors">
-      <span className="text-slate-400 text-base w-5 text-center flex-shrink-0">{icon}</span>
+      <Icon size={16} className="text-slate-400 flex-shrink-0" />
       {label}
     </Link>
   )
@@ -125,33 +120,33 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
 
             <Link href={`/tournaments/${id}/scores`}
-              className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 hover:border-teal-300 hover:bg-teal-50 transition-colors group">
-              <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center text-xl flex-shrink-0">🎯</div>
+              className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 hover:border-slate-300 transition-colors">
+              <span className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center flex-shrink-0"><Target size={20} /></span>
               <div>
-                <div className="font-semibold text-slate-700 group-hover:text-teal-800">Post Scores</div>
+                <div className="font-medium text-slate-800">Post Scores</div>
                 <div className="text-xs text-slate-400">Quick entry</div>
               </div>
             </Link>
 
             <Link href={`/tournaments/${id}/assignments`}
-              className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 hover:border-blue-300 hover:bg-blue-50 transition-colors group">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-xl flex-shrink-0">📌</div>
+              className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 hover:border-slate-300 transition-colors">
+              <span className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center flex-shrink-0"><ClipboardList size={20} /></span>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-slate-700 group-hover:text-blue-800">Assignments</div>
+                <div className="font-medium text-slate-800">Assignments</div>
                 <div className="text-xs text-slate-400">By game or staff</div>
               </div>
               {games.active > 0 && (
-                <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full flex-shrink-0">
+                <span className="text-xs font-medium bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full flex-shrink-0">
                   ~{assignPct}% filled
                 </span>
               )}
             </Link>
 
             <Link href={`/tournaments/${id}/staff-view`}
-              className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 hover:border-slate-400 hover:bg-slate-100 transition-colors group">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-xl flex-shrink-0">👤</div>
+              className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 hover:border-slate-300 transition-colors">
+              <span className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center flex-shrink-0"><Eye size={20} /></span>
               <div>
-                <div className="font-semibold text-slate-700">Staff View</div>
+                <div className="font-medium text-slate-800">Staff View</div>
                 <div className="text-xs text-slate-400">What staff sees</div>
               </div>
             </Link>
@@ -163,27 +158,27 @@ export default function DashboardPage() {
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Admin</h2>
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
 
-            <Hub icon="🏗" label="Tournament Builder" count={4} accent="bg-teal-500 text-white">
-              <HubItem href={`/tournaments/${id}/builder`}    icon="⚙️"  label="Tournament Setup" />
-              <HubItem href={`/tournaments/${id}/divisions`}  icon="🏅"  label="Divisions & Teams" />
-              <HubItem href={`/tournaments/${id}`}            icon="📅"  label="Assigner Schedule" />
-              <HubItem href={`/tournaments/${id}/scores`}     icon="🎯"  label="Score Input" />
+            <Hub icon={Wrench} label="Tournament Builder" count={4}>
+              <HubItem href={`/tournaments/${id}/builder`}    icon={Settings} label="Tournament Setup" />
+              <HubItem href={`/tournaments/${id}/divisions`}  icon={Medal}    label="Divisions & Teams" />
+              <HubItem href={`/tournaments/${id}`}            icon={Calendar} label="Assigner Schedule" />
+              <HubItem href={`/tournaments/${id}/scores`}     icon={Target}   label="Score Input" />
             </Hub>
 
-            <Hub icon="👥" label="Participants" count={2} accent="bg-rose-100 text-rose-600">
-              <HubItem href={`/tournaments/${id}/registrations`}        icon="📋" label="Team registrations" />
-              <HubItem href={`/tournaments/${id}/player-registrations`} icon="📄" label="Player rosters" />
+            <Hub icon={Users} label="Participants" count={2}>
+              <HubItem href={`/tournaments/${id}/registrations`}        icon={ClipboardList} label="Team registrations" />
+              <HubItem href={`/tournaments/${id}/player-registrations`} icon={FileText}      label="Player rosters" />
             </Hub>
 
-            <Hub icon="🏁" label="Workforce" count={3} accent="bg-emerald-100 text-emerald-600">
-              <HubItem href={`/tournaments/${id}/roster`}      icon="👥" label="Staff directory" />
-              <HubItem href={`/tournaments/${id}/assignments`} icon="📌" label="Field assignments" />
-              <HubItem href={`/tournaments/${id}/pay-summary`} icon="💰" label="Payroll" />
+            <Hub icon={Flag} label="Workforce" count={3}>
+              <HubItem href={`/tournaments/${id}/roster`}      icon={Contact}  label="Staff directory" />
+              <HubItem href={`/tournaments/${id}/assignments`} icon={MapPin}   label="Field assignments" />
+              <HubItem href={`/tournaments/${id}/pay-summary`} icon={Banknote} label="Payroll" />
             </Hub>
 
-            <Hub icon="⚙️" label="Management" count={2} accent="bg-slate-100 text-slate-600">
-              <HubItem href={`/tournaments/${id}/financials`} icon="📊" label="Financials" />
-              <HubItem href={`/tournaments/${id}/settings`}   icon="⚙️" label="Tournament settings" />
+            <Hub icon={SlidersHorizontal} label="Management" count={2}>
+              <HubItem href={`/tournaments/${id}/financials`} icon={BarChart3} label="Financials" />
+              <HubItem href={`/tournaments/${id}/settings`}   icon={Settings}  label="Tournament settings" />
             </Hub>
 
           </div>
@@ -194,35 +189,35 @@ export default function DashboardPage() {
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Team Registrations</h2>
           {reg.clubs === 0 ? (
             <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-8 text-center">
-              <div className="text-3xl mb-2">📋</div>
+              <div className="flex justify-center mb-3 text-slate-300"><ClipboardList size={32} /></div>
               <p className="text-slate-500 text-sm mb-3">No registrations yet</p>
               <Link href={`/tournaments/${id}/register`} target="_blank" className="btn-primary btn-sm">Share Registration Form</Link>
             </div>
           ) : (
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                <StatCard label="Clubs Registered" value={reg.clubs} color="text-purple-600" href={`/tournaments/${id}/registrations`} />
-                <StatCard label="Teams Registered" value={reg.teams} color="text-blue-600" href={`/tournaments/${id}/registrations`} />
-                <StatCard label="Paid in Full" value={reg.paidInFull} sub={`${reg.outstanding} outstanding`} color="text-green-600" href={`/tournaments/${id}/registrations`} />
+                <StatCard label="Clubs Registered" value={reg.clubs} href={`/tournaments/${id}/registrations`} />
+                <StatCard label="Teams Registered" value={reg.teams} href={`/tournaments/${id}/registrations`} />
+                <StatCard label="Paid in Full" value={reg.paidInFull} sub={`${reg.outstanding} outstanding`} href={`/tournaments/${id}/registrations`} />
                 {reg.hotelYes + reg.hotelMaybe > 0 && (
-                  <StatCard label="Hotel Requests" value={reg.hotelYes} sub={`${reg.hotelMaybe} maybe`} color="text-amber-600" href={`/tournaments/${id}/registrations`} />
+                  <StatCard label="Hotel Requests" value={reg.hotelYes} sub={`${reg.hotelMaybe} maybe`} href={`/tournaments/${id}/registrations`} />
                 )}
               </div>
 
               {/* Financials */}
               <div className="bg-white border border-slate-200 rounded-xl p-5">
-                <h3 className="text-sm font-semibold text-slate-700 mb-4">💵 Financial Summary</h3>
+                <h3 className="text-sm font-medium text-slate-700 mb-4 flex items-center gap-2"><Wallet size={16} className="text-slate-400" /> Financial Summary</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <Link href={`/tournaments/${id}/registrations`} className="text-center p-3 bg-slate-50 rounded-xl hover:shadow-md hover:bg-slate-100 transition-shadow cursor-pointer">
-                    <div className="text-xl font-bold text-slate-800">{fmt(reg.invoiced)}</div>
+                  <Link href={`/tournaments/${id}/registrations`} className="text-center p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer">
+                    <div className="text-xl font-semibold text-slate-800">{fmt(reg.invoiced)}</div>
                     <div className="text-xs text-slate-500 mt-0.5">Total Invoiced</div>
                   </Link>
-                  <Link href={`/tournaments/${id}/registrations`} className="text-center p-3 bg-green-50 rounded-xl hover:shadow-md hover:bg-green-100 transition-shadow cursor-pointer">
-                    <div className="text-xl font-bold text-green-700">{fmt(reg.received)}</div>
+                  <Link href={`/tournaments/${id}/registrations`} className="text-center p-3 bg-green-50 rounded-xl hover:bg-green-100 transition-colors cursor-pointer">
+                    <div className="text-xl font-semibold text-green-700">{fmt(reg.received)}</div>
                     <div className="text-xs text-slate-500 mt-0.5">Total Received</div>
                   </Link>
-                  <Link href={`/tournaments/${id}/registrations`} className={`text-center p-3 rounded-xl hover:shadow-md transition-shadow cursor-pointer ${reg.balance > 0 ? 'bg-red-50 hover:bg-red-100' : 'bg-green-50 hover:bg-green-100'}`}>
-                    <div className={`text-xl font-bold ${reg.balance > 0 ? 'text-red-600' : 'text-green-600'}`}>{fmt(reg.balance)}</div>
+                  <Link href={`/tournaments/${id}/registrations`} className={`text-center p-3 rounded-xl transition-colors cursor-pointer ${reg.balance > 0 ? 'bg-red-50 hover:bg-red-100' : 'bg-green-50 hover:bg-green-100'}`}>
+                    <div className={`text-xl font-semibold ${reg.balance > 0 ? 'text-red-600' : 'text-green-600'}`}>{fmt(reg.balance)}</div>
                     <div className="text-xs text-slate-500 mt-0.5">Balance Due</div>
                   </Link>
                 </div>
@@ -251,12 +246,12 @@ export default function DashboardPage() {
               {/* Division breakdown */}
               {topDivisions.length > 0 && (
                 <div className="bg-white border border-slate-200 rounded-xl p-5">
-                  <h3 className="text-sm font-semibold text-slate-700 mb-4">🏆 Teams by Division</h3>
+                  <h3 className="text-sm font-medium text-slate-700 mb-4 flex items-center gap-2"><Trophy size={16} className="text-slate-400" /> Teams by Division</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {topDivisions.map(([div, count]) => (
                       <div key={div} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
                         <span className="text-xs text-slate-600 truncate mr-2">{div}</span>
-                        <span className="text-sm font-bold text-slate-800 flex-shrink-0">{count}</span>
+                        <span className="text-sm font-semibold text-slate-800 flex-shrink-0">{count}</span>
                       </div>
                     ))}
                   </div>
@@ -270,10 +265,10 @@ export default function DashboardPage() {
         <section>
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Schedule & Staff</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-            <StatCard label="Total Games" value={games.active} sub={games.canceled > 0 ? `${games.canceled} canceled` : undefined} color="text-sky-600" />
-            <StatCard label="Divisions" value={games.divisions} color="text-slate-700" />
-            <StatCard label="Assignments" value={games.assigned} sub={`~${assignPct}% filled`} color="text-blue-600" />
-            <StatCard label="Staff on Roster" value={staff.onRoster} color="text-emerald-600" />
+            <StatCard label="Total Games" value={games.active} sub={games.canceled > 0 ? `${games.canceled} canceled` : undefined} />
+            <StatCard label="Divisions" value={games.divisions} />
+            <StatCard label="Assignments" value={games.assigned} sub={`~${assignPct}% filled`} />
+            <StatCard label="Staff on Roster" value={staff.onRoster} />
           </div>
         </section>
 

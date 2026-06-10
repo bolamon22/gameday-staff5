@@ -56,7 +56,7 @@ export async function GET(req: Request) {
     return NextResponse.json(tournaments.map(shape))
   }
 
-  // No session / no orgId â return all (temporary until all users are org-assigned)
+  // No session / no orgId — return all (temporary until all users are org-assigned)
   const all = await prisma.tournament.findMany({ orderBy: { startDate: 'desc' }, include: INCLUDE })
   return NextResponse.json(all.map(shape))
 }

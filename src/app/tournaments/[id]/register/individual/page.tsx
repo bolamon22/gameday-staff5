@@ -24,7 +24,7 @@ function calcFee(amount: number) {
 const inputCls = "w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
 const labelCls = "block text-sm font-medium text-gray-700 mb-1"
 
-// ââ Card Payment Form (must be inside <Elements>) ââââââââââââââââââââââââââ
+// ── Card Payment Form (must be inside <Elements>) ──────────────────────────
 function CardPayForm({
   clientSecret, total, firstName, lastName, email,
   registrationId, tournamentId, onSuccess,
@@ -99,13 +99,13 @@ function CardPayForm({
         {paying ? 'Processing...' : `Pay $${total.toFixed(2)}`}
       </button>
       <p className="text-center text-xs text-gray-400">
-        ð Secured by Stripe. Your card is never stored on our servers.
+        🔒 Secured by Stripe. Your card is never stored on our servers.
       </p>
     </form>
   )
 }
 
-// ââ Main Page ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Main Page ──────────────────────────────────────────────────────────────
 export default function IndividualRegPage() {
   const { id } = useParams<{ id: string }>()
   const searchParams = useSearchParams()
@@ -196,16 +196,16 @@ export default function IndividualRegPage() {
         toast.error(data.error || 'Something went wrong')
       }
     } catch {
-      toast.error('Network error â please try again')
+      toast.error('Network error — please try again')
     }
 
     setSubmitting(false)
   }
 
-  // ââ Loading / Error states âââââââââââââââââââââââââââââââââââââââââââââ
+  // ── Loading / Error states ─────────────────────────────────────────────
   if (loading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <p className="text-gray-400 animate-pulse">Loadingâ¦</p>
+      <p className="text-gray-400 animate-pulse">Loading…</p>
     </div>
   )
 
@@ -218,28 +218,28 @@ export default function IndividualRegPage() {
   if (!tournament.individualRegEnabled) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="bg-white rounded-2xl shadow p-10 max-w-md text-center">
-        <div className="text-4xl mb-3">ð</div>
+        <div className="text-4xl mb-3">🔒</div>
         <h1 className="text-lg font-bold text-gray-800 mb-2">Registration not open</h1>
         <p className="text-sm text-gray-500">Individual registration for this tournament isn't open yet.</p>
       </div>
     </div>
   )
 
-  // ââ Success ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── Success ────────────────────────────────────────────────────────────
   if (successParam || step === 'success') return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="bg-white rounded-2xl shadow p-10 max-w-md text-center">
-        <div className="text-4xl mb-3">ð</div>
+        <div className="text-4xl mb-3">🎉</div>
         <h1 className="text-xl font-bold text-gray-800 mb-2">You're registered!</h1>
         <p className="text-sm text-gray-500 mb-4">Payment received. We'll send confirmation to your email.</p>
         <Link href={`/tournaments/${id}/public`} className="inline-block bg-teal-500 hover:bg-teal-400 text-white font-semibold text-sm px-6 py-2.5 rounded-xl transition-colors">
-          View Tournament â
+          View Tournament →
         </Link>
       </div>
     </div>
   )
 
-  // ââ Payment Step ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── Payment Step ──────────────────────────────────────────────────────
   if (step === 'payment' && stripePromise && clientSecret) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -261,7 +261,7 @@ export default function IndividualRegPage() {
           {/* Order Summary */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">Order Summary</h2>
-            <div className="text-sm text-gray-500 mb-3">{firstName} {lastName} Â· {email}</div>
+            <div className="text-sm text-gray-500 mb-3">{firstName} {lastName} · {email}</div>
             <div className="space-y-1.5 text-sm">
               <div className="flex justify-between text-gray-600">
                 <span>{selectedTier?.name}</span>
@@ -299,14 +299,14 @@ export default function IndividualRegPage() {
             onClick={() => setStep('form')}
             className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
           >
-            â Edit registration
+            ← Edit registration
           </button>
         </div>
       </div>
     )
   }
 
-  // ââ Form Step ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── Form Step ──────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster />
@@ -333,7 +333,7 @@ export default function IndividualRegPage() {
 
         <form onSubmit={handleFormSubmit} className="space-y-6">
 
-          {/* ââ Player Info ââ */}
+          {/* ── Player Info ── */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">Player Information</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -362,12 +362,12 @@ export default function IndividualRegPage() {
                 <label className={labelCls}>US Lacrosse Member # *</label>
                 <input className={inputCls} value={usLax} onChange={e => setUsLax(e.target.value)} placeholder="e.g. 1234567" required />
                 <a href="https://www.uslacrosse.org/membership" target="_blank" rel="noopener noreferrer"
-                  className="text-xs text-teal-600 hover:underline mt-1 inline-block">US Lacrosse Member Look Up â</a>
+                  className="text-xs text-teal-600 hover:underline mt-1 inline-block">US Lacrosse Member Look Up →</a>
               </div>
             </div>
           </div>
 
-          {/* ââ Guardian (if minor) ââ */}
+          {/* ── Guardian (if minor) ── */}
           {(isMinor || dob === '') && (
             <div className="bg-white rounded-2xl shadow-sm border border-amber-200 p-6">
               <h2 className="text-base font-bold text-gray-800 mb-1 pb-2 border-b border-gray-100">Parent / Guardian</h2>
@@ -389,7 +389,7 @@ export default function IndividualRegPage() {
             </div>
           )}
 
-          {/* ââ Emergency Contact ââ */}
+          {/* ── Emergency Contact ── */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">Emergency Contact</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -412,7 +412,7 @@ export default function IndividualRegPage() {
             </div>
           </div>
 
-          {/* ââ Playing Details ââ */}
+          {/* ── Playing Details ── */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">Playing Details</h2>
 
@@ -459,7 +459,7 @@ export default function IndividualRegPage() {
             </div>
           </div>
 
-          {/* ââ Fee Tier ââ */}
+          {/* ── Fee Tier ── */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">Registration Fee *</h2>
             <div className="space-y-3">
@@ -493,7 +493,7 @@ export default function IndividualRegPage() {
             )}
           </div>
 
-          {/* ââ Waiver ââ */}
+          {/* ── Waiver ── */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">Waiver & Release</h2>
             <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-600 leading-relaxed mb-4 max-h-40 overflow-y-auto">
@@ -514,10 +514,10 @@ export default function IndividualRegPage() {
             </div>
           </div>
 
-          {/* ââ Submit ââ */}
+          {/* ── Submit ── */}
           <button type="submit" disabled={submitting || !selectedTier || !waiverSigned}
             className="w-full bg-teal-500 hover:bg-teal-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-2xl text-base transition-colors shadow-sm">
-            {submitting ? 'Preparing payment...' : `Continue to Payment â`}
+            {submitting ? 'Preparing payment...' : `Continue to Payment →`}
           </button>
           <p className="text-center text-xs text-gray-400">Secured by Stripe. Your payment info is never stored on our servers.</p>
         </form>
