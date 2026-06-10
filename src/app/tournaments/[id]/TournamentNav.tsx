@@ -134,7 +134,7 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
         </div>
 
         {/* Tab bar */}
-        <div className="flex gap-0 overflow-x-auto">
+        <div className="flex gap-0">
           {tabs.map(tab =>
             tab.dropdown ? (
               <div key={tab.href} className="relative group">
