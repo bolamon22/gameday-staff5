@@ -84,3 +84,45 @@ export async function PATCH() {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 })
   }
 }
+
+export async function DELETE() {
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Bracket" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "tournamentId" TEXT NOT NULL,
+        "division" TEXT NOT NULL,
+        "format" TEXT NOT NULL,
+        "teamCount" INTEGER NOT NULL,
+        "seeds" TEXT NOT NULL DEFAULT '{}',
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Bracket_tournamentId_idx" ON "Bracket"("tournamentId")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Bracket_tournamentId_division_idx" ON "Bracket"("tournamentId","division")`)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "BracketGame" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "bracketId" TEXT NOT NULL,
+        "gameNumber" INTEGER NOT NULL,
+        "round" INTEGER NOT NULL,
+        "section" TEXT NOT NULL,
+        "team1Source" TEXT NOT NULL DEFAULT '',
+        "team2Source" TEXT NOT NULL DEFAULT '',
+        "label" TEXT NOT NULL DEFAULT '',
+        "team1" TEXT NOT NULL DEFAULT '',
+        "team2" TEXT NOT NULL DEFAULT '',
+        "winner" TEXT NOT NULL DEFAULT '',
+        "loser" TEXT NOT NULL DEFAULT '',
+        "field" TEXT NOT NULL DEFAULT '',
+        "startTime" TEXT NOT NULL DEFAULT '',
+        "gameDate" TEXT NOT NULL DEFAULT '',
+        FOREIGN KEY ("bracketId") REFERENCES "Bracket"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "BracketGame_bracketId_idx" ON "BracketGame"("bracketId")`)
+    return NextResponse.json({ ok: true, message: 'Bracket and BracketGame tables created (or already existed)' })
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 })
+  }
+}
