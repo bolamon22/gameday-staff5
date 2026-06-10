@@ -73,14 +73,14 @@ export default function NavBar() {
       {/* Preview banner */}
       {isPreview && (
         <div className="bg-amber-400 text-amber-900 text-xs font-semibold px-4 py-1.5 flex items-center justify-between">
-          <span>👁 Previewing as <strong>{role.charAt(0).toUpperCase() + role.slice(1)}</strong> — this is how the app looks to that role</span>
+          <span>ð Previewing as <strong>{role.charAt(0).toUpperCase() + role.slice(1)}</strong> â this is how the app looks to that role</span>
           <button onClick={() => setPreviewRole(null)} className="underline hover:no-underline ml-4">Exit Preview</button>
         </div>
       )}
 
       <nav className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center gap-3 shadow-sm">
 
-        {/* ── LEFT: Brand ── */}
+        {/* ââ LEFT: Brand ââ */}
         {hasOrg ? (
           /* Org user: org logo + name on the left */
           <a href="/" className="flex items-center gap-2.5 flex-shrink-0 group">
@@ -100,14 +100,14 @@ export default function NavBar() {
             </span>
           </a>
         ) : (
-          /* Admin / no-org: GameDay Staff brand */
+          /* Admin / no-org: Gameday Blueprint brand */
           <a href="/" className="flex items-center gap-2 text-sky-700 font-bold text-lg tracking-tight flex-shrink-0">
             <div className="w-7 h-7 bg-sky-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" strokeWidth="2.5" strokeLinecap="round"/>
               </svg>
             </div>
-            GameDay Staff
+            Gameday Blueprint
           </a>
         )}
 
@@ -153,16 +153,16 @@ export default function NavBar() {
         {isAdmin && (
           <>
             <Link href="/admin" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">Dashboard</Link>
-            <Link href="/admin/users" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">👥 Users</Link>
-            <Link href="/admin/permissions" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">🔐 Perms</Link>
-            <Link href="/admin/roadmap" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">🗺 Roadmap</Link>
+            <Link href="/admin/users" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">ð¥ Users</Link>
+            <Link href="/admin/permissions" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">ð Perms</Link>
+            <Link href="/admin/roadmap" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">ðº Roadmap</Link>
           </>
         )}
 
-        {/* ── RIGHT: GameDay badge (org users only) + auth ── */}
+        {/* ââ RIGHT: GameDay badge (org users only) + auth ââ */}
         <div className="ml-auto flex items-center gap-3 flex-shrink-0">
 
-          {/* GameDay Staff platform badge — shown to org users */}
+          {/* Gameday Blueprint platform badge â shown to org users */}
           {hasOrg && (
             <div className="hidden sm:flex items-center gap-1.5 border border-slate-200 rounded-lg px-2.5 py-1 bg-slate-50">
               <div className="w-4 h-4 bg-sky-600 rounded flex items-center justify-center flex-shrink-0">
@@ -170,13 +170,13 @@ export default function NavBar() {
                   <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" strokeWidth="2.5" strokeLinecap="round"/>
                 </svg>
               </div>
-              <span className="text-xs font-semibold text-slate-500 tracking-tight">GameDay Staff</span>
+              <span className="text-xs font-semibold text-slate-500 tracking-tight">Gameday Blueprint</span>
             </div>
           )}
 
           {session ? (
             <>
-              {/* View As dropdown — admin only */}
+              {/* View As dropdown â admin only */}
               {isAdmin && (
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs text-slate-400 hidden sm:block">View as:</span>
