@@ -14,7 +14,7 @@ function fmtSrc(src: string): string {
 }
 
 
-// ââ Algorithmic bracket generator (any team count) âââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ Algorithmic bracket generator (any team count) Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 type Sect = 'winners' | 'losers' | 'consolation' | 'championship'
 interface Gen { gameNumber: number; round: number; section: Sect; t1: string; t2: string; label: string }
 
@@ -32,19 +32,22 @@ function generateSEGames(teamCount: number, consolationCount: number): Gen[] {
     const byes = slots - n
     const byeSeeds = Array.from({ length: byes }, (_, i) => `seed:${i + 1}`)
     const r1Seeds = Array.from({ length: n - byes }, (_, i) => i + byes + 1)
+    // equalByes: same number of byes and R1 games — use standard bracket seeding layout
+    const equalByes = byes === r1Seeds.length / 2
 
-    // Round 1: pair highest vs lowest remaining
+    // Round 1: when equalByes, pair inner-to-outer (weakest game first, adjacent to Seed 1)
+    // Otherwise outer-to-inner (highest seed vs lowest)
     const r1Winners: string[] = []
+    const mid = r1Seeds.length / 2
     for (let i = 0; i < r1Seeds.length / 2; i++) {
-      const s1 = r1Seeds[i], s2 = r1Seeds[r1Seeds.length - 1 - i]
+      const s1 = equalByes ? r1Seeds[mid - 1 - i] : r1Seeds[i]
+      const s2 = equalByes ? r1Seeds[mid + i] : r1Seeds[r1Seeds.length - 1 - i]
       games.push({ gameNumber: gn, round: 1, section: 'winners', t1: `seed:${s1}`, t2: `seed:${s2}`, label: '' })
       r1Winners.push(`winner:${gn}`)
       gn++
     }
 
-    // Subsequent rounds: byes slot first, then r1 winners
-    // When byes === r1 count, interleave to avoid crossing lines in visual preview
-    const equalByes = byeSeeds.length === r1Winners.length
+    // Subsequent rounds: interleave byes+r1Winners when equalByes (no crossing lines)
     let sources: string[]
     if (equalByes) {
       sources = []
@@ -71,7 +74,7 @@ function generateSEGames(teamCount: number, consolationCount: number): Gen[] {
     }
   }
 
-  // Consolation slots â auto-fill with seeds starting at teamCount + 1
+  // Consolation slots Ã¢ÂÂ auto-fill with seeds starting at teamCount + 1
   for (let i = 0; i < consolationCount; i++) {
     const s1 = n + 1 + i * 2
     const s2 = n + 2 + i * 2
@@ -189,14 +192,14 @@ export async function PATCH(
     })
     if (!bracket) return NextResponse.json({ error: 'No bracket found' }, { status: 404 })
 
-    // ââ Update label ââââââââââââââââââââââââââââââââââââââââââââââââââ
+    // Ã¢ÂÂÃ¢ÂÂ Update label Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
     if (body.updateLabel !== undefined) {
       const { gameNumber, label } = body.updateLabel
       await prisma.bracketGame.updateMany({ where: { bracketId: bracket.id, gameNumber }, data: { label } })
       return NextResponse.json({ ok: true })
     }
 
-    // ââ Add a single game ââââââââââââââââââââââââââââââââââââââââââââââ
+    // Ã¢ÂÂÃ¢ÂÂ Add a single game Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
     if (body.addGame) {
       const { gameNumber, round, section, t1Source, t2Source, label } = body.addGame
       await prisma.bracketGame.create({
@@ -224,7 +227,7 @@ export async function PATCH(
       return NextResponse.json({ ...updated, seeds: JSON.parse(updated!.seeds || '{}') })
     }
 
-    // ââ Remove a single game âââââââââââââââââââââââââââââââââââââââââââ
+    // Ã¢ÂÂÃ¢ÂÂ Remove a single game Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
     if (body.removeGame !== undefined) {
       const gameNum = Number(body.removeGame)
       await prisma.bracketGame.deleteMany({ where: { bracketId: bracket.id, gameNumber: gameNum } })
@@ -238,7 +241,7 @@ export async function PATCH(
       return NextResponse.json({ ...updated, seeds: JSON.parse(updated!.seeds || '{}') })
     }
 
-    // ââ Update seeds âââââââââââââââââââââââââââââââââââââââââââââââââââ
+    // Ã¢ÂÂÃ¢ÂÂ Update seeds Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
     if (body.seeds !== undefined) {
       await prisma.bracket.update({
         where: { id: bracket.id },
