@@ -37,13 +37,16 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
       .catch(() => {})
   }, [id])
 
-  const tabs = [
+  const tabs: { href: string; label: string; dropdown?: { href: string; label: string }[] }[] = [
     { href: `${base}/dashboard`,     label: 'Dashboard'     },
     { href: `${base}/roster`,        label: 'Staff'         },
     { href: `${base}/registrations`, label: 'Registrations' },
     { href: `${base}/settings`,      label: 'Settings'      },
-    { href: `${base}/scheduler`,    label: 'Scheduler'     },
-    { href: `${base}/financials`,   label: 'Financials'    },
+    { href: `${base}/scheduler`,     label: 'Scheduler',    dropdown: [
+      { href: `${base}/scheduler`,   label: 'Schedule'      },
+      { href: `${base}/divisions`,   label: 'Divisions'     },
+    ]},
+    { href: `${base}/financials`,    label: 'Financials'    },
   ]
 
   // Countdown
@@ -66,7 +69,7 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
     return pathname.startsWith(href)
   }
 
-  const logo = meta?.logoUrl || logoUrl
+  const logo    = meta?.logoUrl || logoUrl
   const dateStr = meta?.startDate
     ? (meta.endDate && meta.endDate !== meta.startDate
         ? `${fmtDate(meta.startDate)} – ${fmtDate(meta.endDate)}`
@@ -111,22 +114,17 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
                   <>
                     <span className="text-slate-600 text-[10px]">·</span>
                     <span className="text-[10px] text-sky-400">{stats.assigned}/{stats.games} assigned</span>
-                    {stats.games > 0 && (
-                      <span className={`text-[10px] font-semibold ${stats.pct >= 90 ? 'text-emerald-400' : stats.pct >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
-                        {stats.pct}%
-                      </span>
-                    )}
                   </>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Utility links */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Link href={`${base}/register`} target="_blank"
-              className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
-              📝 Register
+          {/* Action buttons */}
+          <div className="flex gap-2 flex-shrink-0">
+            <Link href={`${base}/register`}
+              className="text-xs text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
+              📋 Register
             </Link>
             <Link href={`${base}/public`} target="_blank"
               className="text-xs text-slate-300 hover:text-white border border-white/15 hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors">
@@ -137,16 +135,43 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
 
         {/* Tab bar */}
         <div className="flex gap-0 overflow-x-auto">
-          {tabs.map(tab => (
-            <Link key={tab.href} href={tab.href}
-              className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                isActive(tab.href)
-                  ? 'border-teal-400 text-teal-300'
-                  : 'border-transparent text-slate-400 hover:text-white hover:border-white/20'
-              }`}>
-              {tab.label}
-            </Link>
-          ))}
+          {tabs.map(tab =>
+            tab.dropdown ? (
+              <div key={tab.href} className="relative group">
+                <button className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-1 ${
+                  isActive(tab.href)
+                    ? 'border-teal-400 text-teal-300'
+                    : 'border-transparent text-slate-400 hover:text-white hover:border-white/20'
+                }`}>
+                  {tab.label}
+                  <svg className="w-3 h-3 opacity-60 mt-px" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <div className="absolute top-full left-0 hidden group-hover:block z-50 py-1 bg-[#162844] border border-white/10 rounded-b-lg shadow-xl min-w-[140px]">
+                  {tab.dropdown.map(item => (
+                    <Link key={item.href} href={item.href}
+                      className={`block px-4 py-2 text-xs font-medium transition-colors ${
+                        pathname.startsWith(item.href)
+                          ? 'text-teal-300 bg-white/10'
+                          : 'text-slate-300 hover:text-white hover:bg-white/5'
+                      }`}>
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <Link key={tab.href} href={tab.href}
+                className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                  isActive(tab.href)
+                    ? 'border-teal-400 text-teal-300'
+                    : 'border-transparent text-slate-400 hover:text-white hover:border-white/20'
+                }`}>
+                {tab.label}
+              </Link>
+            )
+          )}
         </div>
       </div>
     </div>
