@@ -6,7 +6,6 @@ function genId() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
 }
 
-// Format bracket team source into a human-readable label
 function fmtSrc(src: string): string {
   if (src.startsWith('seed:')) return 'Seed ' + src.slice(5)
   if (src.startsWith('winner:')) return 'W-B' + src.slice(7)
@@ -41,12 +40,10 @@ export async function POST(
   const division = decodeURIComponent(params.division)
   const { format, teamCount, seeds } = await req.json()
 
-  const template = getTemplate(format, teamCount)
-  if (!template)
-    return NextResponse.json({ error: 'No template for ' + format + '-' + teamCount }, { status: 400 })
+  // Template is optional — no template = empty bracket, user adds games manually
+  const template = getTemplate(format, teamCount) ?? []
 
   try {
-    // Remove existing bracket + its Game records
     const existing = await prisma.bracket.findFirst({
       where: { tournamentId: params.id, division },
     })
@@ -54,14 +51,16 @@ export async function POST(
       await prisma.bracketGame.deleteMany({ where: { bracketId: existing.id } })
       await prisma.bracket.delete({ where: { id: existing.id } })
     }
-    // Delete existing bracket Game records for this division
     await prisma.game.deleteMany({
       where: { tournamentId: params.id, division, gameNumber: { startsWith: 'B' } },
     })
 
     const bracketId = genId()
     await prisma.bracket.create({
-      data: { id: bracketId, tournamentId: params.id, division, format, teamCount, seeds: JSON.stringify(seeds || {}) },
+      data: {
+        id: bracketId, tournamentId: params.id, division, format,
+        teamCount, seeds: JSON.stringify(seeds || {}),
+      },
     })
 
     const games = await Promise.all(
@@ -77,27 +76,24 @@ export async function POST(
       )
     )
 
-    // Also create Game records so bracket games appear in the scheduler
     await Promise.all(
       template.map((g) =>
         prisma.game.create({
           data: {
-            tournamentId: params.id,
-            division,
+            tournamentId: params.id, division,
             gameNumber: 'B' + g.gameNumber,
             isChampionship: g.section === 'championship',
-            team1: fmtSrc(g.t1),
-            team2: fmtSrc(g.t2),
-            date: '',
-            startTime: '',
-            location: '',
-            refCount: 2,
+            team1: fmtSrc(g.t1), team2: fmtSrc(g.t2),
+            date: '', startTime: '', location: '', refCount: 2,
           },
         })
       )
     )
 
-    return NextResponse.json({ id: bracketId, tournamentId: params.id, division, format, teamCount, seeds: seeds || {}, games })
+    return NextResponse.json({
+      id: bracketId, tournamentId: params.id, division, format, teamCount,
+      seeds: seeds || {}, games,
+    })
   } catch (e) {
     console.error(e)
     return NextResponse.json({ error: 'Failed to create bracket. DB migration may be needed.' }, { status: 500 })
@@ -109,14 +105,70 @@ export async function PATCH(
   { params }: { params: { id: string; division: string } }
 ) {
   const division = decodeURIComponent(params.division)
-  const { seeds } = await req.json()
+  const body = await req.json()
+
   try {
-    const bracket = await prisma.bracket.findFirst({ where: { tournamentId: params.id, division } })
+    const bracket = await prisma.bracket.findFirst({
+      where: { tournamentId: params.id, division },
+      include: { games: { orderBy: { gameNumber: 'asc' } } },
+    })
     if (!bracket) return NextResponse.json({ error: 'No bracket found' }, { status: 404 })
-    await prisma.bracket.update({ where: { id: bracket.id }, data: { seeds: JSON.stringify(seeds) } })
-    return NextResponse.json({ ok: true, seeds })
-  } catch {
-    return NextResponse.json({ error: 'Failed to update seeds' }, { status: 500 })
+
+    // ── Add a single game ──────────────────────────────────────────────
+    if (body.addGame) {
+      const { gameNumber, round, section, t1Source, t2Source, label } = body.addGame
+      await prisma.bracketGame.create({
+        data: {
+          id: genId(), bracketId: bracket.id,
+          gameNumber, round, section,
+          team1Source: t1Source, team2Source: t2Source, label: label || '',
+          team1: '', team2: '', winner: '', loser: '', field: '', startTime: '', gameDate: '',
+        },
+      })
+      // Also create the scheduler Game record
+      await prisma.game.create({
+        data: {
+          tournamentId: params.id, division,
+          gameNumber: 'B' + gameNumber,
+          isChampionship: section === 'championship',
+          team1: fmtSrc(t1Source), team2: fmtSrc(t2Source),
+          date: '', startTime: '', location: '', refCount: 2,
+        },
+      })
+      const updated = await prisma.bracket.findFirst({
+        where: { id: bracket.id },
+        include: { games: { orderBy: { gameNumber: 'asc' } } },
+      })
+      return NextResponse.json({ ...updated, seeds: JSON.parse(updated!.seeds || '{}') })
+    }
+
+    // ── Remove a single game ───────────────────────────────────────────
+    if (body.removeGame !== undefined) {
+      const gameNum = Number(body.removeGame)
+      await prisma.bracketGame.deleteMany({ where: { bracketId: bracket.id, gameNumber: gameNum } })
+      await prisma.game.deleteMany({
+        where: { tournamentId: params.id, division, gameNumber: 'B' + gameNum },
+      })
+      const updated = await prisma.bracket.findFirst({
+        where: { id: bracket.id },
+        include: { games: { orderBy: { gameNumber: 'asc' } } },
+      })
+      return NextResponse.json({ ...updated, seeds: JSON.parse(updated!.seeds || '{}') })
+    }
+
+    // ── Update seeds ───────────────────────────────────────────────────
+    if (body.seeds !== undefined) {
+      await prisma.bracket.update({
+        where: { id: bracket.id },
+        data: { seeds: JSON.stringify(body.seeds) },
+      })
+      return NextResponse.json({ ok: true, seeds: body.seeds })
+    }
+
+    return NextResponse.json({ error: 'No operation specified' }, { status: 400 })
+  } catch (e) {
+    console.error(e)
+    return NextResponse.json({ error: 'Operation failed' }, { status: 500 })
   }
 }
 
@@ -130,7 +182,6 @@ export async function DELETE(
     if (!bracket) return NextResponse.json({ ok: true })
     await prisma.bracketGame.deleteMany({ where: { bracketId: bracket.id } })
     await prisma.bracket.delete({ where: { id: bracket.id } })
-    // Also remove bracket Game records
     await prisma.game.deleteMany({
       where: { tournamentId: params.id, division, gameNumber: { startsWith: 'B' } },
     })

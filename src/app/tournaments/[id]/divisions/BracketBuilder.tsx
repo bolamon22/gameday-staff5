@@ -1,15 +1,15 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { TEMPLATE_CATALOG, BRACKET_TEMPLATES, type GameTemplate, type TemplateCatalogEntry } from '@/lib/bracketTemplates'
+import { TEMPLATE_CATALOG, BRACKET_TEMPLATES, type GameTemplate } from '@/lib/bracketTemplates'
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────
 
 interface BracketGame {
   id: string
   gameNumber: number
   label: string | null
-  t1Source: string
-  t2Source: string
+  team1Source: string
+  team2Source: string
   section: string
   round: number
 }
@@ -27,7 +27,7 @@ interface Props {
   division: string
 }
 
-// ── Layout constants ─────────────────────────────────────────────────────────
+// ── Layout constants ───────────────────────────────────────────────────────
 
 const GAME_H = 72
 const GAME_W = 216
@@ -55,12 +55,19 @@ const FORMAT_LABELS: Record<string, string> = {
   '2gg': '2-Game Guarantee',
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+const SECTION_LABELS: Record<string, string> = {
+  winners: 'Winners Bracket',
+  championship: 'Championship',
+  consolation: 'Consolation',
+  losers: "Losers' Bracket",
+}
+
+// ── Main component ─────────────────────────────────────────────────────────
 
 export default function BracketBuilder({ tournamentId, division }: Props) {
   const [loading, setLoading] = useState(true)
   const [bracket, setBracket] = useState<BracketData | null>(null)
-  const [tab, setTab] = useState<'seeding' | 'preview'>('seeding')
+  const [tab, setTab] = useState<'seeding' | 'manage' | 'preview'>('seeding')
   const [seeds, setSeeds] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -68,6 +75,15 @@ export default function BracketBuilder({ tournamentId, division }: Props) {
   const [selFormat, setSelFormat] = useState<'single' | 'double' | '2gg'>('single')
   const [selCount, setSelCount] = useState<number>(8)
   const [creating, setCreating] = useState(false)
+
+  // Add-game form state
+  const [addSection, setAddSection] = useState('consolation')
+  const [addRound, setAddRound] = useState(1)
+  const [addT1, setAddT1] = useState('')
+  const [addT2, setAddT2] = useState('')
+  const [addLabel, setAddLabel] = useState('')
+  const [addingGame, setAddingGame] = useState(false)
+  const [removingGame, setRemovingGame] = useState<number | null>(null)
 
   const apiBase = `/api/tournaments/${tournamentId}/divisions/${division}/bracket`
 
@@ -137,7 +153,82 @@ export default function BracketBuilder({ tournamentId, division }: Props) {
     } finally { setDeleting(false) }
   }
 
-  // ── Loading ──────────────────────────────────────────────────────────────
+  async function handleAddGame() {
+    if (!bracket || !addT1.trim() || !addT2.trim()) return
+    setAddingGame(true); setError(null)
+    const maxNum = bracket.games.length > 0
+      ? Math.max(...bracket.games.map(g => g.gameNumber))
+      : 0
+    try {
+      const r = await fetch(apiBase, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          addGame: {
+            gameNumber: maxNum + 1,
+            round: addRound,
+            section: addSection,
+            t1Source: addT1.trim(),
+            t2Source: addT2.trim(),
+            label: addLabel.trim(),
+          },
+        }),
+      })
+      if (!r.ok) throw new Error('Failed to add game')
+      const updated = await r.json()
+      setBracket(updated)
+      setSeeds(updated.seeds || {})
+      setAddT1(''); setAddT2(''); setAddLabel('')
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setAddingGame(false)
+    }
+  }
+
+  async function handleRemoveGame(gameNumber: number) {
+    if (!confirm(`Remove game B${gameNumber} from the bracket?`)) return
+    setRemovingGame(gameNumber)
+    try {
+      const r = await fetch(apiBase, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ removeGame: gameNumber }),
+      })
+      if (!r.ok) throw new Error('Failed to remove game')
+      const updated = await r.json()
+      setBracket(updated)
+      setSeeds(updated.seeds || {})
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setRemovingGame(null)
+    }
+  }
+
+  function quickAddConsolation() {
+    if (!bracket) return
+    const mainGames = bracket.games.filter(g =>
+      g.section === 'winners' || g.section === 'championship'
+    )
+    const maxRound = mainGames.length > 0
+      ? Math.max(...mainGames.map(g => g.round))
+      : 1
+    const semis = mainGames
+      .filter(g => g.round === maxRound - 1)
+      .sort((a, b) => a.gameNumber - b.gameNumber)
+    setAddSection('consolation')
+    setAddRound(maxRound)
+    setAddLabel('3rd Place')
+    if (semis.length >= 2) {
+      setAddT1(`loser:${semis[0].gameNumber}`)
+      setAddT2(`loser:${semis[1].gameNumber}`)
+    } else {
+      setAddT1(''); setAddT2('')
+    }
+  }
+
+  // ── Loading ────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -147,7 +238,7 @@ export default function BracketBuilder({ tournamentId, division }: Props) {
     )
   }
 
-  // ── Setup wizard ─────────────────────────────────────────────────────────
+  // ── Setup wizard ───────────────────────────────────────────────────────
 
   if (!bracket) {
     const validCounts = [...new Set(
@@ -158,7 +249,9 @@ export default function BracketBuilder({ tournamentId, division }: Props) {
 
     return (
       <div className="py-6 px-2 max-w-lg">
-        <p className="text-sm text-slate-400 mb-6">No bracket yet. Choose a format and team count to generate one.</p>
+        <p className="text-sm text-slate-400 mb-6">
+          No bracket yet. Choose a format and team count, then add or remove games as needed.
+        </p>
 
         {error && (
           <div className="mb-4 text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
@@ -186,8 +279,8 @@ export default function BracketBuilder({ tournamentId, division }: Props) {
         </div>
 
         <div className="mb-6">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Teams</p>
-          <div className="flex gap-2">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Teams in bracket</p>
+          <div className="flex gap-2 flex-wrap">
             {validCounts.map(n => (
               <button
                 key={n}
@@ -202,6 +295,9 @@ export default function BracketBuilder({ tournamentId, division }: Props) {
               </button>
             ))}
           </div>
+          <p className="text-xs text-slate-600 mt-2">
+            Different count? Start with any option — you can add or remove games manually after creating.
+          </p>
         </div>
 
         {entry && (
@@ -222,38 +318,36 @@ export default function BracketBuilder({ tournamentId, division }: Props) {
     )
   }
 
-  // ── Bracket exists ────────────────────────────────────────────────────────
+  // ── Bracket exists ─────────────────────────────────────────────────────
 
   const entry = TEMPLATE_CATALOG.find(e => e.key === `${bracket.format}-${bracket.teamCount}`)
-  const template = BRACKET_TEMPLATES[`${bracket.format}-${bracket.teamCount}`] ?? []
 
   return (
     <div>
-      {/* Header bar */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
           <span className="font-semibold text-white text-sm">
             {entry?.label ?? FORMAT_LABELS[bracket.format] ?? bracket.format}
           </span>
-          <span className="ml-2 text-slate-400 text-sm">{bracket.teamCount} teams · {entry?.gameCount ?? template.length} games</span>
+          <span className="ml-2 text-slate-400 text-sm">
+            {bracket.teamCount} seeds · {bracket.games.length} games
+          </span>
         </div>
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => setTab('seeding')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-              tab === 'seeding' ? 'bg-teal-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'
-            }`}
-          >
-            Seeds
-          </button>
-          <button
-            onClick={() => setTab('preview')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-              tab === 'preview' ? 'bg-teal-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'
-            }`}
-          >
-            Preview
-          </button>
+          {(['seeding', 'manage', 'preview'] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                tab === t
+                  ? 'bg-teal-600 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              {t === 'seeding' ? 'Seeds' : t === 'manage' ? 'Games' : 'Preview'}
+            </button>
+          ))}
           <button
             onClick={handleDelete}
             disabled={deleting}
@@ -297,19 +391,171 @@ export default function BracketBuilder({ tournamentId, division }: Props) {
           >
             {saving ? 'Saving…' : 'Save Seeds'}
           </button>
-          <p className="mt-3 text-xs text-slate-500">After saving, click <strong className="text-slate-400">Preview</strong> to see the bracket.</p>
+          <p className="mt-3 text-xs text-slate-500">
+            After saving, click <strong className="text-slate-400">Preview</strong> to see the bracket.
+          </p>
+        </div>
+      )}
+
+      {/* ── Games management tab ──────────────────────────────────────────── */}
+      {tab === 'manage' && (
+        <div>
+          <p className="text-sm text-slate-400 mb-4">
+            Add or remove games. Changes apply immediately.
+          </p>
+
+          {/* Game list grouped by section */}
+          {bracket.games.length === 0 ? (
+            <p className="text-sm text-slate-500 italic mb-5">No games yet — add one below.</p>
+          ) : (
+            <div className="mb-6 space-y-4">
+              {(['winners', 'championship', 'consolation', 'losers'] as const)
+                .map(sec => {
+                  const games = bracket.games
+                    .filter(g => g.section === sec)
+                    .sort((a, b) => a.gameNumber - b.gameNumber)
+                  if (games.length === 0) return null
+                  return (
+                    <div key={sec}>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                        {SECTION_LABELS[sec]}
+                      </p>
+                      <div className="space-y-1">
+                        {games.map(g => (
+                          <div
+                            key={g.gameNumber}
+                            className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2"
+                          >
+                            <span className="text-xs font-mono text-slate-500 w-8 shrink-0">B{g.gameNumber}</span>
+                            <span className="text-xs text-slate-500 shrink-0">R{g.round}</span>
+                            <span className="flex-1 text-xs text-slate-300 truncate font-mono">
+                              {g.team1Source} <span className="text-slate-600 font-sans">vs</span> {g.team2Source}
+                            </span>
+                            {g.label && (
+                              <span className="text-xs text-amber-400 shrink-0 mr-1">{g.label}</span>
+                            )}
+                            <button
+                              onClick={() => handleRemoveGame(g.gameNumber)}
+                              disabled={removingGame === g.gameNumber}
+                              className="text-slate-600 hover:text-red-400 transition-colors text-sm shrink-0 w-6 text-center"
+                              title="Remove game"
+                            >
+                              {removingGame === g.gameNumber ? '…' : '✕'}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
+          )}
+
+          {/* Add game form */}
+          <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Add Game</p>
+              <button
+                onClick={quickAddConsolation}
+                className="text-xs px-2.5 py-1 rounded-lg bg-slate-700 text-teal-400 hover:bg-slate-600 transition-colors"
+              >
+                ⚡ Quick Consolation
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Section</label>
+                <select
+                  value={addSection}
+                  onChange={e => setAddSection(e.target.value)}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-teal-500"
+                >
+                  <option value="winners">Winners</option>
+                  <option value="consolation">Consolation</option>
+                  <option value="championship">Championship</option>
+                  <option value="losers">Losers</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Round</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={addRound}
+                  onChange={e => setAddRound(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Team 1 source</label>
+                <input
+                  type="text"
+                  value={addT1}
+                  onChange={e => setAddT1(e.target.value)}
+                  placeholder="seed:1 or winner:3"
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Team 2 source</label>
+                <input
+                  type="text"
+                  value={addT2}
+                  onChange={e => setAddT2(e.target.value)}
+                  placeholder="seed:4 or loser:3"
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-teal-500"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs text-slate-500 mb-1 block">Label <span className="text-slate-600">(optional)</span></label>
+                <input
+                  type="text"
+                  value={addLabel}
+                  onChange={e => setAddLabel(e.target.value)}
+                  placeholder="e.g. 3rd Place, Gold, Consolation Final"
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-teal-500"
+                />
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 mb-3">
+              Source syntax: <code className="text-slate-500 bg-slate-900/50 px-1 rounded">seed:N</code>{' '}
+              <code className="text-slate-500 bg-slate-900/50 px-1 rounded">winner:N</code>{' '}
+              <code className="text-slate-500 bg-slate-900/50 px-1 rounded">loser:N</code>
+              {' '}where N is a game number (e.g. winner:3 = winner of B3)
+            </p>
+
+            <button
+              onClick={handleAddGame}
+              disabled={addingGame || !addT1.trim() || !addT2.trim()}
+              className="px-5 py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-colors"
+            >
+              {addingGame ? 'Adding…' : '+ Add Game'}
+            </button>
+          </div>
         </div>
       )}
 
       {/* ── Preview tab ───────────────────────────────────────────────────── */}
       {tab === 'preview' && (
-        <BracketPreview template={template} seeds={seeds} />
+        <BracketPreview
+          template={bracket.games.map(g => ({
+            gameNumber: g.gameNumber,
+            round: g.round,
+            section: g.section as 'winners' | 'losers' | 'consolation' | 'championship',
+            t1: g.team1Source,
+            t2: g.team2Source,
+            label: g.label || undefined,
+          }))}
+          seeds={seeds}
+        />
       )}
     </div>
   )
 }
 
-// ── Visual Bracket Preview ────────────────────────────────────────────────────
+// ── Visual Bracket Preview ─────────────────────────────────────────────────
 
 function resolveLabel(src: string, seeds: Record<string, string>): string {
   if (!src) return 'TBD'
@@ -324,7 +570,7 @@ function BracketPreview({ template, seeds }: { template: GameTemplate[]; seeds: 
   const mainGames = template.filter(g => g.section === 'winners' || g.section === 'championship')
   const sideGames = template.filter(g => g.section === 'consolation' || g.section === 'losers')
   const mainRounds = [...new Set(mainGames.map(g => g.round))].sort((a, b) => a - b)
-  const maxRound = Math.max(...mainRounds)
+  const maxRound = mainRounds.length > 0 ? Math.max(...mainRounds) : 1
 
   function colLeft(r: number) { return (r - 1) * (GAME_W + CONN_W) }
   function gamesInRound(r: number) { return mainGames.filter(g => g.round === r).sort((a, b) => a.gameNumber - b.gameNumber) }
@@ -338,7 +584,9 @@ function BracketPreview({ template, seeds }: { template: GameTemplate[]; seeds: 
   })
 
   const canvasW = colLeft(maxRound) + GAME_W + 24
-  const canvasH = Math.max(...mainGames.map(g => (positions[g.gameNumber]?.y ?? 0) + GAME_H)) + 24
+  const canvasH = mainGames.length > 0
+    ? Math.max(...mainGames.map(g => (positions[g.gameNumber]?.y ?? 0) + GAME_H)) + 24
+    : 120
 
   const connectors: JSX.Element[] = []
   mainGames.forEach(game => {
@@ -363,6 +611,14 @@ function BracketPreview({ template, seeds }: { template: GameTemplate[]; seeds: 
       if (f) connectors.push(<path key={`sf-${game.gameNumber}`} d={`M${f.x+GAME_W},${f.cy} H${pos.x}`} fill="none" stroke="#475569" strokeWidth="1.5"/>)
     }
   })
+
+  if (mainGames.length === 0) {
+    return (
+      <div className="text-center py-10 text-slate-500 text-sm">
+        No bracket games yet — go to <strong className="text-slate-400">Games</strong> tab to add some.
+      </div>
+    )
+  }
 
   return (
     <div>
