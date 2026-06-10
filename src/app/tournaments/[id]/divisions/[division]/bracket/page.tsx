@@ -410,137 +410,159 @@ export default function BracketPage() {
     </div>
   )
 
+  const totalAdvancing = wizardPools.length > 0 ? wizardPools.length * setupTeamsPerPool : setupCount
+  const bracketSize = wizardPools.length > 0 ? validBracketSize(totalAdvancing) : setupCount
+
   if (!bracket) return (
     <div className="min-h-screen bg-slate-50">
       <div className="border-b border-slate-200 bg-white px-6 py-3 flex items-center gap-2">
         <button onClick={() => router.push(`/tournaments/${id}/divisions`)} className="text-sm text-slate-500 hover:text-slate-700">← Divisions</button>
-        <span className="text-slate-300">/</span><span className="text-slate-500 text-sm">{divName}</span>
-        <span className="text-slate-300">/</span><span className="font-semibold text-slate-700 text-sm">Bracket</span>
+        <span className="text-slate-300">/</span>
+        <span className="text-slate-500 text-sm">{divName}</span>
+        <span className="text-slate-300">/</span>
+        <span className="font-semibold text-slate-700 text-sm">Bracket</span>
       </div>
       <div className="max-w-lg mx-auto px-6 py-10">
         <div className="flex items-center justify-center gap-2 mb-8">
           {([1,2,3] as const).map(s => (
             <div key={s} className="flex items-center gap-2">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                s < wizardStep ? 'bg-blue-600 text-white' : s === wizardStep ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 'bg-slate-200 text-slate-500'
-              }`}>
+                s < wizardStep ? 'bg-sky-600 text-white' : s === wizardStep ? 'bg-sky-600 text-white ring-4 ring-sky-100' : 'bg-slate-200 text-slate-400'}`}>
                 {s < wizardStep ? '✓' : s}
               </div>
-              {s < 3 && <div className={`w-8 h-0.5 ${s < wizardStep ? 'bg-blue-400' : 'bg-slate-200'}`} />}
+              {s < 3 && <div className={`w-8 h-0.5 ${s < wizardStep ? 'bg-sky-600' : 'bg-slate-200'}`} />}
             </div>
           ))}
         </div>
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
           {wizardStep === 1 && (
             <div>
-              <h1 className="text-xl font-bold text-slate-800 mb-1">How many teams advance?</h1>
+              <h2 className="text-xl font-bold text-slate-800 mb-1">How many teams advance?</h2>
               <p className="text-sm text-slate-500 mb-6">{divName}</p>
               {wizardPoolsLoading ? (
-                <div className="text-center py-8 text-slate-400 animate-pulse">Loading pools…</div>
+                <p className="text-sm text-slate-400 animate-pulse">Loading pools...</p>
               ) : wizardPools.length > 0 ? (
-                <div className="space-y-5">
-                  <div className="bg-slate-50 rounded-xl px-4 py-3 text-sm text-slate-600">
-                    <span className="font-semibold">{wizardPools.length} pools</span> in this division
-                    {' · '}avg {Math.round(wizardPools.reduce((s,p) => s+(p.teamNames||[]).length,0)/wizardPools.length)} teams/pool
+                <div>
+                  <p className="text-xs text-slate-500 mb-3 bg-slate-50 rounded-lg px-3 py-2">
+                    {wizardPools.length} pool{wizardPools.length !== 1 ? 's' : ''} detected
+                  </p>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Teams advancing per pool</p>
+                  <div className="flex gap-2 mb-4">
+                    {[1,2,3,4].map(n => (
+                      <button key={n} onClick={() => setSetupTeamsPerPool(n)}
+                        className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all ${setupTeamsPerPool === n ? 'border-sky-500 bg-sky-50 text-sky-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                        {n}
+                      </button>
+                    ))}
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">Teams advancing per pool</label>
-                    <div className="flex gap-2">
-                      {[1,2,3,4].map(n => (
-                        <button key={n} onClick={() => setSetupTeamsPerPool(n)}
-                          className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all ${
-                            setupTeamsPerPool === n ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                          }`}>{n}</button>
-                      ))}
-                    </div>
-                    <p className="mt-2 text-sm text-slate-500">
-                      = <span className="font-semibold text-slate-700">{validBracketSize(wizardPools.length * setupTeamsPerPool)}</span> team bracket
-                    </p>
-                  </div>
+                  <p className="text-xs text-center text-slate-400">
+                    {wizardPools.length} pools x {setupTeamsPerPool} = {totalAdvancing} teams &rarr; {bracketSize}-team bracket
+                  </p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                    No pools found — enter total bracket teams manually.
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-3">Total teams in bracket</label>
-                    <div className="flex gap-2">
-                      {[4,8,16].map(n => (
-                        <button key={n} onClick={() => setSetupCount(n)}
-                          className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all ${
-                            setupCount === n ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                          }`}>{n}</button>
-                      ))}
-                    </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Teams in bracket</p>
+                  <div className="flex gap-2">
+                    {[4,8,16].map(n => (
+                      <button key={n} onClick={() => setSetupCount(n)}
+                        className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all ${setupCount === n ? 'border-sky-500 bg-sky-50 text-sky-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                        {n}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
-              <button onClick={() => { if(wizardPools.length>0)setSetupCount(validBracketSize(wizardPools.length*setupTeamsPerPool)); setWizardStep(2) }}
-                className="w-full mt-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
-                Next →
+              <button onClick={() => setWizardStep(2)}
+                className="w-full mt-6 py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl transition-colors text-sm">
+                Next: Choose Format
               </button>
             </div>
           )}
           {wizardStep === 2 && (
             <div>
-              <h1 className="text-xl font-bold text-slate-800 mb-1">Elimination format</h1>
-              <p className="text-sm text-slate-500 mb-6">{setupCount}-team bracket · {divName}</p>
-              <div className="space-y-3">
-                {(['single','double'] as const).map(f => {
-                  const games = f === 'single' ? setupCount - 1 : setupCount === 4 ? 5 : setupCount === 8 ? 13 : 25
-                  const guar = f === 'single' ? 1 : 2
-                  return (
-                    <button key={f} onClick={() => { setSetupFormat(f); if(f==='double'&&setupCount>8)setSetupCount(8) }}
-                      className={`w-full text-left p-4 rounded-xl border-2 transition-all ${setupFormat===f?'border-blue-500 bg-blue-50':'border-slate-200 hover:border-slate-300'}`}>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-semibold text-slate-800 capitalize">{f} Elimination</p>
-                          <p className="text-sm text-slate-500 mt-0.5">{f==='single'?'Lose once and you're out':'Every team gets a second chance — must lose twice'}</p>
-                          <p className="text-xs text-slate-400 mt-1">{guar} guaranteed game{guar>1?'s':''} per team · {games} total games</p>
-                        </div>
-                        <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 ml-3 ${setupFormat===f?'border-blue-500 bg-blue-500':'border-slate-300'}`} />
+              <h2 className="text-xl font-bold text-slate-800 mb-1">Elimination format</h2>
+              <p className="text-sm text-slate-500 mb-6">{bracketSize}-team bracket</p>
+              <div className="space-y-3 mb-6">
+                <button onClick={() => setSetupFormat('single')}
+                  className={`w-full text-left p-4 rounded-xl border-2 transition-all ${setupFormat === 'single' ? 'border-sky-500 bg-sky-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-slate-800">Single Elimination</p>
+                      <p className="text-xs text-slate-500 mt-0.5">One loss and you are out</p>
+                    </div>
+                    <span className="text-xs text-slate-400 ml-3">{bracketSize - 1} games</span>
+                  </div>
+                </button>
+                {bracketSize <= 8 && (
+                  <button onClick={() => setSetupFormat('double')}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition-all ${setupFormat === 'double' ? 'border-sky-500 bg-sky-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-slate-800">Double Elimination</p>
+                        <p className="text-xs text-slate-500 mt-0.5">Two losses to eliminate</p>
                       </div>
-                    </button>
-                  )
-                })}
+                      <span className="text-xs text-slate-400 ml-3">{bracketSize === 4 ? 6 : 13} games</span>
+                    </div>
+                  </button>
+                )}
               </div>
-              <div className="flex gap-3 mt-8">
-                <button onClick={() => setWizardStep(1)} className="px-5 py-3 text-slate-600 font-medium rounded-xl border border-slate-200 hover:bg-slate-50">← Back</button>
-                <button onClick={() => setWizardStep(3)} className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">Next →</button>
+              <div className="flex gap-2">
+                <button onClick={() => setWizardStep(1)}
+                  className="flex-1 py-3 border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold rounded-xl text-sm">
+                  Back
+                </button>
+                <button onClick={() => setWizardStep(3)}
+                  className="flex-1 py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl transition-colors text-sm">
+                  Next: Seeding
+                </button>
               </div>
             </div>
           )}
           {wizardStep === 3 && (
             <div>
-              <h1 className="text-xl font-bold text-slate-800 mb-1">How should teams be seeded?</h1>
-              <p className="text-sm text-slate-500 mb-6">{setupCount}-team {setupFormat} elimination · {divName}</p>
-              <div className="space-y-3">
-                {(wizardPools.length > 0 ? [
-                  {id:'cross-pool', label:'Cross-pool (Recommended)', desc:'Seeds by pool finish · avoids pool rematches in round 1', detail:`1st Pool A, 1st Pool B, 2nd Pool B, 2nd Pool A…`},
-                  {id:'by-record', label:'By overall record', desc:'Best win % across all pools gets top seed', detail:'Win % → goal differential → goals scored'},
-                  {id:'manual', label:'Manual', desc:'Assign seeds yourself after creating the bracket', detail:'Seed entry panel opens after creation'},
-                ] : [
-                  {id:'manual', label:'Manual', desc:'Assign seeds yourself after creating the bracket', detail:'Seed entry panel opens after creation'},
-                ]).map(opt => (
-                  <button key={opt.id} onClick={() => setSetupSeedMethod(opt.id as any)}
-                    className={`w-full text-left p-4 rounded-xl border-2 transition-all ${setupSeedMethod===opt.id?'border-blue-500 bg-blue-50':'border-slate-200 hover:border-slate-300'}`}>
+              <h2 className="text-xl font-bold text-slate-800 mb-1">Seeding method</h2>
+              <p className="text-sm text-slate-500 mb-6">{bracketSize}-team {setupFormat} elimination</p>
+              <div className="space-y-3 mb-6">
+                {wizardPools.length > 0 && (
+                  <button onClick={() => setSetupSeedMethod('cross-pool')}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition-all ${setupSeedMethod === 'cross-pool' ? 'border-sky-500 bg-sky-50' : 'border-slate-200 hover:border-slate-300'}`}>
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="font-semibold text-slate-800">{opt.label}</p>
-                        <p className="text-sm text-slate-500 mt-0.5">{opt.desc}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{opt.detail}</p>
+                        <p className="font-semibold text-slate-800">Cross-pool seeding</p>
+                        <p className="text-xs text-slate-500 mt-0.5">1st from each pool, then 2nd from each pool, etc.</p>
                       </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 ml-3 ${setupSeedMethod===opt.id?'border-blue-500 bg-blue-500':'border-slate-300'}`} />
+                      <span className="text-xs bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full ml-2 flex-shrink-0">Recommended</span>
                     </div>
+                    <p className="text-xs text-slate-400 mt-1">Balanced bracket across pools</p>
                   </button>
-                ))}
+                )}
+                {wizardPools.length > 0 && (
+                  <button onClick={() => setSetupSeedMethod('by-record')}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition-all ${setupSeedMethod === 'by-record' ? 'border-sky-500 bg-sky-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                    <div>
+                      <p className="font-semibold text-slate-800">By overall record</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Best win % across all pools gets top seed</p>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">Win % then goal differential then goals scored</p>
+                  </button>
+                )}
+                <button onClick={() => setSetupSeedMethod('manual')}
+                  className={`w-full text-left p-4 rounded-xl border-2 transition-all ${setupSeedMethod === 'manual' ? 'border-sky-500 bg-sky-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                  <div>
+                    <p className="font-semibold text-slate-800">Manual</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Assign seeds yourself after creating the bracket</p>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">Seed entry panel opens after creation</p>
+                </button>
               </div>
-              <div className="flex gap-3 mt-8">
-                <button onClick={() => setWizardStep(2)} className="px-5 py-3 text-slate-600 font-medium rounded-xl border border-slate-200 hover:bg-slate-50">← Back</button>
+              <div className="flex gap-2">
+                <button onClick={() => setWizardStep(2)}
+                  className="flex-1 py-3 border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold rounded-xl text-sm">
+                  Back
+                </button>
                 <button onClick={createBracket} disabled={creating}
-                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors">
-                  {creating ? 'Creating…' : 'Create Bracket →'}
+                  className="flex-1 py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 text-sm">
+                  {creating ? 'Creating...' : 'Create Bracket'}
                 </button>
               </div>
             </div>
@@ -549,7 +571,6 @@ export default function BracketPage() {
       </div>
     </div>
   )
-
   const winnerGames = bracket.games.filter(g => g.section === 'winners')
   const loserGames  = bracket.games.filter(g => g.section === 'losers')
   const champGames  = bracket.games.filter(g => g.section === 'championship')
