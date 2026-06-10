@@ -6,8 +6,8 @@ import DynamicTitle from './DynamicTitle'
 import Providers from './providers'
 
 export const metadata: Metadata = {
-  title: 'GameDay Staff',
-  description: 'Tournament staff scheduling',
+  title: 'Gameday Blueprint',
+  description: 'The Sports Management Master Plan',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
