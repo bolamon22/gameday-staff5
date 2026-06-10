@@ -73,7 +73,7 @@ export default function NavBar() {
       {/* Preview banner */}
       {isPreview && (
         <div className="bg-amber-400 text-amber-900 text-xs font-semibold px-4 py-1.5 flex items-center justify-between">
-          <span>ð Previewing as <strong>{role.charAt(0).toUpperCase() + role.slice(1)}</strong> â this is how the app looks to that role</span>
+          <span>👁 Previewing as <strong>{role.charAt(0).toUpperCase() + role.slice(1)}</strong> — this is how the app looks to that role</span>
           <button onClick={() => setPreviewRole(null)} className="underline hover:no-underline ml-4">Exit Preview</button>
         </div>
       )}
@@ -162,7 +162,7 @@ export default function NavBar() {
         {/* ââ RIGHT: GameDay badge (org users only) + auth ââ */}
         <div className="ml-auto flex items-center gap-3 flex-shrink-0">
 
-          {/* Gameday Blueprint platform badge â shown to org users */}
+          {/* Gameday Blueprint platform badge — shown to org users */}
           {hasOrg && (
             <div className="hidden sm:flex items-center gap-1.5 border border-slate-200 rounded-lg px-2.5 py-1 bg-slate-50">
               <div className="w-4 h-4 bg-sky-600 rounded flex items-center justify-center flex-shrink-0">
@@ -176,7 +176,7 @@ export default function NavBar() {
 
           {session ? (
             <>
-              {/* View As dropdown â admin only */}
+              {/* View As dropdown — admin only */}
               {isAdmin && (
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs text-slate-400 hidden sm:block">View as:</span>
