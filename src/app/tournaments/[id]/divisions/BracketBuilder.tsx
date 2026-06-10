@@ -207,7 +207,6 @@ export default function BracketBuilder({ tournamentId, division }: Props) {
     }
   }
 
-
   async function handleLabelChange(gameNumber: number, label: string) {
     try {
       await fetch(apiBase, {
@@ -646,7 +645,12 @@ function BracketPreview({ template, seeds, division, onLabelChange }: {
       }
     } else if (feeders.length === 1) {
       const f = positions[feeders[0]]
-      if (f) connectors.push(<path key={`sf-${game.gameNumber}`} d={`M${f.x+GAME_W},${f.cy} H${pos.x}`} fill="none" stroke="#475569" strokeWidth="1.5"/>)
+      if (f) {
+        const midX = f.x + GAME_W + CONN_W / 2
+        connectors.push(<path key={`sf1-${game.gameNumber}`} d={`M${f.x+GAME_W},${f.cy} H${midX}`} fill="none" stroke="#475569" strokeWidth="1.5"/>)
+        connectors.push(<path key={`sf2-${game.gameNumber}`} d={`M${midX},${f.cy} V${pos.cy}`} fill="none" stroke="#475569" strokeWidth="1.5"/>)
+        connectors.push(<path key={`sf3-${game.gameNumber}`} d={`M${midX},${pos.cy} H${pos.x}`} fill="none" stroke="#475569" strokeWidth="1.5"/>)
+      }
     }
   })
 
