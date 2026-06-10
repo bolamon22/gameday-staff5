@@ -65,3 +65,22 @@ export async function PUT() {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 })
   }
 }
+
+export async function PATCH() {
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Pool" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "tournamentId" TEXT NOT NULL,
+        "division" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "teamNames" TEXT NOT NULL DEFAULT '[]',
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Pool_tournamentId_division_idx" ON "Pool"("tournamentId","division")`)
+    return NextResponse.json({ ok: true, message: 'Pool table created (or already existed)' })
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 })
+  }
+}
