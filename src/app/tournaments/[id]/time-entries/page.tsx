@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { formatDate } from '@/lib/utils'
+import { Users, Calendar, Clock, Wallet, Play, Square } from 'lucide-react'
 import TournamentNav from '../TournamentNav'
 
 interface Worker { id:string;name:string;defaultRole:string;hourlyRate:number|null }
@@ -81,24 +82,24 @@ export default function TimeEntriesPage({ params }: { params:{id:string} }) {
       <div className="flex items-center gap-1 mb-6 border-b border-slate-200">
         <Link href={`/tournaments/${params.id}/roster`}
           className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors">
-          👥 Staff Roster
+          <Users size={15} className="inline align-text-bottom mr-1.5" />Staff Roster
         </Link>
         <Link href={`/tournaments/${params.id}/availability`}
           className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors">
-          🗓 Availability
+          <Calendar size={15} className="inline align-text-bottom mr-1.5" />Availability
         </Link>
         <Link href={`/tournaments/${params.id}/time-entries`}
-          className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-sky-600 text-sky-700 transition-colors">
-          ⏱ Time Entries
+          className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-teal-600 text-teal-700 transition-colors">
+          <Clock size={15} className="inline align-text-bottom mr-1.5" />Time Entries
         </Link>
         <Link href={`/tournaments/${params.id}/pay-summary`}
           className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors">
-          💰 Pay Summary
+          <Wallet size={15} className="inline align-text-bottom mr-1.5" />Pay Summary
         </Link>
       </div>
       <div className="page-header"><div><h1 className="section-title">Hourly Staff Time</h1><p className="text-sm text-slate-500 mt-1">Athletic Trainers &amp; Field Ops — tap Start/Stop to track hours</p></div></div>
 
-      {dates.length>0&&<div className="flex gap-1 mb-5 border-b border-slate-200">{dates.map(d=><button key={d} onClick={()=>setActiveDay(d)} className={`px-5 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeDay===d?'border-sky-600 text-sky-700':'border-transparent text-slate-500 hover:text-slate-700'}`}>{formatDate(d)}</button>)}</div>}
+      {dates.length>0&&<div className="flex gap-1 mb-5 border-b border-slate-200">{dates.map(d=><button key={d} onClick={()=>setActiveDay(d)} className={`px-5 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeDay===d?'border-teal-600 text-teal-700':'border-transparent text-slate-500 hover:text-slate-700'}`}>{formatDate(d)}</button>)}</div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Punch clock cards */}
@@ -113,9 +114,9 @@ export default function TimeEntriesPage({ params }: { params:{id:string} }) {
                   <div className={`w-2.5 h-2.5 rounded-full ${isClockedIn?'bg-emerald-500 animate-pulse':'bg-slate-300'}`}/>
                 </div>
                 {isClockedIn?(
-                  <button onClick={()=>clockOut(clockedIn[w.id])} disabled={saving} className="btn-danger w-full btn-sm">⏹ Clock Out</button>
+                  <button onClick={()=>clockOut(clockedIn[w.id])} disabled={saving} className="btn-danger w-full btn-sm"><Square size={14} className="inline align-text-bottom mr-1" />Clock Out</button>
                 ):(
-                  <button onClick={()=>{setQuickWorkerId(w.id);setTimeout(()=>{setQuickWorkerId(w.id);clockIn()},0)}} disabled={saving} className="btn-primary w-full btn-sm" style={{background:'#059669'}}>▶ Clock In</button>
+                  <button onClick={()=>{setQuickWorkerId(w.id);setTimeout(()=>{setQuickWorkerId(w.id);clockIn()},0)}} disabled={saving} className="btn-primary w-full btn-sm" style={{background:'#059669'}}><Play size={14} className="inline align-text-bottom mr-1" />Clock In</button>
                 )}
               </div>
             )
@@ -161,7 +162,7 @@ export default function TimeEntriesPage({ params }: { params:{id:string} }) {
                   {dayEntries.map(e=>{
                     const hrs=calcHours(e);const pay=hrs*(e.worker.hourlyRate??0);const active=!!clockedIn[e.workerId]&&clockedIn[e.workerId]===e.id
                     if(editId===e.id)return(
-                      <tr key={e.id} className="bg-sky-50">
+                      <tr key={e.id} className="bg-teal-50">
                         <td className="px-5 py-3 font-semibold">{e.worker.name}</td>
                         <td colSpan={4} className="px-4 py-3">
                           <form onSubmit={saveEdit} className="flex gap-2 items-end flex-wrap">
@@ -183,8 +184,8 @@ export default function TimeEntriesPage({ params }: { params:{id:string} }) {
                         <td className="px-4 py-3 font-semibold text-slate-900">{e.hoursManual!=null?<>{e.hoursManual}h <span className="text-xs text-amber-500">(manual)</span></>:hrs>0?`${hrs.toFixed(2)}h`:'—'}</td>
                         <td className="px-4 py-3 font-semibold text-emerald-600">{pay>0?`$${pay.toFixed(2)}`:'—'}</td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
-                          {active&&<button onClick={()=>clockOut(e.id)} disabled={saving} className="btn-danger btn-sm mr-2">⏹ Out</button>}
-                          <button onClick={()=>{setEditId(e.id);setEditForm({clockIn:e.clockIn??'',clockOut:e.clockOut??'',hoursManual:e.hoursManual!=null?String(e.hoursManual):'',notes:e.notes??''})}} className="text-sky-600 hover:text-sky-800 text-xs font-medium mr-2">Edit</button>
+                          {active&&<button onClick={()=>clockOut(e.id)} disabled={saving} className="btn-danger btn-sm mr-2"><Square size={13} className="inline align-text-bottom mr-1" />Out</button>}
+                          <button onClick={()=>{setEditId(e.id);setEditForm({clockIn:e.clockIn??'',clockOut:e.clockOut??'',hoursManual:e.hoursManual!=null?String(e.hoursManual):'',notes:e.notes??''})}} className="text-teal-600 hover:text-teal-800 text-xs font-medium mr-2">Edit</button>
                           <button onClick={()=>del(e.id)} className="text-red-400 hover:text-red-600 text-xs font-medium">Del</button>
                         </td>
                       </tr>

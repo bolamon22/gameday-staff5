@@ -19,7 +19,7 @@ assignment, payroll, and financials.
   folder in Cowork to work on it.
 - Verify before shipping: type-check (`tsc --noEmit`) and/or an esbuild parse; preview
   UI changes before deploying.
-- Deploy: commit → push to `master` in GitHub Desktop → Vercel auto-builds and redeploys.
+- Deploy: commit -> push to `master` in GitHub Desktop -> Vercel auto-builds and redeploys.
 - Make small, reviewable changes. Fix root causes, not symptoms.
 - Secrets live in `.env` (gitignored) and Vercel env vars — never in the repo or in chat.
 
@@ -32,18 +32,21 @@ assignment, payroll, and financials.
   ActionButton) instead of ad-hoc markup. See `src/components/ui/README.md`.
 - Sentence case; avoid heavy bold.
 
-## In progress — app-wide consistency pass
-Roll the design standard across every page (replace emoji with lucide icons, unify
+## Consistency pass — progress
+Rolling the design standard across every page (replace emoji with lucide icons, unify
 palette and cards), in this order:
 1. Core workspace — Assigner, Scheduler, Divisions, Registrations, Financials, Settings,
    Scores, Roster, Assignments, Results, Pay summary, Staff view, Availability,
    Returning teams, Time entries.
-2. Public / registration — Public page, Register, Individual register, Join, Invite.
+2. Public / registration — Public, Register, Individual register, Join, Invite.
 3. Role dashboards — club-director, parent, coach, ref, scorekeeper, director, viewer.
 4. Admin / system pages.
 
-Done so far: shared UI components, Dashboard redesign, TournamentNav header,
-UTF-8 encoding fixes, builder year-regex fix.
+Done: shared UI components, Dashboard redesign, TournamentNav header, UTF-8 encoding
+fixes, builder year-regex fix, and the full Staff hub — Financials, Roster, Availability,
+Time Entries, Pay Summary.
+Next up: Registrations, Settings, Scheduler, then the remaining pages.
+Tracking: Roadmap #57 (consistency pass) and #58 (page consolidation review).
 
 ## Build philosophy
 - Diagnose before changing; verify after.

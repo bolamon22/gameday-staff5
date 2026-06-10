@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { certLabel, formatDate, formatTime, PAY_METHODS, WORKER_ROLES, ALL_ROLES } from '@/lib/utils'
+import { Users, Calendar, Clock, Wallet, Download, ChevronUp, ChevronDown } from 'lucide-react'
 import TournamentNav from '../TournamentNav'
 
 interface GameEntry{gameNumber:string;date:string;startTime:string;division:string;location:string;role:string;pay:number}
@@ -79,19 +80,19 @@ export default function PaySummaryPage({ params }: { params:{id:string} }) {
       <div className="flex items-center gap-1 mb-6 border-b border-slate-200">
         <Link href={`/tournaments/${params.id}/roster`}
           className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors">
-          👥 Staff Roster
+          <Users size={15} className="inline align-text-bottom mr-1.5" />Staff Roster
         </Link>
         <Link href={`/tournaments/${params.id}/availability`}
           className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors">
-          🗓 Availability
+          <Calendar size={15} className="inline align-text-bottom mr-1.5" />Availability
         </Link>
         <Link href={`/tournaments/${params.id}/time-entries`}
           className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors">
-          ⏱ Time Entries
+          <Clock size={15} className="inline align-text-bottom mr-1.5" />Time Entries
         </Link>
         <Link href={`/tournaments/${params.id}/pay-summary`}
-          className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-sky-600 text-sky-700 transition-colors">
-          💰 Pay Summary
+          className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-teal-600 text-teal-700 transition-colors">
+          <Wallet size={15} className="inline align-text-bottom mr-1.5" />Pay Summary
         </Link>
       </div>
       <div className="page-header">
@@ -103,7 +104,7 @@ export default function PaySummaryPage({ params }: { params:{id:string} }) {
             {outstanding>0&&<span className="text-sm text-amber-600">Outstanding: <strong>${outstanding.toFixed(2)}</strong></span>}
           </div>
         </div>
-        <button onClick={exportCSV} className="btn-primary btn-sm" disabled={!data.summary.length}>↓ CSV</button>
+        <button onClick={exportCSV} className="btn-primary btn-sm" disabled={!data.summary.length}><Download size={14} className="inline align-text-bottom mr-1" />CSV</button>
       </div>
 
       {data.summary.length===0?<div className="card p-12 text-center text-slate-400"><p className="font-medium">No assignments yet</p></div>:(
@@ -131,7 +132,7 @@ export default function PaySummaryPage({ params }: { params:{id:string} }) {
                     <Link href={`/staff/${ws.worker.id}`} onClick={e=>e.stopPropagation()} className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 hover:opacity-75 transition-opacity">
                       {ws.worker.photoUrl
                         ? <img src={ws.worker.photoUrl} alt={ws.worker.name} className="w-10 h-10 object-cover"/>
-                        : <div className={`w-10 h-10 flex items-center justify-center font-bold text-sm ${pr?'bg-emerald-200 text-emerald-800':'bg-sky-100 text-sky-700'}`}>{ws.worker.name[0].toUpperCase()}</div>
+                        : <div className={`w-10 h-10 flex items-center justify-center font-bold text-sm ${pr?'bg-emerald-200 text-emerald-800':'bg-teal-100 text-teal-700'}`}>{ws.worker.name[0].toUpperCase()}</div>
                       }
                     </Link>
                     <div>
@@ -152,7 +153,7 @@ export default function PaySummaryPage({ params }: { params:{id:string} }) {
                     ):(
                       <button onClick={()=>setPaying(p=>p===ws.worker.id?null:ws.worker.id)} className="btn-secondary btn-sm text-emerald-600 border-emerald-200 hover:bg-emerald-50">Mark Paid</button>
                     )}
-                    <span className="text-slate-400">{isExpanded?'▲':'▼'}</span>
+                    <span className="text-slate-400">{isExpanded?<ChevronUp size={16}/>:<ChevronDown size={16}/>}</span>
                   </div>
                 </div>
 
@@ -177,10 +178,10 @@ export default function PaySummaryPage({ params }: { params:{id:string} }) {
                         <th className="text-left px-4 py-2 text-xs text-slate-500 font-semibold uppercase tracking-wide">Role</th>
                         <th className="text-right px-5 py-2 text-xs text-slate-500 font-semibold uppercase tracking-wide">Pay</th>
                       </tr></thead>
-                      <tbody className="divide-y divide-slate-50">{ws.games.map((g,i)=><tr key={i} className="hover:bg-slate-50"><td className="px-5 py-2 font-mono text-xs text-slate-600">#{g.gameNumber}</td><td className="px-4 py-2 text-xs text-slate-600 whitespace-nowrap">{formatDate(g.date)} {formatTime(g.startTime)}</td><td className="px-4 py-2 text-xs text-slate-600">{g.division}</td><td className="px-4 py-2 text-xs text-slate-600">{g.location}</td><td className="px-4 py-2"><span className="badge bg-sky-100 text-sky-700 text-xs">{rLabel(g.role)}</span></td><td className="px-5 py-2 text-right font-semibold">${g.pay.toFixed(2)}</td></tr>)}</tbody>
+                      <tbody className="divide-y divide-slate-50">{ws.games.map((g,i)=><tr key={i} className="hover:bg-slate-50"><td className="px-5 py-2 font-mono text-xs text-slate-600">#{g.gameNumber}</td><td className="px-4 py-2 text-xs text-slate-600 whitespace-nowrap">{formatDate(g.date)} {formatTime(g.startTime)}</td><td className="px-4 py-2 text-xs text-slate-600">{g.division}</td><td className="px-4 py-2 text-xs text-slate-600">{g.location}</td><td className="px-4 py-2"><span className="badge bg-teal-100 text-teal-700 text-xs">{rLabel(g.role)}</span></td><td className="px-5 py-2 text-right font-semibold">${g.pay.toFixed(2)}</td></tr>)}</tbody>
                     </table>}
                     {ws.timeEntries.length>0&&<table className="w-full text-sm">
-                      <thead className="bg-orange-50"><tr><th className="text-left px-5 py-2 text-xs text-orange-600 font-semibold uppercase tracking-wide">Date</th><th className="text-left px-4 py-2 text-xs text-orange-600 font-semibold uppercase tracking-wide">Hours</th><th className="text-right px-5 py-2 text-xs text-orange-600 font-semibold uppercase tracking-wide">Pay</th></tr></thead>
+                      <thead className="bg-amber-50"><tr><th className="text-left px-5 py-2 text-xs text-amber-700 font-semibold uppercase tracking-wide">Date</th><th className="text-left px-4 py-2 text-xs text-amber-700 font-semibold uppercase tracking-wide">Hours</th><th className="text-right px-5 py-2 text-xs text-amber-700 font-semibold uppercase tracking-wide">Pay</th></tr></thead>
                       <tbody className="divide-y divide-slate-50">{ws.timeEntries.map((t,i)=><tr key={i} className="hover:bg-slate-50"><td className="px-5 py-2 text-xs text-slate-600">{formatDate(t.date)}</td><td className="px-4 py-2 text-xs font-semibold">{t.hoursManual!=null?`${t.hoursManual}h (manual)`:`${t.hours.toFixed(2)}h`}</td><td className="px-5 py-2 text-right font-semibold">${t.pay.toFixed(2)}</td></tr>)}</tbody>
                     </table>}
                     <div className="bg-slate-50 border-t border-slate-100 px-5 py-3 flex justify-between text-sm font-bold"><span className="text-slate-600">Subtotal</span><span className={pr?'text-emerald-600':'text-slate-900'}>${ws.totalPay.toFixed(2)}</span></div>
@@ -189,8 +190,8 @@ export default function PaySummaryPage({ params }: { params:{id:string} }) {
               </div>
             )
           })}
-          <div className="card px-4 sm:px-6 py-4 sm:py-5 flex justify-between items-center" style={{background:'linear-gradient(135deg,#0ea5e9,#0284c7)',borderColor:'#0284c7'}}>
-            <div><p className="font-bold text-white text-lg">Total Payout</p>{outstanding>0&&<p className="text-sky-200 text-sm">${outstanding.toFixed(2)} outstanding</p>}</div>
+          <div className="card px-4 sm:px-6 py-4 sm:py-5 flex justify-between items-center" style={{background:'#0d9488',borderColor:'#0d9488'}}>
+            <div><p className="font-bold text-white text-lg">Total Payout</p>{outstanding>0&&<p className="text-teal-200 text-sm">${outstanding.toFixed(2)} outstanding</p>}</div>
             <span className="text-3xl font-bold text-white">${total.toFixed(2)}</span>
           </div>
         </div>

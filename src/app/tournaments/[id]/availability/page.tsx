@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { formatDate, formatTime } from '@/lib/utils'
+import { Users, Calendar, Clock, Wallet } from 'lucide-react'
 import TournamentNav from '../TournamentNav'
 
 interface Worker { id:string;name:string;defaultRole:string }
@@ -100,19 +101,19 @@ export default function AvailabilityPage({ params }: { params:{id:string} }) {
       <div className="flex items-center gap-1 mb-6 border-b border-slate-200 overflow-x-auto">
         <Link href={`/tournaments/${params.id}/roster`}
           className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors">
-          👥 Staff Roster
+          <Users size={15} className="inline align-text-bottom mr-1.5" />Staff Roster
         </Link>
         <Link href={`/tournaments/${params.id}/availability`}
-          className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-sky-600 text-sky-700 transition-colors">
-          🗓 Availability
+          className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-teal-600 text-teal-700 transition-colors">
+          <Calendar size={15} className="inline align-text-bottom mr-1.5" />Availability
         </Link>
         <Link href={`/tournaments/${params.id}/time-entries`}
           className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors">
-          ⏱ Time Entries
+          <Clock size={15} className="inline align-text-bottom mr-1.5" />Time Entries
         </Link>
         <Link href={`/tournaments/${params.id}/pay-summary`}
           className="px-4 py-2 text-sm font-medium border-b-2 -mb-px border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors">
-          💰 Pay Summary
+          <Wallet size={15} className="inline align-text-bottom mr-1.5" />Pay Summary
         </Link>
       </div>
       <div className="page-header">
@@ -124,12 +125,12 @@ export default function AvailabilityPage({ params }: { params:{id:string} }) {
 
       {dates.length>0&&(
         <div className="flex gap-1 mb-5 border-b border-slate-200 overflow-x-auto">
-          {dates.map(d=><button key={d} onClick={()=>setActiveDay(d)} className={`px-5 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeDay===d?'border-sky-600 text-sky-700':'border-transparent text-slate-500 hover:text-slate-700'}`}>{formatDate(d)}</button>)}
+          {dates.map(d=><button key={d} onClick={()=>setActiveDay(d)} className={`px-5 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeDay===d?'border-teal-600 text-teal-700':'border-transparent text-slate-500 hover:text-slate-700'}`}>{formatDate(d)}</button>)}
         </div>
       )}
 
       {workers.length===0?(
-        <div className="card p-4 sm:p-8 text-center text-slate-400">No rostered staff. <Link href={`/tournaments/${params.id}/roster`} className="text-sky-600">Add to roster first →</Link></div>
+        <div className="card p-4 sm:p-8 text-center text-slate-400">No rostered staff. <Link href={`/tournaments/${params.id}/roster`} className="text-teal-600">Add to roster first →</Link></div>
       ):dates.length===0?(
         <div className="card p-4 sm:p-8 text-center text-slate-400">Import games first to see time slots.</div>
       ):(
