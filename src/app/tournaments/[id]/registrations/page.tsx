@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import TournamentNav from '../TournamentNav'
 import toast, { Toaster } from 'react-hot-toast'
+import { Plus, Upload, Download, Settings, ExternalLink, RefreshCw, Check, X, ChevronUp, ChevronDown, ChevronRight, Landmark, ImageUp } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 
@@ -45,8 +46,8 @@ const DEFAULT_DIVISIONS = [
   "Girls Lower School A (7v7)","Girls Lower School B (7v7 – No 2033's)",
 ]
 const emptyTeam = (): TeamRow => ({ clubName: '', teamName: '', division: '', coachName: '', coachPhone: '', coachEmail: '', logoUrl: '' })
-const inputCls = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-const smallInputCls = "w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+const inputCls = "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+const smallInputCls = "w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
 const payLabel = (m: string) => m === 'credit_card' ? 'Credit Card' : m === 'zelle' ? 'Zelle' : m === 'ach' ? 'ACH Bank Transfer' : m === 'paypal' ? 'PayPal' : 'Check'
 const fmt = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const today = () => new Date().toISOString().slice(0, 10)
@@ -146,14 +147,14 @@ function CardPaymentForm({ base, registrationId, tournamentId, date, notes, onSu
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm space-y-1">
-        <div className="flex justify-between text-gray-600"><span>Registration amount</span><span>${base.toFixed(2)}</span></div>
-        <div className="flex justify-between text-gray-500"><span>Processing fee (2.9% + $0.30)</span><span>+${fee.toFixed(2)}</span></div>
-        <div className="flex justify-between font-bold text-gray-900 border-t border-blue-200 pt-1"><span>Total charged</span><span>${total.toFixed(2)}</span></div>
+      <div className="bg-teal-50 border border-teal-200 rounded-xl p-3 text-sm space-y-1">
+        <div className="flex justify-between text-slate-600"><span>Registration amount</span><span>${base.toFixed(2)}</span></div>
+        <div className="flex justify-between text-slate-500"><span>Processing fee (2.9% + $0.30)</span><span>+${fee.toFixed(2)}</span></div>
+        <div className="flex justify-between font-bold text-slate-900 border-t border-teal-200 pt-1"><span>Total charged</span><span>${total.toFixed(2)}</span></div>
       </div>
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">Card Details</label>
-        <div className="border border-gray-300 rounded-xl px-3 py-3">
+        <label className="block text-xs font-medium text-slate-600 mb-1">Card Details</label>
+        <div className="border border-slate-300 rounded-xl px-3 py-3">
           <CardElement options={{ style: { base: { fontSize: '15px', color: '#1f2937', '::placeholder': { color: '#9ca3af' } } } }} />
         </div>
       </div>
@@ -162,7 +163,7 @@ function CardPaymentForm({ base, registrationId, tournamentId, date, notes, onSu
         <button type="submit" disabled={paying || !stripe} className="flex-1 bg-green-600 text-white rounded-xl py-2 text-sm font-semibold hover:bg-green-700 disabled:opacity-60">
           {paying ? 'Processing…' : `Charge $${total.toFixed(2)}`}
         </button>
-        <button type="button" onClick={onCancel} className="px-4 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+        <button type="button" onClick={onCancel} className="px-4 border border-slate-300 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
       </div>
     </form>
   )
@@ -223,14 +224,14 @@ function PayPalForm({ amount, registrationId, onSuccess, onCancel }: PayPalFormP
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-        💙 Pay securely via PayPal. Amount: <strong>${amount.toFixed(2)}</strong>
+      <p className="text-xs text-teal-700 bg-teal-50 border border-teal-200 rounded-lg px-3 py-2">
+        Pay securely via PayPal. Amount: <strong>${amount.toFixed(2)}</strong>
       </p>
-      {status === 'loading' && <div className="text-center py-4 text-sm text-gray-400">Loading PayPal…</div>}
+      {status === 'loading' && <div className="text-center py-4 text-sm text-slate-400">Loading PayPal…</div>}
       {status === 'error' && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{errMsg}</div>}
-      {status === 'processing' && <div className="text-center py-4 text-sm text-gray-400">Processing…</div>}
+      {status === 'processing' && <div className="text-center py-4 text-sm text-slate-400">Processing…</div>}
       <div ref={containerRef} className={status === 'loading' || status === 'error' ? 'hidden' : ''} />
-      <button type="button" onClick={onCancel} className="w-full border border-gray-300 rounded-xl py-2 text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+      <button type="button" onClick={onCancel} className="w-full border border-slate-300 rounded-xl py-2 text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
     </div>
   )
 }
@@ -761,7 +762,7 @@ export default function RegistrationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-slate-50 p-6">
       <Toaster />
       <div className="max-w-5xl mx-auto">
 
@@ -770,20 +771,20 @@ export default function RegistrationsPage() {
 
         {/* Tab switcher */}
         {(teamRegEnabled && indivRegEnabled) && (
-          <div className="flex gap-1 mb-5 bg-gray-100 rounded-xl p-1 w-fit">
+          <div className="flex gap-1 mb-5 bg-slate-100 rounded-xl p-1 w-fit">
             <button
               onClick={() => setActiveTab('team')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'team' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'team' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               Team Registrations
             </button>
             <button
               onClick={() => setActiveTab('individual')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'individual' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'individual' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               Individual Players
               {individualRegs.length > 0 && (
-                <span className="ml-1.5 bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded-full">{individualRegs.length}</span>
+                <span className="ml-1.5 bg-teal-100 text-teal-700 text-xs px-1.5 py-0.5 rounded-full">{individualRegs.length}</span>
               )}
             </button>
           </div>
@@ -792,30 +793,30 @@ export default function RegistrationsPage() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">
-                {activeTab === 'individual' ? 'Individual Players' : 'Team Registrations'}
+              <h1 className="text-2xl font-semibold text-slate-900">
+                {activeTab === 'individual' ? 'Individual players' : 'Team registrations'}
               </h1>
             </div>
           </div>
-          <Link href={`/tournaments/${tournamentId}/returning-teams`} className="text-sm font-semibold text-teal-600 hover:text-teal-800 border border-teal-200 hover:bg-teal-50 px-3 py-1.5 rounded-xl transition-colors">
-            🔄 Returning Teams
+          <Link href={`/tournaments/${tournamentId}/returning-teams`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-600 hover:text-teal-800 border border-teal-200 hover:bg-teal-50 px-3 py-1.5 rounded-xl transition-colors">
+            <RefreshCw size={14} /> Returning teams
           </Link>
           <div className="flex gap-2 flex-wrap justify-end">
             {(activeTab === 'team' ? [
-              { label: 'Clubs', value: registrations.length, color: 'text-blue-600' },
+              { label: 'Clubs', value: registrations.length, color: 'text-teal-600' },
               { label: 'Teams', value: totalTeams, color: 'text-green-600' },
-              { label: 'Invoiced', value: fmt(totalInvoiced), color: 'text-gray-800' },
+              { label: 'Invoiced', value: fmt(totalInvoiced), color: 'text-slate-800' },
               { label: 'Received', value: fmt(totalReceived), color: 'text-green-700' },
               { label: 'Balance', value: fmt(totalBalance), color: totalBalance > 0 ? 'text-red-600' : 'text-green-600' },
             ] : [
-              { label: 'Players', value: individualRegs.length, color: 'text-blue-600' },
+              { label: 'Players', value: individualRegs.length, color: 'text-teal-600' },
               { label: 'Paid', value: individualRegs.filter(r => r.paymentStatus === 'paid').length, color: 'text-green-600' },
-              { label: 'Pending', value: individualRegs.filter(r => r.paymentStatus === 'pending').length, color: 'text-orange-500' },
+              { label: 'Pending', value: individualRegs.filter(r => r.paymentStatus === 'pending').length, color: 'text-amber-500' },
               { label: 'Revenue', value: fmt(individualRegs.filter(r => r.paymentStatus === 'paid').reduce((s, r) => s + r.feeTierAmount, 0)), color: 'text-green-700' },
             ]).map(s => (
-              <div key={s.label} className="bg-white border rounded-xl px-3 py-2 text-center min-w-[70px]">
+              <div key={s.label} className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-center min-w-[70px]">
                 <div className={`text-lg font-bold ${s.color}`}>{s.value}</div>
-                <div className="text-xs text-gray-500">{s.label}</div>
+                <div className="text-xs text-slate-500">{s.label}</div>
               </div>
             ))}
           </div>
@@ -825,37 +826,37 @@ export default function RegistrationsPage() {
         <div className="mb-5 flex gap-2 flex-wrap">
           <button
             onClick={() => activeTab === 'individual' ? openIndivNew() : openNew()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
-          >+ Add Entry</button>
-          <button onClick={() => { setShowImport(v => !v); setImportData(null) }} className={`px-4 py-2 rounded-lg text-sm font-medium border ${showImport ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>↑ Import Excel</button>
-          <button onClick={() => { setPricingDraft(pricing); setDivisionsDraft(divisions); setNewDivision(''); setShowPricing(true) }} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">⚙ Settings</button>
-          <button onClick={() => downloadCSV(registrations)} disabled={!registrations.length} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-40">⬇ CSV</button>
-          <Link href={`/tournaments/${tournamentId}/register`} target="_blank" className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">🔗 Public Form</Link>
+            className="inline-flex items-center gap-1.5 bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-teal-700"
+          ><Plus size={15} /> Add entry</button>
+          <button onClick={() => { setShowImport(v => !v); setImportData(null) }} className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border ${showImport ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}`}><Upload size={15} /> Import Excel</button>
+          <button onClick={() => { setPricingDraft(pricing); setDivisionsDraft(divisions); setNewDivision(''); setShowPricing(true) }} className="inline-flex items-center gap-1.5 border border-slate-300 bg-white text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50"><Settings size={15} /> Settings</button>
+          <button onClick={() => downloadCSV(registrations)} disabled={!registrations.length} className="inline-flex items-center gap-1.5 border border-slate-300 bg-white text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-40"><Download size={15} /> CSV</button>
+          <Link href={`/tournaments/${tournamentId}/register`} target="_blank" className="inline-flex items-center gap-1.5 border border-slate-300 bg-white text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50"><ExternalLink size={15} /> Public form</Link>
         </div>
 
         {/* Import panel */}
         {showImport && (
-          <div className="bg-white border border-indigo-200 rounded-2xl p-6 mb-6">
-            <h2 className="font-semibold text-gray-800 mb-1">Import Registrations from Excel / CSV</h2>
-            <p className="text-sm text-gray-500 mb-4">Rows with the same contact name are grouped into one registration. Each row can represent one team.</p>
+          <div className="bg-white border border-teal-200 rounded-2xl p-6 mb-6">
+            <h2 className="font-semibold text-slate-800 mb-1">Import Registrations from Excel / CSV</h2>
+            <p className="text-sm text-slate-500 mb-4">Rows with the same contact name are grouped into one registration. Each row can represent one team.</p>
 
             {!importData ? (
               <div className="flex gap-2">
-                <button onClick={downloadImportTemplate} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">↓ Download Template</button>
-                <label className={`px-4 py-2 rounded-lg text-sm font-medium cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700 ${importLoading ? 'opacity-60 pointer-events-none' : ''}`}>
-                  {importLoading ? 'Parsing…' : '↑ Upload File'}
+                <button onClick={downloadImportTemplate} className="inline-flex items-center gap-1.5 border border-slate-300 bg-white text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50"><Download size={15} /> Download template</button>
+                <label className={`px-4 py-2 rounded-lg text-sm font-medium cursor-pointer bg-teal-600 text-white hover:bg-teal-700 ${importLoading ? 'opacity-60 pointer-events-none' : ''}`}>
+                  {importLoading ? 'Parsing…' : <><Upload size={15} /> Upload file</>}
                   <input ref={importFileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImportFile} disabled={importLoading} />
                 </label>
               </div>
             ) : (
               <div>
                 {/* Column mapping */}
-                <p className="text-sm font-semibold text-gray-700 mb-3">Map your columns — {importData.rows.length} rows detected</p>
+                <p className="text-sm font-semibold text-slate-700 mb-3">Map your columns — {importData.rows.length} rows detected</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
                   {IMPORT_FIELDS.map(f => (
                     <div key={f.key}>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">{f.label}</label>
-                      <select className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      <label className="block text-xs font-medium text-slate-600 mb-1">{f.label}</label>
+                      <select className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                         value={importMapping[f.key] ?? ''}
                         onChange={e => setImportMapping(m => ({ ...m, [f.key]: e.target.value }))}>
                         <option value="">— not mapped —</option>
@@ -870,35 +871,35 @@ export default function RegistrationsPage() {
                   const preview = buildImportPreview()
                   return (
                     <>
-                      <p className="text-sm font-semibold text-gray-700 mb-2">Preview — {preview.length} registrations, {preview.reduce((s,r)=>s+r.teams.length,0)} teams</p>
-                      <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 max-h-64 overflow-y-auto">
+                      <p className="text-sm font-semibold text-slate-700 mb-2">Preview — {preview.length} registrations, {preview.reduce((s,r)=>s+r.teams.length,0)} teams</p>
+                      <div className="border border-slate-200 rounded-xl overflow-hidden mb-4 max-h-64 overflow-y-auto">
                         <table className="w-full text-xs">
-                          <thead className="bg-gray-50 sticky top-0">
+                          <thead className="bg-slate-50 sticky top-0">
                             <tr>
-                              <th className="text-left px-3 py-2 text-gray-500 font-semibold">Club / Contact</th>
-                              <th className="text-left px-3 py-2 text-gray-500 font-semibold">Email</th>
-                              <th className="text-left px-3 py-2 text-gray-500 font-semibold">Teams</th>
-                              <th className="text-left px-3 py-2 text-gray-500 font-semibold">Hotel</th>
-                              <th className="text-left px-3 py-2 text-gray-500 font-semibold">Pay</th>
+                              <th className="text-left px-3 py-2 text-slate-500 font-semibold">Club / Contact</th>
+                              <th className="text-left px-3 py-2 text-slate-500 font-semibold">Email</th>
+                              <th className="text-left px-3 py-2 text-slate-500 font-semibold">Teams</th>
+                              <th className="text-left px-3 py-2 text-slate-500 font-semibold">Hotel</th>
+                              <th className="text-left px-3 py-2 text-slate-500 font-semibold">Pay</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-100">
+                          <tbody className="divide-y divide-slate-100">
                             {preview.map((r, i) => (
-                              <tr key={i} className="hover:bg-gray-50">
-                                <td className="px-3 py-2 font-medium text-gray-800">{r.clubName || r.clubContact}<div className="text-gray-400 font-normal">{r.clubContact}</div></td>
-                                <td className="px-3 py-2 text-gray-500">{r.contactEmail}</td>
+                              <tr key={i} className="hover:bg-slate-50">
+                                <td className="px-3 py-2 font-medium text-slate-800">{r.clubName || r.clubContact}<div className="text-slate-400 font-normal">{r.clubContact}</div></td>
+                                <td className="px-3 py-2 text-slate-500">{r.contactEmail}</td>
                                 <td className="px-3 py-2">
                                   {r.teams.length > 0
                                     ? r.teams.map((t,ti) => (
-                                        <div key={ti} className="flex items-center gap-1.5 text-gray-600">
+                                        <div key={ti} className="flex items-center gap-1.5 text-slate-600">
                                           {t.logoUrl && <img src={t.logoUrl} alt="" className="h-4 w-4 object-contain rounded" />}
-                                          {t.teamName} <span className="text-gray-400">({t.division})</span>
+                                          {t.teamName} <span className="text-slate-400">({t.division})</span>
                                         </div>
                                       ))
-                                    : <span className="text-gray-400">No teams</span>}
+                                    : <span className="text-slate-400">No teams</span>}
                                 </td>
-                                <td className="px-3 py-2 text-gray-500">{r.needsHotel}</td>
-                                <td className="px-3 py-2 text-gray-500">{r.paymentMethod}</td>
+                                <td className="px-3 py-2 text-slate-500">{r.needsHotel}</td>
+                                <td className="px-3 py-2 text-slate-500">{r.paymentMethod}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -906,10 +907,10 @@ export default function RegistrationsPage() {
                       </div>
                       <div className="flex gap-2">
                         <button onClick={confirmImport} disabled={importing || !preview.length}
-                          className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
+                          className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 disabled:opacity-50">
                           {importing ? 'Importing…' : `Import ${preview.length} Registration${preview.length !== 1 ? 's' : ''}`}
                         </button>
-                        <button onClick={() => { setImportData(null); setImportMapping({}) }} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">Cancel</button>
+                        <button onClick={() => { setImportData(null); setImportMapping({}) }} className="border border-slate-300 bg-white text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50">Cancel</button>
                       </div>
                     </>
                   )
@@ -924,7 +925,7 @@ export default function RegistrationsPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/40" onClick={() => setShowPricing(false)} />
             <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Registration Pricing</h2>
+              <h2 className="text-lg font-semibold text-slate-800 mb-4">Registration Pricing</h2>
               <div className="space-y-3 text-sm">
                 {([
                   { key: 'tier1', label: `Tier 1 (1–${pricingDraft.tier1Max} teams) per team` },
@@ -935,32 +936,32 @@ export default function RegistrationsPage() {
                   { key: 'sevenVSeven', label: '7v7 per team' },
                 ] as { key: keyof Pricing; label: string }[]).map(({ key, label }) => (
                   <div key={key} className="flex items-center justify-between gap-4">
-                    <label className="text-gray-600 flex-1">{label}</label>
+                    <label className="text-slate-600 flex-1">{label}</label>
                     <input type="number" value={pricingDraft[key]}
                       onChange={e => setPricingDraft(p => ({ ...p, [key]: Number(e.target.value) }))}
-                      className="w-28 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      className="w-28 border border-slate-300 rounded-lg px-3 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-teal-500" />
                   </div>
                 ))}
               </div>
               {/* Divisions editor */}
               <div className="mt-5 border-t pt-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Divisions</h3>
+                <h3 className="text-sm font-semibold text-slate-700 mb-3">Divisions</h3>
                 <div className="space-y-1.5 max-h-52 overflow-y-auto mb-3">
                   {divisionsDraft.map((div, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <input
                         value={div}
                         onChange={e => setDivisionsDraft(prev => prev.map((d, idx) => idx === i ? e.target.value : d))}
-                        className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                       />
                       <button type="button" onClick={() => setDivisionsDraft(prev => prev.filter((_, idx) => idx !== i))}
-                        className="text-red-400 hover:text-red-600 text-lg leading-none px-1">✕</button>
+                        className="text-red-400 hover:text-red-600 leading-none px-1"><X size={16} /></button>
                       <button type="button" disabled={i === 0}
                         onClick={() => setDivisionsDraft(prev => { const a = [...prev]; [a[i-1], a[i]] = [a[i], a[i-1]]; return a })}
-                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs">▲</button>
+                        className="text-slate-400 hover:text-slate-600 disabled:opacity-20"><ChevronUp size={14} /></button>
                       <button type="button" disabled={i === divisionsDraft.length - 1}
                         onClick={() => setDivisionsDraft(prev => { const a = [...prev]; [a[i], a[i+1]] = [a[i+1], a[i]]; return a })}
-                        className="text-gray-400 hover:text-gray-600 disabled:opacity-20 text-xs">▼</button>
+                        className="text-slate-400 hover:text-slate-600 disabled:opacity-20"><ChevronDown size={14} /></button>
                     </div>
                   ))}
                 </div>
@@ -970,17 +971,17 @@ export default function RegistrationsPage() {
                     onChange={e => setNewDivision(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (newDivision.trim()) { setDivisionsDraft(prev => [...prev, newDivision.trim()]); setNewDivision('') } } }}
                     placeholder="Add division..."
-                    className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                   <button type="button"
                     onClick={() => { if (newDivision.trim()) { setDivisionsDraft(prev => [...prev, newDivision.trim()]); setNewDivision('') } }}
-                    className="border border-blue-400 text-blue-600 hover:bg-blue-50 rounded-lg px-3 py-1.5 text-sm font-medium">Add</button>
+                    className="border border-teal-400 text-teal-600 hover:bg-teal-50 rounded-lg px-3 py-1.5 text-sm font-medium">Add</button>
                 </div>
               </div>
 
               <div className="flex gap-3 mt-5">
-                <button onClick={savePricing} className="flex-1 bg-blue-600 text-white rounded-xl py-2 text-sm font-semibold hover:bg-blue-700">Save Settings</button>
-                <button onClick={() => setShowPricing(false)} className="px-4 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+                <button onClick={savePricing} className="flex-1 bg-teal-600 text-white rounded-xl py-2 text-sm font-semibold hover:bg-teal-700">Save Settings</button>
+                <button onClick={() => setShowPricing(false)} className="px-4 border border-slate-300 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
               </div>
             </div>
           </div>
@@ -991,23 +992,23 @@ export default function RegistrationsPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/40" onClick={() => setPayingRegId(null)} />
             <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm z-10">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Record Payment</h2>
+              <h2 className="text-lg font-semibold text-slate-800 mb-4">Record Payment</h2>
               <div className="space-y-3 mb-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Amount *</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Amount *</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">$</span>
                     <input required type="number" step="0.01" min="0" placeholder="0.00"
                       value={payAmount} onChange={e => setPayAmount(e.target.value)}
                       className={`${inputCls} pl-7`} />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Date Received *</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Date Received *</label>
                   <input required type="date" value={payDate} onChange={e => setPayDate(e.target.value)} className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Method</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Method</label>
                   <select value={payMethod} onChange={e => setPayMethod(e.target.value)} className={inputCls}>
                     <option value="check">Check</option>
                     <option value="zelle">Zelle</option>
@@ -1019,26 +1020,26 @@ export default function RegistrationsPage() {
                 </div>
                 {payMethod === 'check' && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Check #</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Check #</label>
                     <input value={payCheck} onChange={e => setPayCheck(e.target.value)} className={inputCls} />
                   </div>
                 )}
                 {payMethod === 'ach' && (
                   <>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Account Holder Name *</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Account Holder Name *</label>
                       <input value={achAccountName} onChange={e => setAchAccountName(e.target.value)} placeholder="Full name on account" className={inputCls} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Routing Number *</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Routing Number *</label>
                       <input value={achRouting} onChange={e => setAchRouting(e.target.value)} placeholder="9-digit routing number" maxLength={9} className={inputCls} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Account Number *</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Account Number *</label>
                       <input value={achAccount} onChange={e => setAchAccount(e.target.value)} placeholder="Account number" className={inputCls} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Account Type</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Account Type</label>
                       <select value={achAccountType} onChange={e => setAchAccountType(e.target.value)} className={inputCls}>
                         <option value="PERSONAL_CHECKING">Personal Checking</option>
                         <option value="PERSONAL_SAVINGS">Personal Savings</option>
@@ -1049,7 +1050,7 @@ export default function RegistrationsPage() {
                 )}
                 {payMethod !== 'credit_card' && payMethod !== 'ach' && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Notes</label>
                     <input value={payNotes} onChange={e => setPayNotes(e.target.value)} className={inputCls} />
                   </div>
                 )}
@@ -1069,7 +1070,7 @@ export default function RegistrationsPage() {
                     />
                   </Elements>
                 ) : (
-                  <div className="text-center py-4 text-sm text-gray-400">Loading Stripe…</div>
+                  <div className="text-center py-4 text-sm text-slate-400">Loading Stripe…</div>
                 )
               ) : payMethod === 'paypal' ? (
                 <PayPalForm
@@ -1080,14 +1081,14 @@ export default function RegistrationsPage() {
                 />
               ) : payMethod === 'ach' ? (
                 <form onSubmit={handleAchPayment}>
-                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
-                    🏦 ACH eCheck via QuickBooks Payments. Funds typically settle in 3–5 business days.
+                  <p className="flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+                    <Landmark size={14} className="flex-shrink-0 mt-0.5" /> ACH eCheck via QuickBooks Payments. Funds typically settle in 3–5 business days.
                   </p>
                   <div className="flex gap-3 pt-1">
-                    <button type="submit" disabled={achLoading} className="flex-1 bg-blue-600 text-white rounded-xl py-2 text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
+                    <button type="submit" disabled={achLoading} className="flex-1 bg-teal-600 text-white rounded-xl py-2 text-sm font-semibold hover:bg-teal-700 disabled:opacity-60">
                       {achLoading ? 'Processing…' : 'Submit ACH Payment'}
                     </button>
-                    <button type="button" onClick={() => setPayingRegId(null)} className="px-4 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+                    <button type="button" onClick={() => setPayingRegId(null)} className="px-4 border border-slate-300 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
                   </div>
                 </form>
               ) : (
@@ -1096,7 +1097,7 @@ export default function RegistrationsPage() {
                     <button type="submit" disabled={addingPay} className="flex-1 bg-green-600 text-white rounded-xl py-2 text-sm font-semibold hover:bg-green-700 disabled:opacity-60">
                       {addingPay ? 'Saving...' : 'Record Payment'}
                     </button>
-                    <button type="button" onClick={() => setPayingRegId(null)} className="px-4 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+                    <button type="button" onClick={() => setPayingRegId(null)} className="px-4 border border-slate-300 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
                   </div>
                 </form>
               )}
@@ -1110,32 +1111,32 @@ export default function RegistrationsPage() {
             <div className="flex-1 bg-black/40" onClick={() => setShowIndivForm(false)} />
             <div className="w-full max-w-2xl bg-white shadow-2xl overflow-y-auto">
               <div className="sticky top-0 bg-white border-b px-4 sm:px-6 py-4 flex items-center justify-between z-10 flex-wrap gap-2">
-                <h2 className="text-lg font-semibold text-gray-800">{editingIndivId ? 'Edit Player' : 'Add Individual Player'}</h2>
-                <button onClick={() => setShowIndivForm(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                <h2 className="text-lg font-semibold text-slate-800">{editingIndivId ? 'Edit Player' : 'Add Individual Player'}</h2>
+                <button onClick={() => setShowIndivForm(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
               </div>
               <form onSubmit={handleSaveIndiv} className="px-4 sm:px-6 py-5 sm:py-6 space-y-5">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Player Info</h3>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-3">Player Info</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">First Name *</label>
                       <input required value={indivFirstName} onChange={e => setIndivFirstName(e.target.value)} className={inputCls} /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Last Name *</label>
                       <input required value={indivLastName} onChange={e => setIndivLastName(e.target.value)} className={inputCls} /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Email *</label>
                       <input required type="email" value={indivEmail} onChange={e => setIndivEmail(e.target.value)} className={inputCls} /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
                       <input type="tel" value={indivPhone} onChange={e => setIndivPhone(e.target.value)} className={inputCls} /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Date of Birth</label>
                       <input type="date" value={indivDob} onChange={e => setIndivDob(e.target.value)} className={inputCls} /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">US Lacrosse #</label>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">US Lacrosse #</label>
                       <input value={indivUsLacrosse} onChange={e => setIndivUsLacrosse(e.target.value)} className={inputCls} /></div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Position & Gear</h3>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-3">Position & Gear</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Position *</label>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Position *</label>
                       {indivRegPositions.length > 0 ? (
                         <select required value={indivPosition} onChange={e => setIndivPosition(e.target.value)} className={inputCls}>
                           <option value="">Choose</option>
@@ -1144,33 +1145,33 @@ export default function RegistrationsPage() {
                       ) : (
                         <input required value={indivPosition} onChange={e => setIndivPosition(e.target.value)} className={inputCls} />
                       )}</div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Jersey Size *</label>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Jersey Size *</label>
                       <input required value={indivJerseySize} onChange={e => setIndivJerseySize(e.target.value)} className={inputCls} placeholder="e.g. M, L" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Shorts Size *</label>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Shorts Size *</label>
                       <input required value={indivShortsSize} onChange={e => setIndivShortsSize(e.target.value)} className={inputCls} placeholder="e.g. M, L" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Number Request</label>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Number Request</label>
                       <input value={indivNumberRequest} onChange={e => setIndivNumberRequest(e.target.value)} className={inputCls} placeholder="e.g. 12" /></div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Guardian (if minor)</h3>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-3">Guardian (if minor)</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Guardian Name</label>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Guardian Name</label>
                       <input value={indivGuardianName} onChange={e => setIndivGuardianName(e.target.value)} className={inputCls} /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Guardian Phone</label>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Guardian Phone</label>
                       <input type="tel" value={indivGuardianPhone} onChange={e => setIndivGuardianPhone(e.target.value)} className={inputCls} /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Guardian Email</label>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Guardian Email</label>
                       <input type="email" value={indivGuardianEmail} onChange={e => setIndivGuardianEmail(e.target.value)} className={inputCls} /></div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Fee & Payment</h3>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-3">Fee & Payment</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {indivRegTiers.length > 0 ? (
                       <div className="sm:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Fee Tier *</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Fee Tier *</label>
                         <select required value={indivFeeTierId} onChange={e => {
                           const t = indivRegTiers.find(t => t.id === e.target.value)
                           if (t) { setIndivFeeTierId(t.id); setIndivFeeTierName(t.name); setIndivFeeTierAmount(t.price) }
@@ -1181,13 +1182,13 @@ export default function RegistrationsPage() {
                       </div>
                     ) : (
                       <>
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Fee Tier Name</label>
+                        <div><label className="block text-sm font-medium text-slate-700 mb-1">Fee Tier Name</label>
                           <input value={indivFeeTierName} onChange={e => setIndivFeeTierName(e.target.value)} className={inputCls} placeholder="e.g. Standard" /></div>
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+                        <div><label className="block text-sm font-medium text-slate-700 mb-1">Amount ($)</label>
                           <input type="number" step="0.01" min="0" value={indivFeeTierAmount} onChange={e => setIndivFeeTierAmount(Number(e.target.value))} className={inputCls} /></div>
                       </>
                     )}
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1">Payment Status</label>
                       <select value={indivPaymentStatus} onChange={e => setIndivPaymentStatus(e.target.value)} className={inputCls}>
                         <option value="pending">Pending</option>
                         <option value="paid">Paid</option>
@@ -1198,10 +1199,10 @@ export default function RegistrationsPage() {
                 </div>
 
                 <div className="flex gap-3 pt-2">
-                  <button type="submit" disabled={savingIndiv} className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold rounded-xl py-2.5 text-sm">
+                  <button type="submit" disabled={savingIndiv} className="flex-1 bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-semibold rounded-xl py-2.5 text-sm">
                     {savingIndiv ? 'Saving...' : editingIndivId ? 'Save Changes' : 'Add Player'}
                   </button>
-                  <button type="button" onClick={() => setShowIndivForm(false)} className="px-5 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+                  <button type="button" onClick={() => setShowIndivForm(false)} className="px-5 border border-slate-300 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
                 </div>
               </form>
             </div>
@@ -1214,38 +1215,38 @@ export default function RegistrationsPage() {
             <div className="flex-1 bg-black/40" onClick={() => setShowForm(false)} />
             <div className="w-full max-w-2xl bg-white shadow-2xl overflow-y-auto">
               <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
-                <h2 className="text-lg font-semibold text-gray-800">{editingId ? 'Edit Registration' : 'Add Registration'}</h2>
-                <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                <h2 className="text-lg font-semibold text-slate-800">{editingId ? 'Edit Registration' : 'Add Registration'}</h2>
+                <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
               </div>
               <form onSubmit={handleSave} className="px-4 sm:px-6 py-5 sm:py-6 space-y-6" autoComplete="on">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Club Name</label>
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">Club Name</label>
                     <input autoComplete="organization" value={clubName} onChange={e => setClubName(e.target.value)} className={inputCls} /></div>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Club Contact *</label>
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">Club Contact *</label>
                     <input required autoComplete="name" value={clubContact} onChange={e => setClubContact(e.target.value)} className={inputCls} /></div>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">Email *</label>
                     <input required type="email" autoComplete="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} className={inputCls} /></div>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">Phone *</label>
                     <input required type="tel" autoComplete="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} className={inputCls} /></div>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Based In</label>
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">Based In</label>
                     <input placeholder="City and State" autoComplete="address-level2" value={clubBasedIn} onChange={e => setClubBasedIn(e.target.value)} className={inputCls} /></div>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">Website</label>
                     <input type="url" placeholder="https://" autoComplete="url" value={clubWebsite} onChange={e => setClubWebsite(e.target.value)} className={inputCls} /></div>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Hotel?</label>
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">Hotel?</label>
                     <select value={needsHotel} onChange={e => setNeedsHotel(e.target.value)} className={inputCls}>
                       <option>Yes</option><option>No</option><option>Maybe</option></select></div>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">Payment Method</label>
                     <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className={inputCls}>
                       <option value="check">Check</option><option value="zelle">Zelle</option><option value="credit_card">Credit Card</option></select></div>
                 </div>
 
                 {/* Club Logo */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Club Logo</h3>
-                  <p className="text-xs text-gray-400 mb-2">Auto-applied to all teams. Each team can have its own logo too.</p>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-2">Club Logo</h3>
+                  <p className="text-xs text-slate-400 mb-2">Auto-applied to all teams. Each team can have its own logo too.</p>
                   <div className="flex items-center gap-3">
-                    {clubLogoUrl && <img src={clubLogoUrl} alt="Club logo" className="h-12 w-12 object-contain rounded-lg border border-gray-200" />}
-                    <label className={`cursor-pointer border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 ${clubLogoUploading ? 'opacity-50' : ''}`}>
+                    {clubLogoUrl && <img src={clubLogoUrl} alt="Club logo" className="h-12 w-12 object-contain rounded-lg border border-slate-200" />}
+                    <label className={`cursor-pointer border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 ${clubLogoUploading ? 'opacity-50' : ''}`}>
                       {clubLogoUploading ? 'Uploading…' : clubLogoUrl ? 'Change Logo' : 'Upload Club Logo'}
                       <input type="file" accept="image/*" className="hidden" disabled={clubLogoUploading}
                         onChange={e => e.target.files?.[0] && uploadClubLogo(e.target.files[0])} />
@@ -1256,18 +1257,18 @@ export default function RegistrationsPage() {
 
                 {/* Teams */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Teams</h3>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-3">Teams</h3>
                   <div className="space-y-3">
                     {teams.map((team, i) => (
-                      <div key={i} className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                      <div key={i} className="border border-slate-200 rounded-xl p-3 bg-slate-50">
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-xs font-medium text-gray-500">Team {i + 1}</span>
+                          <span className="text-xs font-medium text-slate-500">Team {i + 1}</span>
                           {teams.length > 1 && <button type="button" onClick={() => removeTeam(i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>}
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                           {(['clubName','teamName','division','coachName','coachPhone','coachEmail'] as (keyof TeamRow)[]).map(field => (
                             <div key={field}>
-                              <label className="block text-xs text-gray-500 mb-0.5">
+                              <label className="block text-xs text-slate-500 mb-0.5">
                                 {field === 'clubName' ? 'Club Name' : field === 'teamName' ? 'Team' : field === 'coachName' ? 'Coach Name' : field === 'coachPhone' ? 'Coach Phone' : field === 'coachEmail' ? 'Coach Email' : 'Division'} *
                               </label>
                               {field === 'division' ? (
@@ -1284,10 +1285,10 @@ export default function RegistrationsPage() {
                         {/* Team logo */}
                         <div className="mt-2 flex items-center gap-3">
                           {team.logoUrl && (
-                            <img src={team.logoUrl} alt="logo" className="h-10 w-10 object-contain rounded-lg border border-gray-200 bg-white" />
+                            <img src={team.logoUrl} alt="logo" className="h-10 w-10 object-contain rounded-lg border border-slate-200 bg-white" />
                           )}
-                          <label className="cursor-pointer text-xs text-blue-600 border border-blue-200 hover:bg-blue-50 rounded-lg px-2.5 py-1.5 font-medium">
-                            {logoUploading === i ? 'Uploading…' : team.logoUrl ? '🔄 Replace Logo' : '📁 Upload Team Logo'}
+                          <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs text-teal-600 border border-teal-200 hover:bg-teal-50 rounded-lg px-2.5 py-1.5 font-medium">
+                            {logoUploading === i ? 'Uploading…' : team.logoUrl ? <><RefreshCw size={13} /> Replace logo</> : <><ImageUp size={13} /> Upload team logo</>}
                             <input type="file" accept="image/*" className="hidden" disabled={logoUploading === i}
                               onChange={e => { const f = e.target.files?.[0]; if (f) uploadTeamLogo(i, f) }} />
                           </label>
@@ -1299,42 +1300,42 @@ export default function RegistrationsPage() {
                       </div>
                     ))}
                   </div>
-                  <button type="button" onClick={addTeam} className="mt-3 border border-orange-400 text-orange-500 hover:bg-orange-50 rounded-lg px-3 py-1.5 text-sm font-medium">+ Add Team</button>
+                  <button type="button" onClick={addTeam} className="mt-3 border border-teal-300 text-teal-700 hover:bg-teal-50 rounded-lg px-3 py-1.5 text-sm font-medium">+ Add Team</button>
                 </div>
 
                 {/* Invoice */}
-                <div className="border border-gray-200 rounded-xl p-4 bg-blue-50 space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-700">Invoice</h3>
+                <div className="border border-slate-200 rounded-xl p-4 bg-teal-50 space-y-3">
+                  <h3 className="text-sm font-semibold text-slate-700">Invoice</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Invoice Amount ($)</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Invoice Amount ($)</label>
                       <input type="number" step="0.01" min="0" value={invoiceAmount} onChange={e => setInvoiceAmount(Number(e.target.value))} className={inputCls} />
-                      <p className="text-xs text-gray-400 mt-0.5">Auto-calculated · edit to override</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Auto-calculated · edit to override</p>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Discount ($)</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Discount ($)</label>
                       <input type="number" step="0.01" min="0" value={discountAmount} onChange={e => setDiscountAmount(Number(e.target.value))} className={inputCls} />
                     </div>
                   </div>
                   {discountAmount > 0 && (
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Discount Reason</label>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Discount Reason</label>
                       <input value={discountNote} onChange={e => setDiscountNote(e.target.value)} placeholder="e.g. Early bird, returning club..." className={inputCls} />
                     </div>
                   )}
-                  <div className="text-sm font-semibold text-gray-700">
+                  <div className="text-sm font-semibold text-slate-700">
                     Total Due: {fmt(Math.max(0, invoiceAmount - discountAmount))}
                   </div>
                 </div>
 
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                  <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} autoComplete="off" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
+                <div><label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+                  <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} autoComplete="off" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" /></div>
 
                 <div className="flex gap-3 pt-2">
-                  <button type="submit" disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold rounded-xl py-2.5 text-sm">
+                  <button type="submit" disabled={saving} className="flex-1 bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-semibold rounded-xl py-2.5 text-sm">
                     {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Save Registration'}
                   </button>
-                  <button type="button" onClick={() => setShowForm(false)} className="px-5 border border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+                  <button type="button" onClick={() => setShowForm(false)} className="px-5 border border-slate-300 rounded-xl text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
                 </div>
               </form>
             </div>
@@ -1345,49 +1346,49 @@ export default function RegistrationsPage() {
         {activeTab === 'individual' && (
           <>
             {loading ? (
-              <div className="text-center py-20 text-gray-400">Loading...</div>
+              <div className="text-center py-20 text-slate-400">Loading...</div>
             ) : individualRegs.length === 0 ? (
               <div className="text-center py-20">
-                <p className="text-gray-400 mb-3">No individual players registered yet.</p>
+                <p className="text-slate-400 mb-3">No individual players registered yet.</p>
                 {indivRegEnabled && (
-                  <button onClick={openIndivNew} className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">+ Add First Player</button>
+                  <button onClick={openIndivNew} className="bg-teal-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-teal-700">+ Add First Player</button>
                 )}
               </div>
             ) : (
-              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-100">
+                    <thead className="bg-slate-50 border-b border-slate-100">
                       <tr>
                         {['Player','Position','Jersey / Shorts','Fee Tier','Amount','Status','Registered',''].map(h => (
-                          <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                          <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-slate-50">
                       {individualRegs.map(reg => (
-                        <tr key={reg.id} className="hover:bg-gray-50">
+                        <tr key={reg.id} className="hover:bg-slate-50">
                           <td className="px-4 py-3">
-                            <div className="font-medium text-gray-800">{reg.firstName} {reg.lastName}</div>
-                            <div className="text-xs text-gray-400">{reg.email}</div>
+                            <div className="font-medium text-slate-800">{reg.firstName} {reg.lastName}</div>
+                            <div className="text-xs text-slate-400">{reg.email}</div>
                           </td>
-                          <td className="px-4 py-3 text-gray-600">{reg.position}</td>
-                          <td className="px-4 py-3 text-gray-600">{reg.jerseySize} / {reg.shortsSize}</td>
-                          <td className="px-4 py-3 text-gray-600">{reg.feeTierName || '—'}</td>
-                          <td className="px-4 py-3 font-medium text-gray-800">{fmt(reg.feeTierAmount)}</td>
+                          <td className="px-4 py-3 text-slate-600">{reg.position}</td>
+                          <td className="px-4 py-3 text-slate-600">{reg.jerseySize} / {reg.shortsSize}</td>
+                          <td className="px-4 py-3 text-slate-600">{reg.feeTierName || '—'}</td>
+                          <td className="px-4 py-3 font-medium text-slate-800">{fmt(reg.feeTierAmount)}</td>
                           <td className="px-4 py-3">
                             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
                               reg.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
                               reg.paymentStatus === 'refunded' ? 'bg-red-100 text-red-600' :
-                              'bg-orange-100 text-orange-600'
+                              'bg-amber-100 text-amber-600'
                             }`}>
                               {reg.paymentStatus.charAt(0).toUpperCase() + reg.paymentStatus.slice(1)}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">{new Date(reg.createdAt).toLocaleDateString()}</td>
+                          <td className="px-4 py-3 text-slate-400 text-xs">{new Date(reg.createdAt).toLocaleDateString()}</td>
                           <td className="px-4 py-3">
                             <div className="flex gap-1.5 justify-end">
-                              <button onClick={() => openIndivEdit(reg)} className="text-xs text-blue-600 border border-blue-200 hover:border-blue-400 px-2.5 py-1 rounded-lg">Edit</button>
+                              <button onClick={() => openIndivEdit(reg)} className="text-xs text-teal-600 border border-teal-200 hover:border-teal-400 px-2.5 py-1 rounded-lg">Edit</button>
                               <button onClick={() => handleDeleteIndiv(reg.id, `${reg.firstName} ${reg.lastName}`)} className="text-xs text-red-500 border border-red-200 hover:border-red-400 px-2.5 py-1 rounded-lg">Del</button>
                             </div>
                           </td>
@@ -1409,12 +1410,12 @@ export default function RegistrationsPage() {
               placeholder="Search club, team, coach..."
               value={filterSearch}
               onChange={e => setFilterSearch(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
+              className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 w-56"
             />
             <select
               value={filterDivision}
               onChange={e => setFilterDivision(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             >
               <option value="">All Divisions</option>
               {allDivisionsInData.map(d => <option key={d} value={d}>{d}</option>)}
@@ -1422,7 +1423,7 @@ export default function RegistrationsPage() {
             <select
               value={filterPayment}
               onChange={e => setFilterPayment(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             >
               <option value="">All Payment Status</option>
               <option value="paid">Paid in Full</option>
@@ -1432,24 +1433,24 @@ export default function RegistrationsPage() {
             {(filterSearch || filterDivision || filterPayment) && (
               <button
                 onClick={() => { setFilterSearch(''); setFilterDivision(''); setFilterPayment('') }}
-                className="text-sm text-gray-500 hover:text-gray-700 underline"
+                className="text-sm text-slate-500 hover:text-slate-700 underline"
               >
                 Clear filters
               </button>
             )}
             {(filterSearch || filterDivision || filterPayment) && (
-              <span className="text-sm text-gray-500">{filteredRegistrations.length} of {registrations.length}</span>
+              <span className="text-sm text-slate-500">{filteredRegistrations.length} of {registrations.length}</span>
             )}
           </div>
         )}
 
         {/* Team list */}
         {activeTab === 'team' && (loading ? (
-          <div className="text-center py-20 text-gray-400">Loading...</div>
+          <div className="text-center py-20 text-slate-400">Loading...</div>
         ) : registrations.length === 0 ? (
-          <div className="text-center py-20 text-gray-400">No registrations yet.</div>
+          <div className="text-center py-20 text-slate-400">No registrations yet.</div>
         ) : filteredRegistrations.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">No registrations match your filters.</div>
+          <div className="text-center py-16 text-slate-400">No registrations match your filters.</div>
         ) : (
           <div className="space-y-3">
             {filteredRegistrations.map(reg => {
@@ -1457,61 +1458,61 @@ export default function RegistrationsPage() {
               const due = reg.invoiceAmount - reg.discountAmount
               const balance = due - totalPaid
               return (
-                <div key={reg.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                <div key={reg.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
                   {/* Row header */}
                   <div className="px-5 py-4 flex items-center justify-between gap-3">
                     <button onClick={() => setExpanded(expanded === reg.id ? null : reg.id)} className="flex-1 text-left min-w-0">
-                      <div className="font-semibold text-gray-800 truncate">{reg.clubName || reg.clubContact}</div>
-                      <div className="text-sm text-gray-500">{reg.contactEmail} · {reg.contactPhone}</div>
+                      <div className="font-semibold text-slate-800 truncate">{reg.clubName || reg.clubContact}</div>
+                      <div className="text-sm text-slate-500">{reg.contactEmail} · {reg.contactPhone}</div>
                     </button>
 
                     {/* Billing summary */}
                     <div className="hidden sm:flex items-center gap-4 text-sm flex-shrink-0">
                       <div className="text-right">
-                        <div className="text-xs text-gray-400">Invoiced</div>
-                        <div className="font-medium text-gray-700">{fmt(due)}</div>
+                        <div className="text-xs text-slate-400">Invoiced</div>
+                        <div className="font-medium text-slate-700">{fmt(due)}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-xs text-gray-400">Paid</div>
+                        <div className="text-xs text-slate-400">Paid</div>
                         <div className="font-medium text-green-600">{fmt(totalPaid)}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-xs text-gray-400">Balance</div>
+                        <div className="text-xs text-slate-400">Balance</div>
                         <div className={`font-semibold ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>{fmt(balance)}</div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <span className="hidden sm:block bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">{reg.teams.length} team{reg.teams.length !== 1 ? 's' : ''}</span>
+                      <span className="hidden sm:block bg-teal-50 text-teal-700 text-xs px-2 py-0.5 rounded-full">{reg.teams.length} team{reg.teams.length !== 1 ? 's' : ''}</span>
                       <button onClick={() => { setPayingRegId(reg.id); const _bal1=reg.invoiceAmount-reg.discountAmount-reg.payments.reduce((s:number,p:any)=>s+p.amount,0); setPayAmount(_bal1>0?String(_bal1):''); setPayCheck(''); setPayDate(today()); setPayNotes(''); setPayMethod(reg.paymentMethod||'check') }}
                         className="text-xs text-green-600 border border-green-300 hover:border-green-500 px-2.5 py-1 rounded-lg">+ Payment</button>
                       {reg.qboInvoiceId ? (
-                        <span className="text-xs text-green-600 border border-green-200 bg-green-50 px-2.5 py-1 rounded-lg">✓ QB Synced</span>
+                        <span className="inline-flex items-center gap-1 text-xs text-green-600 border border-green-200 bg-green-50 px-2.5 py-1 rounded-lg"><Check size={12} /> QB synced</span>
                       ) : (
-                        <button onClick={() => handleQboSync(reg.id)} className="text-xs text-purple-600 border border-purple-200 hover:border-purple-400 px-2.5 py-1 rounded-lg">QB Sync</button>
+                        <button onClick={() => handleQboSync(reg.id)} className="text-xs text-teal-600 border border-teal-200 hover:border-teal-400 px-2.5 py-1 rounded-lg">QB Sync</button>
                       )}
-                      <button onClick={() => openEdit(reg)} className="text-xs text-blue-600 border border-blue-200 hover:border-blue-400 px-2.5 py-1 rounded-lg">Edit</button>
+                      <button onClick={() => openEdit(reg)} className="text-xs text-teal-600 border border-teal-200 hover:border-teal-400 px-2.5 py-1 rounded-lg">Edit</button>
                       <button onClick={() => handleDelete(reg.id, reg.clubName || reg.clubContact)} className="text-xs text-red-500 border border-red-200 hover:border-red-400 px-2.5 py-1 rounded-lg">Del</button>
-                      <span className="text-gray-400 text-sm">{expanded === reg.id ? '▲' : '▼'}</span>
+                      <span className="text-slate-400">{expanded === reg.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
                     </div>
                   </div>
 
                   {/* Expanded detail */}
                   {expanded === reg.id && (
-                    <div className="border-t border-gray-100 bg-gray-50 px-5 py-4 space-y-4">
+                    <div className="border-t border-slate-100 bg-slate-50 px-5 py-4 space-y-4">
                       {/* Club details */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                        {reg.clubBasedIn && <div><span className="text-gray-500">Based In: </span>{reg.clubBasedIn}</div>}
-                        <div><span className="text-gray-500">Hotel: </span>{reg.needsHotel}</div>
-                        <div><span className="text-gray-500">Pay Method: </span>{payLabel(reg.paymentMethod)}</div>
-                        {reg.notes && <div className="col-span-full"><span className="text-gray-500">Notes: </span>{reg.notes}</div>}
+                        {reg.clubBasedIn && <div><span className="text-slate-500">Based In: </span>{reg.clubBasedIn}</div>}
+                        <div><span className="text-slate-500">Hotel: </span>{reg.needsHotel}</div>
+                        <div><span className="text-slate-500">Pay Method: </span>{payLabel(reg.paymentMethod)}</div>
+                        {reg.notes && <div className="col-span-full"><span className="text-slate-500">Notes: </span>{reg.notes}</div>}
                       </div>
 
                       {/* Teams table */}
                       {reg.teams.length > 0 && (
                         <table className="w-full text-sm border-collapse">
                           <thead>
-                            <tr className="bg-gray-100 text-gray-600 text-xs uppercase">
+                            <tr className="bg-slate-100 text-slate-600 text-xs uppercase">
                               {['Club','Team','Division','Coach','Phone','Email'].map(h => (
                                 <th key={h} className="px-3 py-2 text-left">{h}</th>
                               ))}
@@ -1519,7 +1520,7 @@ export default function RegistrationsPage() {
                           </thead>
                           <tbody>
                             {reg.teams.map((t, i) => (
-                              <tr key={t.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                              <tr key={t.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                                 <td className="px-3 py-2">{t.clubName}</td>
                                 <td className="px-3 py-2 font-medium">{t.teamName}</td>
                                 <td className="px-3 py-2">{t.division}</td>
@@ -1533,24 +1534,24 @@ export default function RegistrationsPage() {
                       )}
 
                       {/* Invoice summary */}
-                      <div className="bg-white border border-gray-200 rounded-xl p-4">
+                      <div className="bg-white border border-slate-200 rounded-xl p-4">
                         <div className="flex items-center justify-between mb-3">
-                          <h3 className="text-sm font-semibold text-gray-700">Invoice & Payments</h3>
+                          <h3 className="text-sm font-semibold text-slate-700">Invoice & Payments</h3>
                           <button onClick={() => { setPayingRegId(reg.id); const _bal2=reg.invoiceAmount-reg.discountAmount-reg.payments.reduce((s:number,p:any)=>s+p.amount,0); setPayAmount(_bal2>0?String(_bal2):''); setPayCheck(''); setPayDate(today()); setPayNotes(''); setPayMethod(reg.paymentMethod||'check') }}
                             className="text-xs bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700">+ Record Payment</button>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm mb-4">
-                          <div><span className="text-gray-500">Invoice: </span><span className="font-medium">{fmt(reg.invoiceAmount)}</span></div>
+                          <div><span className="text-slate-500">Invoice: </span><span className="font-medium">{fmt(reg.invoiceAmount)}</span></div>
                           {reg.discountAmount > 0 && (
-                            <div><span className="text-gray-500">Discount: </span><span className="font-medium text-orange-600">-{fmt(reg.discountAmount)}{reg.discountNote ? ` (${reg.discountNote})` : ''}</span></div>
+                            <div><span className="text-slate-500">Discount: </span><span className="font-medium text-amber-600">-{fmt(reg.discountAmount)}{reg.discountNote ? ` (${reg.discountNote})` : ''}</span></div>
                           )}
-                          <div><span className="text-gray-500">Due: </span><span className="font-semibold">{fmt(due)}</span></div>
+                          <div><span className="text-slate-500">Due: </span><span className="font-semibold">{fmt(due)}</span></div>
                         </div>
 
                         {reg.payments.length > 0 ? (
                           <table className="w-full text-sm">
                             <thead>
-                              <tr className="text-xs uppercase text-gray-500 border-b">
+                              <tr className="text-xs uppercase text-slate-500 border-b">
                                 <th className="pb-1 text-left">Date</th>
                                 <th className="pb-1 text-left">Method</th>
                                 <th className="pb-1 text-left">Ref</th>
@@ -1560,10 +1561,10 @@ export default function RegistrationsPage() {
                             </thead>
                             <tbody>
                               {reg.payments.map(p => (
-                                <tr key={p.id} className="border-b border-gray-50">
+                                <tr key={p.id} className="border-b border-slate-50">
                                   <td className="py-1.5">{new Date(p.receivedAt).toLocaleDateString()}</td>
                                   <td className="py-1.5">{payLabel(p.method)}</td>
-                                  <td className="py-1.5 text-gray-500">{p.checkNumber || p.notes || '—'}</td>
+                                  <td className="py-1.5 text-slate-500">{p.checkNumber || p.notes || '—'}</td>
                                   <td className="py-1.5 text-right font-medium text-green-700">{fmt(p.amount)}</td>
                                   <td className="py-1.5 text-right">
                                     <button onClick={() => handleDeletePayment(p.id, p.amount)} className="text-xs text-red-500 border border-red-200 hover:bg-red-50 hover:border-red-400 px-2 py-0.5 rounded-lg ml-2">Delete</button>
@@ -1573,14 +1574,14 @@ export default function RegistrationsPage() {
                             </tbody>
                             <tfoot>
                               <tr className="font-semibold">
-                                <td colSpan={3} className="pt-2 text-gray-600">Balance Due</td>
+                                <td colSpan={3} className="pt-2 text-slate-600">Balance Due</td>
                                 <td className={`pt-2 text-right ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>{fmt(balance)}</td>
                                 <td></td>
                               </tr>
                             </tfoot>
                           </table>
                         ) : (
-                          <p className="text-sm text-gray-400">No payments recorded yet.</p>
+                          <p className="text-sm text-slate-400">No payments recorded yet.</p>
                         )}
                       </div>
                     </div>
@@ -1596,29 +1597,29 @@ export default function RegistrationsPage() {
       <div className="mt-10">
         <button
           onClick={() => { setShowDeleted(v => !v); if (!showDeleted) fetchDeleted() }}
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
+          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
         >
-          <span>{showDeleted ? '▾' : '▸'}</span>
-          <span>Recently Deleted <span className="text-xs text-gray-400">(restored within 15 days)</span></span>
+          <span>{showDeleted ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</span>
+          <span>Recently Deleted <span className="text-xs text-slate-400">(restored within 15 days)</span></span>
         </button>
         {showDeleted && (
-          <div className="mt-3 border border-gray-200 rounded-lg divide-y divide-gray-200">
+          <div className="mt-3 border border-slate-200 rounded-lg divide-y divide-slate-200">
             {deletedRegs.length === 0 ? (
-              <p className="p-4 text-sm text-gray-400 italic">No recently deleted registrations.</p>
+              <p className="p-4 text-sm text-slate-400 italic">No recently deleted registrations.</p>
             ) : (
               deletedRegs.map(reg => (
-                <div key={reg.id} className="flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100">
+                <div key={reg.id} className="flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100">
                   <div>
-                    <span className="font-medium text-sm text-gray-800">{reg.clubName}</span>
-                    <span className="ml-3 text-xs text-gray-500">
+                    <span className="font-medium text-sm text-slate-800">{reg.clubName}</span>
+                    <span className="ml-3 text-xs text-slate-500">
                       Deleted {new Date(reg.deletedAt).toLocaleDateString()}
                     </span>
-                    <span className="ml-3 text-xs text-gray-400">{reg.teams?.length || 0} teams</span>
+                    <span className="ml-3 text-xs text-slate-400">{reg.teams?.length || 0} teams</span>
                   </div>
                   <button
                     onClick={() => handleRestore(reg.id)}
                     disabled={restoringId === reg.id}
-                    className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    className="text-xs bg-teal-600 text-white px-3 py-1.5 rounded hover:bg-teal-700 disabled:opacity-50 transition-colors"
                   >
                     {restoringId === reg.id ? 'Restoring…' : 'Restore'}
                   </button>

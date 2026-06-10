@@ -43,9 +43,10 @@ palette and cards), in this order:
 4. Admin / system pages.
 
 Done: shared UI components, Dashboard redesign, TournamentNav header, UTF-8 encoding
-fixes, builder year-regex fix, and the full Staff hub — Financials, Roster, Availability,
-Time Entries, Pay Summary.
-Next up: Registrations, Settings, Scheduler, then the remaining pages.
+fixes, builder year-regex fix, the full Staff hub — Financials, Roster, Availability,
+Time Entries, Pay Summary — and Registrations (lucide icons, slate/teal palette,
+sentence case; team + individual tabs, import panel, pricing/payment modals).
+Next up: Settings, Scheduler, then the remaining pages.
 Tracking: Roadmap #57 (consistency pass) and #58 (page consolidation review).
 
 ## Build philosophy
