@@ -368,3 +368,38 @@ model Pool {
 
   @@index([tournamentId, division])
 }
+
+model Bracket {
+  id           String        @id
+  tournamentId String
+  division     String
+  format       String
+  teamCount    Int
+  seeds        String        @default("{}")
+  createdAt    DateTime      @default(now())
+  games        BracketGame[]
+
+  @@index([tournamentId])
+  @@index([tournamentId, division])
+}
+
+model BracketGame {
+  id          String   @id
+  bracketId   String
+  gameNumber  Int
+  round       Int
+  section     String
+  team1Source String   @default("")
+  team2Source String   @default("")
+  label       String   @default("")
+  team1       String   @default("")
+  team2       String   @default("")
+  winner      String   @default("")
+  loser       String   @default("")
+  field       String   @default("")
+  startTime   String   @default("")
+  gameDate    String   @default("")
+  bracket     Bracket  @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+
+  @@index([bracketId])
+}
