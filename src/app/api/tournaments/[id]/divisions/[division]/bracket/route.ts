@@ -14,7 +14,7 @@ function fmtSrc(src: string): string {
 }
 
 
-// ── Algorithmic bracket generator (any team count) ─────────────────────────
+// ââ Algorithmic bracket generator (any team count) âââââââââââââââââââââââââ
 type Sect = 'winners' | 'losers' | 'consolation' | 'championship'
 interface Gen { gameNumber: number; round: number; section: Sect; t1: string; t2: string; label: string }
 
@@ -42,13 +42,24 @@ function generateSEGames(teamCount: number, consolationCount: number): Gen[] {
       gn++
     }
 
-    // Subsequent rounds: byes slot in first (best seeds), then r1 winners
-    let sources: string[] = [...byeSeeds, ...r1Winners]
+    // Subsequent rounds: byes slot first, then r1 winners
+    // When byes === r1 count, interleave to avoid crossing lines in visual preview
+    const equalByes = byeSeeds.length === r1Winners.length
+    let sources: string[]
+    if (equalByes) {
+      sources = []
+      for (let i = 0; i < byeSeeds.length; i++) sources.push(byeSeeds[i], r1Winners[i])
+    } else {
+      sources = [...byeSeeds, ...r1Winners]
+    }
     let round = 2
+    let firstRound = true
     while (sources.length > 1) {
       const next: string[] = []
+      const adj = equalByes && firstRound
       for (let i = 0; i < Math.floor(sources.length / 2); i++) {
-        const s1 = sources[i], s2 = sources[sources.length - 1 - i]
+        const s1 = adj ? sources[2 * i] : sources[i]
+        const s2 = adj ? sources[2 * i + 1] : sources[sources.length - 1 - i]
         const isChamp = sources.length === 2
         games.push({ gameNumber: gn, round, section: isChamp ? 'championship' : 'winners', t1: s1, t2: s2, label: isChamp ? 'Championship' : '' })
         next.push(`winner:${gn}`)
@@ -56,10 +67,11 @@ function generateSEGames(teamCount: number, consolationCount: number): Gen[] {
       }
       sources = next
       round++
+      firstRound = false
     }
   }
 
-  // Consolation slots — auto-fill with seeds starting at teamCount + 1
+  // Consolation slots â auto-fill with seeds starting at teamCount + 1
   for (let i = 0; i < consolationCount; i++) {
     const s1 = n + 1 + i * 2
     const s2 = n + 2 + i * 2
@@ -177,14 +189,14 @@ export async function PATCH(
     })
     if (!bracket) return NextResponse.json({ error: 'No bracket found' }, { status: 404 })
 
-    // ── Update label ──────────────────────────────────────────────────
+    // ââ Update label ââââââââââââââââââââââââââââââââââââââââââââââââââ
     if (body.updateLabel !== undefined) {
       const { gameNumber, label } = body.updateLabel
       await prisma.bracketGame.updateMany({ where: { bracketId: bracket.id, gameNumber }, data: { label } })
       return NextResponse.json({ ok: true })
     }
 
-    // ── Add a single game ──────────────────────────────────────────────
+    // ââ Add a single game ââââââââââââââââââââââââââââââââââââââââââââââ
     if (body.addGame) {
       const { gameNumber, round, section, t1Source, t2Source, label } = body.addGame
       await prisma.bracketGame.create({
@@ -212,7 +224,7 @@ export async function PATCH(
       return NextResponse.json({ ...updated, seeds: JSON.parse(updated!.seeds || '{}') })
     }
 
-    // ── Remove a single game ───────────────────────────────────────────
+    // ââ Remove a single game âââââââââââââââââââââââââââââââââââââââââââ
     if (body.removeGame !== undefined) {
       const gameNum = Number(body.removeGame)
       await prisma.bracketGame.deleteMany({ where: { bracketId: bracket.id, gameNumber: gameNum } })
@@ -226,7 +238,7 @@ export async function PATCH(
       return NextResponse.json({ ...updated, seeds: JSON.parse(updated!.seeds || '{}') })
     }
 
-    // ── Update seeds ───────────────────────────────────────────────────
+    // ââ Update seeds âââââââââââââââââââââââââââââââââââââââââââââââââââ
     if (body.seeds !== undefined) {
       await prisma.bracket.update({
         where: { id: bracket.id },
