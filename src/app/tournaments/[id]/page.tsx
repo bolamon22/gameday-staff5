@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { formatTime, formatDate, certLabel, GRID_ROLES, getDivisionColor, resetDivisionColors } from '@/lib/utils'
 import TournamentNav from './TournamentNav'
 import ChatWidget from './ChatWidget'
-import { Users } from 'lucide-react'
+import { Users, Lock } from 'lucide-react'
 
 interface Worker { id:string;name:string;certLevel:string;defaultRole:string;roles:string;gender:string;payRateOverride:number|null }
 interface Assignment { id:string;workerId:string;role:string;payRate:number;worker:Worker }
@@ -120,6 +120,7 @@ export default function GridPage({ params }: { params:{id:string} }) {
   const [dragOver,setDragOver]=useState<{time:string;field:string}|null>(null)
   const [dragWorker,setDragWorker]=useState<Worker|null>(null)
   const [dragSlot,setDragSlot]=useState<string|null>(null)
+  const [locked,setLocked]=useState(false)
 
   // Collapsible field columns
   const [collapsedFields,setCollapsedFields]=useState<Set<string>>(new Set())
@@ -150,6 +151,8 @@ export default function GridPage({ params }: { params:{id:string} }) {
   },[params.id])
 
   useEffect(()=>{load()},[load])
+  useEffect(()=>{try{setLocked(localStorage.getItem('assignerLocked:'+params.id)==='1')}catch{}},[params.id])
+  function toggleLock(v:boolean){setLocked(v);try{localStorage.setItem('assignerLocked:'+params.id,v?'1':'0')}catch{}}
 
   async function handleFileSelect(e:React.ChangeEvent<HTMLInputElement>){
     const file=e.target.files?.[0];if(!file)return
@@ -776,9 +779,14 @@ export default function GridPage({ params }: { params:{id:string} }) {
         <div className="mb-3 flex items-center gap-2 text-xs text-slate-500 flex-wrap">
           <span className="font-semibold text-slate-600">Refs per game:</span>
           {[1,2,3].map(n=>(
-            <button key={n} type="button" onClick={()=>applyDefaultRefs(n)} className="px-2 py-0.5 rounded-md border border-slate-300 bg-white hover:bg-sky-50 hover:border-sky-400 font-medium text-slate-600 transition-colors">{n}</button>
+            <button key={n} type="button" disabled={locked} onClick={()=>applyDefaultRefs(n)} className="px-2 py-0.5 rounded-md border border-slate-300 bg-white hover:bg-sky-50 hover:border-sky-400 font-medium text-slate-600 transition-colors disabled:opacity-40">{n}</button>
           ))}
           <span className="text-slate-400">— sets every game on this day; use the − / + on a game to change just that one.</span>
+          <label className="ml-auto flex items-center gap-1.5 cursor-pointer select-none">
+            <input type="checkbox" checked={locked} onChange={e=>toggleLock(e.target.checked)} className="accent-sky-600"/>
+            <Lock size={13} className={locked?'text-sky-600':'text-slate-400'}/>
+            <span className={`font-medium ${locked?'text-sky-700':'text-slate-600'}`}>Lock editing</span>
+          </label>
         </div>
       )}
       {viewMode==='grid'&&dayGames.length>0&&(
@@ -800,10 +808,10 @@ export default function GridPage({ params }: { params:{id:string} }) {
               const count=getGameCount(w.id)
               const kind=staffKind(w)
               return(
-                <div key={w.id} draggable
+                <div key={w.id} draggable={!locked}
                   onDragStart={e=>{e.dataTransfer.setData('workerId',w.id);e.dataTransfer.effectAllowed='copy';setDragWorker(w)}}
                   onDragEnd={()=>{setDragWorker(null);setDragSlot(null)}}
-                  className={`flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] cursor-grab active:cursor-grabbing hover:border-sky-400 transition-colors ${dragWorker?.id===w.id?'opacity-40':''}`}
+                  className={`flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] transition-colors ${locked?'opacity-60 cursor-default':'cursor-grab active:cursor-grabbing hover:border-sky-400'} ${dragWorker?.id===w.id?'opacity-40':''}`}
                   title={`${w.name} · ${kind.label} · ${certLabel(w.certLevel)} · ${count} game${count!==1?'s':''} today`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${kind.dot}`}/>
                   <span className="font-medium text-slate-700">{w.name}</span>
@@ -881,7 +889,7 @@ export default function GridPage({ params }: { params:{id:string} }) {
                           className={`border-r border-t border-slate-300 last:border-r-0 min-h-[80px] transition-colors ${isDragTarget?dropHasConflict?'bg-red-100 ring-2 ring-inset ring-red-400':'bg-emerald-100 ring-2 ring-inset ring-emerald-400':'bg-white'}`}
                           onDragOver={e=>{e.preventDefault();if(dragGame)setDragOver({time,field})}}
                           onDragLeave={()=>setDragOver(null)}
-                          onDrop={e=>{e.preventDefault();const gId=e.dataTransfer.getData('gameId');if(gId)handleDrop(gId,time,field,activeDay);setDragOver(null)}}
+                          onDrop={e=>{e.preventDefault();const gId=e.dataTransfer.getData('gameId');if(gId&&!locked)handleDrop(gId,time,field,activeDay);setDragOver(null)}}
                         />
                       )
                       const dc=divColorMap.get(game.division)||{bg:'#f8fafc',border:'#e2e8f0',text:'#475569'}
@@ -895,7 +903,7 @@ export default function GridPage({ params }: { params:{id:string} }) {
                           style={isDragTarget?{}:{background:dc.bg}}
                           onDragOver={e=>{e.preventDefault();if(dragGame&&dragGame.id!==game.id)setDragOver({time,field})}}
                           onDragLeave={()=>setDragOver(null)}
-                          onDrop={e=>{e.preventDefault();const gId=e.dataTransfer.getData('gameId');if(gId&&gId!==game.id)handleDrop(gId,time,field,activeDay);setDragOver(null)}}
+                          onDrop={e=>{e.preventDefault();const gId=e.dataTransfer.getData('gameId');if(gId&&gId!==game.id&&!locked)handleDrop(gId,time,field,activeDay);setDragOver(null)}}
                         >
                           {hasDoubleBooking&&(()=>{
                             const names=game.assignments.filter(a=>doubled.has(a.workerId)).map(a=>a.worker.name)
@@ -909,10 +917,10 @@ export default function GridPage({ params }: { params:{id:string} }) {
                               </div>
                             )
                           })()}
-                          <button className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-[9px] text-slate-400 hover:text-slate-700 transition-opacity" onClick={e=>{e.stopPropagation();openEditGame(game)}}>✎</button>
+                          {!locked&&<button className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-[9px] text-slate-400 hover:text-slate-700 transition-opacity" onClick={e=>{e.stopPropagation();openEditGame(game)}}>✎</button>}
                           <div
                             className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 transition-opacity text-[12px] leading-none select-none"
-                            draggable
+                            draggable={!locked}
                             onDragStart={e=>{e.dataTransfer.setData('gameId',game.id);e.dataTransfer.effectAllowed='move';setDragGame(game)}}
                             onDragEnd={()=>{setDragGame(null);setDragOver(null)}}
                             title="Drag to move game"
@@ -934,9 +942,9 @@ export default function GridPage({ params }: { params:{id:string} }) {
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wide">Refs</span>
                               <div className="flex items-center gap-0.5">
-                                <button type="button" onClick={()=>setRefCount(game.id,refCount-1)} disabled={refCount<=1} className="w-3.5 h-3.5 flex items-center justify-center rounded border border-slate-300 text-slate-500 text-[11px] leading-none hover:bg-slate-100 disabled:opacity-30">−</button>
+                                <button type="button" onClick={()=>setRefCount(game.id,refCount-1)} disabled={refCount<=1||locked} className="w-3.5 h-3.5 flex items-center justify-center rounded border border-slate-300 text-slate-500 text-[11px] leading-none hover:bg-slate-100 disabled:opacity-30">−</button>
                                 <span className="text-[9px] font-bold text-slate-600 w-2.5 text-center">{refCount}</span>
-                                <button type="button" onClick={()=>setRefCount(game.id,refCount+1)} disabled={refCount>=3} className="w-3.5 h-3.5 flex items-center justify-center rounded border border-slate-300 text-slate-500 text-[11px] leading-none hover:bg-slate-100 disabled:opacity-30">+</button>
+                                <button type="button" onClick={()=>setRefCount(game.id,refCount+1)} disabled={refCount>=3||locked} className="w-3.5 h-3.5 flex items-center justify-center rounded border border-slate-300 text-slate-500 text-[11px] leading-none hover:bg-slate-100 disabled:opacity-30">+</button>
                               </div>
                             </div>
                             {/* Ref slots */}
@@ -944,10 +952,10 @@ export default function GridPage({ params }: { params:{id:string} }) {
                               const role=i===0?'ref1':i===1?'ref2':'ref3'
                               const roleObj=GRID_ROLES.find(r=>r.value===role)||{value:role,label:`Ref ${i+1}`,short:`R${i+1}`,color:'#0284c7'}
                               const existing=game.assignments.find(a=>a.role===role)
-                              return<div key={role} onDragOver={e=>{if(dragWorker){e.preventDefault();setDragSlot(game.id+":"+role)}}} onDragLeave={()=>setDragSlot(null)} onDrop={e=>{e.preventDefault();e.stopPropagation();const wid=e.dataTransfer.getData("workerId");setDragSlot(null);if(wid)assign(game.id,role,wid)}} className={dragSlot===game.id+":"+role?"rounded ring-1 ring-sky-400 bg-sky-50":""}><AssignSelect roleObj={roleObj} existing={existing} workers={rosterWorkers} avails={avails} date={game.date} time={game.startTime} disabled={isAssigning} division={game.division} onAssign={wid=>assign(game.id,role,wid)} getGameCount={getGameCount} doubled={doubled} slotType="ref"/></div>
+                              return<div key={role} onDragOver={e=>{if(dragWorker&&!locked){e.preventDefault();setDragSlot(game.id+":"+role)}}} onDragLeave={()=>setDragSlot(null)} onDrop={e=>{e.preventDefault();e.stopPropagation();const wid=e.dataTransfer.getData("workerId");setDragSlot(null);if(wid&&!locked)assign(game.id,role,wid)}} className={dragSlot===game.id+":"+role?"rounded ring-1 ring-sky-400 bg-sky-50":""}><AssignSelect roleObj={roleObj} existing={existing} workers={rosterWorkers} avails={avails} date={game.date} time={game.startTime} disabled={isAssigning||locked} division={game.division} onAssign={wid=>assign(game.id,role,wid)} getGameCount={getGameCount} doubled={doubled} slotType="ref"/></div>
                             })}
                             {/* Scorekeeper */}
-                            <div onDragOver={e=>{if(dragWorker){e.preventDefault();setDragSlot(game.id+":scorekeeper")}}} onDragLeave={()=>setDragSlot(null)} onDrop={e=>{e.preventDefault();e.stopPropagation();const wid=e.dataTransfer.getData("workerId");setDragSlot(null);if(wid)assign(game.id,"scorekeeper",wid)}} className={dragSlot===game.id+":scorekeeper"?"rounded ring-1 ring-sky-400 bg-sky-50":""}><AssignSelect roleObj={{value:'scorekeeper',label:'Scorekeeper',short:'SK',color:'#059669'}} existing={game.assignments.find(a=>a.role==='scorekeeper')} workers={rosterWorkers} avails={avails} date={game.date} time={game.startTime} disabled={isAssigning} division={game.division} onAssign={wid=>assign(game.id,'scorekeeper',wid)} getGameCount={getGameCount} doubled={doubled} slotType="scorekeeper"/></div>
+                            <div onDragOver={e=>{if(dragWorker&&!locked){e.preventDefault();setDragSlot(game.id+":scorekeeper")}}} onDragLeave={()=>setDragSlot(null)} onDrop={e=>{e.preventDefault();e.stopPropagation();const wid=e.dataTransfer.getData("workerId");setDragSlot(null);if(wid&&!locked)assign(game.id,"scorekeeper",wid)}} className={dragSlot===game.id+":scorekeeper"?"rounded ring-1 ring-sky-400 bg-sky-50":""}><AssignSelect roleObj={{value:'scorekeeper',label:'Scorekeeper',short:'SK',color:'#059669'}} existing={game.assignments.find(a=>a.role==='scorekeeper')} workers={rosterWorkers} avails={avails} date={game.date} time={game.startTime} disabled={isAssigning||locked} division={game.division} onAssign={wid=>assign(game.id,'scorekeeper',wid)} getGameCount={getGameCount} doubled={doubled} slotType="scorekeeper"/></div>
                           </div>
                         </td>
                       )
@@ -960,7 +968,7 @@ export default function GridPage({ params }: { params:{id:string} }) {
         </div>
       )}
       <div className="mt-3 flex items-center justify-between flex-wrap gap-2">
-        <div className="text-xs text-slate-400">R1/R2/R3 = Refs · SK = Scorekeeper · 🟢🟡🔴 = game load · ⚠ = double-booked · ⠿ drag · click column header to collapse</div>
+        <div className="text-xs text-slate-400">R1/R2/R3 = Refs · SK = Scorekeeper · ⚠ = double-booked · ⠿ drag · click column header to collapse</div>
         <div className="flex gap-3">
           <span className="text-xs text-slate-400">Columns:</span>
           <button onClick={()=>setCollapsedFields(new Set(fields))} className="text-xs text-slate-400 hover:text-slate-600">Collapse all</button>
@@ -988,7 +996,7 @@ export default function GridPage({ params }: { params:{id:string} }) {
             {unscheduledGames.map(g=>(
               <div
                 key={g.id}
-                draggable
+                draggable={!locked}
                 onDragStart={e=>{e.dataTransfer.setData('gameId',g.id);e.dataTransfer.effectAllowed='move';setDragGame(g)}}
                 onDragEnd={()=>{setDragGame(null);setDragOver(null)}}
                 className={`card p-3 cursor-grab active:cursor-grabbing w-48 border-2 border-dashed border-slate-300 hover:border-sky-400 transition-colors ${dragGame?.id===g.id?'opacity-40':''}`}
