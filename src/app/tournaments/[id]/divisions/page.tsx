@@ -54,7 +54,7 @@ export default function DivisionsPage() {
   const [divGamesPerTeam, setDivGamesPerTeam] = useState<Record<string, string>>({})
   const [generatingAll, setGeneratingAll] = useState(false)
   const [guarantee, setGuarantee] = useState('4')
-  const [smartTable, setSmartTable] = useState<Record<number, { games?: number; pools?: number; bracket?: string }>>({})
+  const [smartTable, setSmartTable] = useState<Record<number, { games?: number; pools?: number; bracket?: string; advance?: number; consolation?: number }>>({})
   const [showSmartEditor, setShowSmartEditor] = useState(false)
   const [smartMax, setSmartMax] = useState(16)
   useEffect(() => { try { const raw = localStorage.getItem('smartDefaults:' + id); if (raw) setSmartTable(JSON.parse(raw)) } catch {} }, [id])
@@ -489,7 +489,7 @@ if (loading) return (
         <div className="flex gap-6">
 
           {/* -- Sidebar -------------------------------------------- */}
-          <div className="w-80 flex-shrink-0 sticky top-6 self-start">
+          <div className="w-80 flex-shrink-0 sticky top-6 self-start z-40">
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
               <div className="bg-slate-800 px-4 py-3">
                 <p className="text-xs font-bold text-white uppercase tracking-wider">Divisions</p>
@@ -640,13 +640,13 @@ if (loading) return (
               const counts: number[] = []; for (let n = 2; n <= maxN; n++) counts.push(n)
               const g = Number(guarantee) || 4
               const BRACKETS = [{ v: '', l: 'None' }, { v: 'single', l: 'Single elim' }, { v: 'single-con', l: 'Single elim + 3rd' }, { v: 'double', l: 'Double elim' }, { v: '2gg', l: '2-game guarantee' }]
-              const setField = (n: number, k: 'games' | 'pools' | 'bracket', val: number | string) => setSmartTable(prev => ({ ...prev, [n]: { ...prev[n], [k]: val } }))
+              const setField = (n: number, k: 'games' | 'pools' | 'bracket' | 'advance' | 'consolation', val: number | string | undefined) => setSmartTable(prev => ({ ...prev, [n]: { ...prev[n], [k]: val } }))
               return (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowSmartEditor(false)}>
                   <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
                     <div className="px-5 py-4 border-b border-slate-100">
                       <h3 className="font-bold text-slate-800 flex items-center gap-1.5"><Sparkles size={15} className="text-teal-500" /> Smart defaults</h3>
-                      <p className="text-xs text-slate-400 mt-0.5">Your preferred setup for a division by how many teams it has. Smart defaults applies games/team; pools and bracket are saved as your plan.</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Your preferred setup for a division by how many teams it has. Smart defaults applies games/team; pools, bracket, bracket size (Adv) and consolation are saved as your plan.</p>
                       <div className="mt-2 flex items-center gap-2 text-xs text-slate-500"><span>Show team counts up to</span><input type="number" min="2" value={smartMax} onChange={e => setSmartMax(Math.max(2, Number(e.target.value) || 2))} className="w-16 border border-slate-200 rounded text-center py-0.5 focus:outline-none focus:ring-1 focus:ring-teal-400" /><span>teams</span></div>
                     </div>
                     <div className="px-5 py-2 overflow-y-auto">
@@ -656,6 +656,8 @@ if (loading) return (
                           <th className="font-semibold py-1">Games/team</th>
                           <th className="font-semibold py-1">Pools</th>
                           <th className="text-left font-semibold py-1 pl-3">Bracket</th>
+                          <th className="font-semibold py-1">Adv</th>
+                          <th className="font-semibold py-1">Consol.</th>
                         </tr></thead>
                         <tbody>
                           {counts.map(n => {
@@ -681,6 +683,16 @@ if (loading) return (
                                     className="w-full border border-slate-200 rounded px-1.5 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-teal-400">
                                     {BRACKETS.map(b => <option key={b.v} value={b.v}>{b.l}</option>)}
                                   </select>
+                                </td>
+                                <td className="py-1 text-center">
+                                  <input type="number" min="2" max={n} value={row.advance ?? ''} placeholder="auto"
+                                    onChange={e => setField(n, 'advance', e.target.value === '' ? undefined : Math.max(2, Math.min(Number(e.target.value) || 2, n)))}
+                                    className="w-12 border border-slate-200 rounded text-center py-0.5 focus:outline-none focus:ring-1 focus:ring-teal-400" />
+                                </td>
+                                <td className="py-1 text-center">
+                                  <input type="number" min="0" value={row.consolation ?? ''} placeholder="0"
+                                    onChange={e => setField(n, 'consolation', e.target.value === '' ? undefined : Math.max(0, Number(e.target.value) || 0))}
+                                    className="w-12 border border-slate-200 rounded text-center py-0.5 focus:outline-none focus:ring-1 focus:ring-teal-400" />
                                 </td>
                               </tr>
                             )
@@ -1240,8 +1252,9 @@ if (loading) return (
                   const planB = smartTable[tc]?.bracket || ''
                   const fmt = planB === 'double' ? 'double' : planB === '2gg' ? '2gg' : (planB === 'single' || planB === 'single-con') ? 'single' : undefined
                   let pow2 = 1; while (pow2 * 2 <= tc) pow2 *= 2
-                  const cnt = owes2 ? String(tc) : String(pow2)
-                  const cons = owes2 ? undefined : (tc - pow2 > 0 ? String(Math.floor((tc - pow2) / 2)) : (planB === 'single-con' ? '1' : undefined))
+                  const sd = smartTable[tc] || {}
+                  const cnt = owes2 ? String(tc) : (sd.advance != null ? String(sd.advance) : String(pow2))
+                  const cons = owes2 ? undefined : (sd.consolation != null ? String(sd.consolation) : (tc - pow2 > 0 ? String(Math.floor((tc - pow2) / 2)) : (planB === 'single-con' ? '1' : undefined)))
                   return <BracketBuilder key={activeDiv} tournamentId={id} division={activeDiv} planFormat={fmt as 'single' | 'double' | '2gg' | undefined} planCount={cnt} planConsolation={cons} planLoserConsolation={owes2} />
                 })()
               )}
