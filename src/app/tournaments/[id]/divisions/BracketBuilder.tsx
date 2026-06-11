@@ -192,6 +192,16 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
     }
   }
 
+  async function handleRenameSeed(seedNum: number, value: string) {
+    const next = { ...seeds, [String(seedNum)]: value }
+    setSeeds(next)
+    if (!bracket) return
+    try {
+      const r = await fetch(apiBase, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seeds: next }) })
+      if (r.ok) { const d = await r.json(); setBracket(prev => prev ? { ...prev, seeds: d.seeds || {} } : prev); setSeeds(d.seeds || {}) }
+    } catch { /* ignore */ }
+  }
+
   async function handleRemoveGame(gameNumber: number) {
     if (!confirm(`Remove game B${gameNumber} from the bracket?`)) return
     setRemovingGame(gameNumber)
@@ -592,6 +602,9 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
           seeds={seeds}
           division={division}
           onLabelChange={handleLabelChange}
+          onRemoveGame={handleRemoveGame}
+          onRenameSeed={handleRenameSeed}
+          onAddGame={() => setTab('manage')}
         />
       )}
     </div>
@@ -609,13 +622,39 @@ function resolveLabel(src: string, seeds: Record<string, string>): string {
   return src
 }
 
-function BracketPreview({ template, seeds, division, onLabelChange }: {
+function BracketPreview({ template, seeds, division, onLabelChange, onRemoveGame, onRenameSeed, onAddGame }: {
   template: GameTemplate[]
   seeds: Record<string, string>
   division?: string
   onLabelChange?: (gameNumber: number, label: string) => void
+  onRemoveGame?: (gameNumber: number) => void
+  onRenameSeed?: (seedNum: number, value: string) => void
+  onAddGame?: () => void
 }) {
   const [editingLabel, setEditingLabel] = useState<{ gameNumber: number; value: string } | null>(null)
+  const [editingSeat, setEditingSeat] = useState<{ gameNumber: number; slot: number; value: string } | null>(null)
+
+  function renderSlot(gameNumber: number, src: string, slot: number) {
+    const label = resolveLabel(src, seeds)
+    const computed = label.startsWith('W-') || label.startsWith('L-')
+    if (src.startsWith('seed:') && onRenameSeed) {
+      const seedNum = parseInt(src.split(':')[1])
+      if (editingSeat && editingSeat.gameNumber === gameNumber && editingSeat.slot === slot) {
+        return (
+          <input autoFocus value={editingSeat.value} placeholder={`Seed ${seedNum}`}
+            onChange={e => setEditingSeat({ gameNumber, slot, value: e.target.value })}
+            onBlur={() => { onRenameSeed(seedNum, editingSeat.value); setEditingSeat(null) }}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { onRenameSeed(seedNum, editingSeat.value); setEditingSeat(null) } }}
+            className="bg-transparent border-b border-teal-400 text-white text-xs outline-none w-full" />
+        )
+      }
+      return (
+        <button onClick={() => setEditingSeat({ gameNumber, slot, value: seeds[String(seedNum)] ?? '' })}
+          title="Click to rename" className="truncate text-xs font-medium text-left w-full text-white hover:text-teal-300 cursor-text">{label}</button>
+      )
+    }
+    return <span className={`truncate text-xs font-medium ${computed ? 'text-slate-400 italic' : 'text-white'}`}>{label}</span>
+  }
 
   const mainGames = template.filter(g => g.section === 'winners' || g.section === 'championship')
   const sideGames = template.filter(g => g.section === 'consolation' || g.section === 'losers')
@@ -677,6 +716,12 @@ function BracketPreview({ template, seeds, division, onLabelChange }: {
 
   return (
     <div>
+      {(onAddGame || onRenameSeed) && (
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] text-slate-500">Click a team to rename · × removes a game</span>
+          {onAddGame && <button onClick={onAddGame} className="text-[11px] text-slate-400 hover:text-teal-300">+ Add game</button>}
+        </div>
+      )}
       {/* Round column labels */}
       <div style={{ position: 'relative', width: canvasW, height: LABEL_H }} className="mb-1">
         {mainRounds.map(r => (
@@ -729,12 +774,11 @@ function BracketPreview({ template, seeds, division, onLabelChange }: {
                       </button>
                     )
                   })()}
+                  {onRemoveGame && <button onClick={() => onRemoveGame(game.gameNumber)} title="Remove game" className="text-[12px] leading-none text-slate-500 hover:text-red-400 ml-1">×</button>}
                 </div>
                 {[game.t1, game.t2].map((src, i) => (
                   <div key={i} className={`flex-1 flex items-center px-2.5 ${i === 0 ? 'border-b border-slate-700/80' : ''}`}>
-                    <span className={`truncate text-xs font-medium ${resolveLabel(src, seeds).startsWith('W-') || resolveLabel(src, seeds).startsWith('L-') ? 'text-slate-400 italic' : 'text-white'}`}>
-                      {resolveLabel(src, seeds)}
-                    </span>
+                    {renderSlot(game.gameNumber, src, i)}
                   </div>
                 ))}
               </div>
@@ -774,12 +818,11 @@ function BracketPreview({ template, seeds, division, onLabelChange }: {
                       </button>
                     )
                   })()}
+                  {onRemoveGame && <button onClick={() => onRemoveGame(game.gameNumber)} title="Remove game" className="text-[12px] leading-none text-slate-500 hover:text-red-400 ml-1">×</button>}
                 </div>
                 {[game.t1, game.t2].map((src, i) => (
                   <div key={i} className={`px-2 py-1 flex items-center ${i === 0 ? 'border-b border-slate-700' : ''}`}>
-                    <span className={`truncate text-xs font-medium ${resolveLabel(src, seeds).startsWith('W-') || resolveLabel(src, seeds).startsWith('L-') ? 'text-slate-400 italic' : 'text-slate-100'}`}>
-                      {resolveLabel(src, seeds)}
-                    </span>
+                    {renderSlot(game.gameNumber, src, i)}
                   </div>
                 ))}
               </div>
