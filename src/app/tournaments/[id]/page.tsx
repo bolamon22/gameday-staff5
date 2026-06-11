@@ -271,6 +271,18 @@ export default function GridPage({ params }: { params:{id:string} }) {
     await fetch(`/api/games/${gameId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({[field]:val})})
     await load()
   }
+  async function setRefCount(gameId:string,n:number){
+    const clamped=Math.max(1,Math.min(3,n))
+    await fetch(`/api/games/${gameId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({refCount:clamped})})
+    await load()
+  }
+  async function applyDefaultRefs(n:number){
+    const dg=games.filter(g=>g.date===activeDay)
+    if(!confirm(`Set every game on this day (${dg.length}) to ${n} ref${n!==1?'s':''}? You can still adjust individual games afterward.`))return
+    await Promise.all(dg.map(g=>fetch(`/api/games/${g.id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({refCount:n})})))
+    toast.success('Updated ref counts')
+    await load()
+  }
 
   function getGameCount(workerId:string, date?:string):number{return games.filter(g=>g.date===(date??activeDay)&&g.assignments.some(a=>a.workerId===workerId)).length}
 
@@ -760,6 +772,15 @@ export default function GridPage({ params }: { params:{id:string} }) {
       })()}
 
       {viewMode==='grid'&&dayGames.length>0&&(
+        <div className="mb-3 flex items-center gap-2 text-xs text-slate-500 flex-wrap">
+          <span className="font-semibold text-slate-600">Refs per game:</span>
+          {[1,2,3].map(n=>(
+            <button key={n} type="button" onClick={()=>applyDefaultRefs(n)} className="px-2 py-0.5 rounded-md border border-slate-300 bg-white hover:bg-sky-50 hover:border-sky-400 font-medium text-slate-600 transition-colors">{n}</button>
+          ))}
+          <span className="text-slate-400">— sets every game on this day; use the − / + on a game to change just that one.</span>
+        </div>
+      )}
+      {viewMode==='grid'&&dayGames.length>0&&(
         <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-center gap-2 mb-1.5">
             <Users size={14} className="text-slate-400"/>
@@ -865,7 +886,7 @@ export default function GridPage({ params }: { params:{id:string} }) {
                       const dc=divColorMap.get(game.division)||{bg:'#f8fafc',border:'#e2e8f0',text:'#475569'}
                       const isAssigning=assigningGame===game.id
                       const hasDoubleBooking=game.assignments.some(a=>doubled.has(a.workerId))
-                      const refCount=getRefCount(game)
+                      const refCount=game.isChampionship?Math.max(game.refCount,3):game.refCount
 
                       return(
                         <td key={field}
@@ -909,6 +930,14 @@ export default function GridPage({ params }: { params:{id:string} }) {
                             <div className="flex items-center gap-1"><span className="font-bold text-[12px] text-slate-900 flex-1 leading-tight">{game.team2}</span><input type="number" min="0" className="w-8 h-5 text-[10px] text-center border border-slate-200 rounded bg-white/80 focus:outline-none" defaultValue={game.score2??''} onBlur={e=>saveScore(game.id,'score2',e.target.value)} placeholder="—"/></div>
                           </div>
                           <div className="space-y-0.5 pt-1" style={{borderTop:`1px solid ${dc.border}`}}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wide">Refs</span>
+                              <div className="flex items-center gap-0.5">
+                                <button type="button" onClick={()=>setRefCount(game.id,refCount-1)} disabled={refCount<=1} className="w-3.5 h-3.5 flex items-center justify-center rounded border border-slate-300 text-slate-500 text-[11px] leading-none hover:bg-slate-100 disabled:opacity-30">−</button>
+                                <span className="text-[9px] font-bold text-slate-600 w-2.5 text-center">{refCount}</span>
+                                <button type="button" onClick={()=>setRefCount(game.id,refCount+1)} disabled={refCount>=3} className="w-3.5 h-3.5 flex items-center justify-center rounded border border-slate-300 text-slate-500 text-[11px] leading-none hover:bg-slate-100 disabled:opacity-30">+</button>
+                              </div>
+                            </div>
                             {/* Ref slots */}
                             {Array.from({length:refCount},(_,i)=>{
                               const role=i===0?'ref1':i===1?'ref2':'ref3'
