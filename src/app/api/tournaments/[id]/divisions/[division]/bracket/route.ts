@@ -108,11 +108,13 @@ function generateOwes2(teamCount: number): Gen[] {
     extra.push({ gameNumber: gn++, round: 1, section: 'consolation', t1: `loser:${mixed[j].gameNumber}`, t2: `loser:${mixed[j + 1].gameNumber}`, label: 'If needed' })
   }
   const leftoverMixed = mixed.length % 2 === 1 ? mixed[mixed.length - 1] : null
-  if (leftoverMixed && strongestTwo) {
-    extra.push({ gameNumber: gn++, round: 1, section: 'consolation', t1: `loser:${leftoverMixed.gameNumber}`, t2: `loser:${strongestTwo.gameNumber}`, label: 'If needed' })
-  }
   if (leftoverTwo) {
-    extra.push({ gameNumber: gn++, round: 1, section: 'consolation', t1: `loser:${leftoverTwo.gameNumber}`, t2: leftoverMixed ? `loser:${leftoverMixed.gameNumber}` : 'seed:0', label: 'Consolation (check)' })
+    // odd number of definite-loser games: give the leftover a guaranteed 2nd game by pairing it
+    // with a bye-seed game (which doubles as that bye seed's if-needed), else the strongest other loser
+    const opp = leftoverMixed ?? strongestTwo
+    if (opp) extra.push({ gameNumber: gn++, round: 1, section: 'consolation', t1: `loser:${leftoverTwo.gameNumber}`, t2: `loser:${opp.gameNumber}`, label: 'Consolation' })
+  } else if (leftoverMixed && strongestTwo) {
+    extra.push({ gameNumber: gn++, round: 1, section: 'consolation', t1: `loser:${leftoverMixed.gameNumber}`, t2: `loser:${strongestTwo.gameNumber}`, label: 'If needed' })
   }
   return [...games, ...extra]
 }

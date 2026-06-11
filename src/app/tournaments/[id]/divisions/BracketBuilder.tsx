@@ -28,6 +28,7 @@ interface Props {
   planFormat?: 'single' | 'double' | '2gg'
   planCount?: string
   planConsolation?: string
+  planLoserConsolation?: boolean
 }
 
 // ── Layout constants ───────────────────────────────────────────────────────
@@ -67,7 +68,7 @@ const SECTION_LABELS: Record<string, string> = {
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-export default function BracketBuilder({ tournamentId, division, planFormat, planCount, planConsolation }: Props) {
+export default function BracketBuilder({ tournamentId, division, planFormat, planCount, planConsolation, planLoserConsolation }: Props) {
   const [loading, setLoading] = useState(true)
   const [bracket, setBracket] = useState<BracketData | null>(null)
   const [tab, setTab] = useState<'seeding' | 'manage' | 'preview'>('seeding')
@@ -78,7 +79,7 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
   const [selFormat, setSelFormat] = useState<'single' | 'double' | '2gg'>(planFormat ?? 'single')
   const [selCountInput, setSelCountInput] = useState(planCount ?? '4')
   const [consolationInput, setConsolationInput] = useState(planConsolation ?? '0')
-  const [loserConsolation, setLoserConsolation] = useState(false)
+  const [loserConsolation, setLoserConsolation] = useState(planLoserConsolation ?? false)
   const [creating, setCreating] = useState(false)
 
   // Add-game form state

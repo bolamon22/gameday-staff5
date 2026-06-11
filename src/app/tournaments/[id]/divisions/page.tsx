@@ -1234,11 +1234,14 @@ if (loading) return (
               {activeTab === 'bracket' && activeDiv && (
                 (() => {
                   const tc = divisions.find(d => d.name === activeDiv)?.teamCount ?? teams.length
+                  const poolG = parseInt(divGamesPerTeam[activeDiv] ?? gamesPerTeam ?? '2') || 2
+                  const guar = parseInt(guarantee) || 4
+                  const owes2 = (guar - poolG) >= 2
                   const planB = smartTable[tc]?.bracket || ''
                   const fmt = planB === 'double' ? 'double' : planB === '2gg' ? '2gg' : (planB === 'single' || planB === 'single-con') ? 'single' : undefined
                   const sizes = fmt === 'double' ? [4, 8] : [4, 8, 16]
-                  const cnt = fmt ? String(sizes.filter(z => z <= tc).pop() ?? sizes[0]) : undefined
-                  return <BracketBuilder key={activeDiv} tournamentId={id} division={activeDiv} planFormat={fmt as 'single' | 'double' | '2gg' | undefined} planCount={cnt} planConsolation={planB === 'single-con' ? '1' : undefined} />
+                  const cnt = owes2 ? String(tc) : (fmt ? String(sizes.filter(z => z <= tc).pop() ?? sizes[0]) : undefined)
+                  return <BracketBuilder key={activeDiv} tournamentId={id} division={activeDiv} planFormat={fmt as 'single' | 'double' | '2gg' | undefined} planCount={cnt} planConsolation={planB === 'single-con' ? '1' : undefined} planLoserConsolation={owes2} />
                 })()
               )}
               </>
