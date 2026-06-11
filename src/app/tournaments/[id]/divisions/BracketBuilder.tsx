@@ -72,6 +72,7 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
   const [loading, setLoading] = useState(true)
   const [bracket, setBracket] = useState<BracketData | null>(null)
   const [tab, setTab] = useState<'seeding' | 'manage' | 'preview'>('seeding')
+  const [showAddGame, setShowAddGame] = useState(false)
   const [seeds, setSeeds] = useState<Record<string, string>>({})
   const [standings, setStandings] = useState<{ team: string; w: number; l: number; t: number; gf: number; ga: number }[]>([])
   const [saving, setSaving] = useState(false)
@@ -406,7 +407,7 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
           </span>
         </div>
         <div className="flex items-center gap-1">
-          {(['seeding', 'manage', 'preview'] as const).map(t => (
+          {(['seeding', 'preview'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -416,7 +417,7 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
                   : 'text-slate-400 hover:text-white hover:bg-slate-700'
               }`}
             >
-              {t === 'seeding' ? 'Seeds' : t === 'manage' ? 'Games' : 'Preview'}
+              {t === 'seeding' ? 'Seeds' : 'Preview'}
             </button>
           ))}
           <button
@@ -501,8 +502,8 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
         </div>
       )}
 
-      {/* ── Games management tab ──────────────────────────────────────────── */}
-      {tab === 'manage' && (
+      {/* ── Add/remove games panel (toggled from Preview via '+ Add game') ── */}
+      {tab === 'preview' && showAddGame && (
         <div>
           <p className="text-sm text-slate-400 mb-4">
             Add or remove games. Changes apply immediately.
@@ -657,7 +658,7 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
           onLabelChange={handleLabelChange}
           onRemoveGame={handleRemoveGame}
           onRenameSeed={handleRenameSeed}
-          onAddGame={() => setTab('manage')}
+          onAddGame={() => setShowAddGame(v => !v)}
         />
       )}
     </div>
