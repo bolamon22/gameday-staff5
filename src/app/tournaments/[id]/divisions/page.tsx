@@ -1275,7 +1275,7 @@ if (loading) return (
                   const tc = divisions.find(d => d.name === activeDiv)?.teamCount ?? teams.length
                   const poolG = parseInt(divGamesPerTeam[activeDiv] ?? gamesPerTeam ?? '2') || 2
                   const guar = parseInt(guarantee) || 4
-                  const owes2 = (guar - poolG) >= 2
+                  const owes2 = (guar - poolG) >= 2 || smartTable[tc]?.bracket === '2gg'
                   const planB = smartTable[tc]?.bracket || ''
                   const fmt = planB === 'double' ? 'double' : planB === '2gg' ? '2gg' : (planB === 'single' || planB === 'single-con') ? 'single' : undefined
                   const sd = smartTable[tc] || {}
