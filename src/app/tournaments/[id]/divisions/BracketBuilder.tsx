@@ -748,7 +748,7 @@ function BracketPreview({ template, seeds, division, onLabelChange, onRemoveGame
               <div key={game.gameNumber} style={{ position: 'absolute', left: pos.x, top: pos.y, width: GAME_W, height: GAME_H }}
                 className={`rounded-lg border text-xs flex flex-col overflow-hidden ${isChamp ? 'border-amber-400/60 bg-gradient-to-b from-amber-950/60 to-slate-900 shadow-lg shadow-amber-900/20' : 'border-slate-600/80 bg-slate-800/90'}`}>
                 <div className={`px-2 py-0.5 flex items-center justify-between ${isChamp ? 'bg-amber-500/10' : 'bg-black/20'}`}>
-                  <span className="text-[10px] font-mono text-slate-500">B{game.gameNumber}</span>
+                  <span className="text-[10px] font-mono text-teal-300">B{game.gameNumber}</span>
                   {(() => {
                     const displayLabel = game.label || (isChamp ? (division ? `${division} Champion` : 'Champion') : undefined)
                     if (!displayLabel) return null
@@ -796,7 +796,7 @@ function BracketPreview({ template, seeds, division, onLabelChange, onRemoveGame
             {sideGames.map(game => (
               <div key={game.gameNumber} className="rounded-lg border border-slate-600/80 bg-slate-800/90 text-xs overflow-hidden">
                 <div className="px-2 py-0.5 bg-black/20 flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-slate-500">B{game.gameNumber}</span>
+                  <span className="text-[10px] font-mono text-teal-300">B{game.gameNumber}</span>
                   {(() => {
                     const displayLabel = game.label
                     if (!displayLabel) return null
