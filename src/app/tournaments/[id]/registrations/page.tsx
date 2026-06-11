@@ -1460,14 +1460,14 @@ export default function RegistrationsPage() {
               return (
                 <div key={reg.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
                   {/* Row header */}
-                  <div className="px-5 py-4 flex items-center justify-between gap-3">
+                  <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-3">
                     <button onClick={() => setExpanded(expanded === reg.id ? null : reg.id)} className="flex-1 text-left min-w-0">
                       <div className="font-semibold text-slate-800 truncate">{reg.clubName || reg.clubContact}</div>
                       <div className="text-sm text-slate-500">{reg.contactEmail} · {reg.contactPhone}</div>
                     </button>
 
                     {/* Billing summary */}
-                    <div className="hidden sm:flex items-center gap-4 text-sm flex-shrink-0">
+                    <div className="flex items-center gap-4 text-sm flex-shrink-0">
                       <div className="text-right">
                         <div className="text-xs text-slate-400">Invoiced</div>
                         <div className="font-medium text-slate-700">{fmt(due)}</div>
@@ -1481,20 +1481,21 @@ export default function RegistrationsPage() {
                         <div className={`font-semibold ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>{fmt(balance)}</div>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <span className="hidden sm:block bg-teal-50 text-teal-700 text-xs px-2 py-0.5 rounded-full">{reg.teams.length} team{reg.teams.length !== 1 ? 's' : ''}</span>
-                      <button onClick={() => { setPayingRegId(reg.id); const _bal1=reg.invoiceAmount-reg.discountAmount-reg.payments.reduce((s:number,p:any)=>s+p.amount,0); setPayAmount(_bal1>0?String(_bal1):''); setPayCheck(''); setPayDate(today()); setPayNotes(''); setPayMethod(reg.paymentMethod||'check') }}
-                        className="text-xs text-green-600 border border-green-300 hover:border-green-500 px-2.5 py-1 rounded-lg">+ Payment</button>
-                      {reg.qboInvoiceId ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-green-600 border border-green-200 bg-green-50 px-2.5 py-1 rounded-lg"><Check size={12} /> QB synced</span>
-                      ) : (
-                        <button onClick={() => handleQboSync(reg.id)} className="text-xs text-teal-600 border border-teal-200 hover:border-teal-400 px-2.5 py-1 rounded-lg">QB Sync</button>
-                      )}
-                      <button onClick={() => openEdit(reg)} className="text-xs text-teal-600 border border-teal-200 hover:border-teal-400 px-2.5 py-1 rounded-lg">Edit</button>
-                      <button onClick={() => handleDelete(reg.id, reg.clubName || reg.clubContact)} className="text-xs text-red-500 border border-red-200 hover:border-red-400 px-2.5 py-1 rounded-lg">Del</button>
-                      <span className="text-slate-400">{expanded === reg.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
-                    </div>
+                  {/* Action row */}
+                  <div className="px-5 pb-4 flex items-center gap-1.5 flex-wrap">
+                    <span className="bg-teal-50 text-teal-700 text-xs px-2 py-0.5 rounded-full">{reg.teams.length} team{reg.teams.length !== 1 ? 's' : ''}</span>
+                    <button onClick={() => { setPayingRegId(reg.id); const _bal1=reg.invoiceAmount-reg.discountAmount-reg.payments.reduce((s:number,p:any)=>s+p.amount,0); setPayAmount(_bal1>0?String(_bal1):''); setPayCheck(''); setPayDate(today()); setPayNotes(''); setPayMethod(reg.paymentMethod||'check') }}
+                      className="text-xs text-green-600 border border-green-300 hover:border-green-500 px-2.5 py-1 rounded-lg">+ Payment</button>
+                    {reg.qboInvoiceId ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-green-600 border border-green-200 bg-green-50 px-2.5 py-1 rounded-lg"><Check size={12} /> QB synced</span>
+                    ) : (
+                      <button onClick={() => handleQboSync(reg.id)} className="text-xs text-teal-600 border border-teal-200 hover:border-teal-400 px-2.5 py-1 rounded-lg">QB Sync</button>
+                    )}
+                    <button onClick={() => openEdit(reg)} className="text-xs text-teal-600 border border-teal-200 hover:border-teal-400 px-2.5 py-1 rounded-lg">Edit</button>
+                    <button onClick={() => handleDelete(reg.id, reg.clubName || reg.clubContact)} className="text-xs text-red-500 border border-red-200 hover:border-red-400 px-2.5 py-1 rounded-lg">Del</button>
+                    <button onClick={() => setExpanded(expanded === reg.id ? null : reg.id)} className="text-slate-400 hover:text-slate-600">{expanded === reg.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>
                   </div>
 
                   {/* Expanded detail */}
