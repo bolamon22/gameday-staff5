@@ -288,6 +288,12 @@ export default function GridPage({ params }: { params:{id:string} }) {
   const rosterWorkers=workers.filter(w=>rosterIds.has(w.id))
   function workerRoles(w:Worker):string[]{try{const r=JSON.parse(w.roles||'[]');return Array.isArray(r)&&r.length?r:[w.defaultRole]}catch{return[w.defaultRole]}}
   function canScorekeeper(w:Worker):boolean{return w.defaultRole==='scorekeeper'||(w.defaultRole==='ref'&&workerRoles(w).includes('scorekeeper'))}
+  function staffKind(w:Worker):{label:string;dot:string}{
+    if(w.defaultRole==='scorekeeper')return{label:'Scorekeeper',dot:'bg-emerald-500'}
+    if(w.gender==='boys')return{label:'Boys ref',dot:'bg-blue-500'}
+    if(w.gender==='girls')return{label:'Girls ref',dot:'bg-pink-500'}
+    return{label:'Boys & girls ref',dot:'bg-violet-500'}
+  }
 
   if(loading)return<div className="text-slate-400 text-center py-16">Loading…</div>
   if(!tournament)return<div className="text-red-500">Not found</div>
@@ -755,29 +761,29 @@ export default function GridPage({ params }: { params:{id:string} }) {
 
       {viewMode==='grid'&&dayGames.length>0&&(
         <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <div className="flex items-center gap-2 mb-1.5">
             <Users size={14} className="text-slate-400"/>
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Staff — drag a name onto a game&apos;s R1 / R2 / R3 / SK slot</span>
-            <span className="ml-auto flex items-center gap-2.5 text-[10px] text-slate-400">
-              <span className="font-semibold text-slate-500">Game load:</span>
-              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"/> 0–4</span>
-              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"/> 5–7</span>
-              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"/> 8+ games</span>
-            </span>
+          </div>
+          <div className="flex items-center gap-3 mb-2 text-[10px] text-slate-400 flex-wrap">
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block"/> Boys ref</span>
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-pink-500 inline-block"/> Girls ref</span>
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-violet-500 inline-block"/> Boys &amp; girls</span>
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"/> Scorekeeper</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {rosterWorkers.length===0?(
               <span className="text-xs text-slate-400 italic">No staff on the roster yet.</span>
             ):rosterWorkers.map(w=>{
               const count=getGameCount(w.id)
-              const dot=count>=8?'bg-red-500':count>=5?'bg-amber-400':'bg-emerald-500'
+              const kind=staffKind(w)
               return(
                 <div key={w.id} draggable
                   onDragStart={e=>{e.dataTransfer.setData('workerId',w.id);e.dataTransfer.effectAllowed='copy';setDragWorker(w)}}
                   onDragEnd={()=>{setDragWorker(null);setDragSlot(null)}}
                   className={`flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] cursor-grab active:cursor-grabbing hover:border-sky-400 transition-colors ${dragWorker?.id===w.id?'opacity-40':''}`}
-                  title={`${w.name} · ${certLabel(w.certLevel)} · ${count} game${count!==1?'s':''} today`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${dot}`}/>
+                  title={`${w.name} · ${kind.label} · ${certLabel(w.certLevel)} · ${count} game${count!==1?'s':''} today`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${kind.dot}`}/>
                   <span className="font-medium text-slate-700">{w.name}</span>
                   <span className="text-slate-400">{count}</span>
                 </div>
