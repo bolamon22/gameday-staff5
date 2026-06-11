@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { formatTime, formatDate, certLabel, GRID_ROLES, getDivisionColor, resetDivisionColors } from '@/lib/utils'
 import TournamentNav from './TournamentNav'
 import ChatWidget from './ChatWidget'
+import { Users } from 'lucide-react'
 
 interface Worker { id:string;name:string;certLevel:string;defaultRole:string;roles:string;gender:string;payRateOverride:number|null }
 interface Assignment { id:string;workerId:string;role:string;payRate:number;worker:Worker }
@@ -110,6 +111,8 @@ export default function GridPage({ params }: { params:{id:string} }) {
   // Drag and drop
   const [dragGame,setDragGame]=useState<Game|null>(null)
   const [dragOver,setDragOver]=useState<{time:string;field:string}|null>(null)
+  const [dragWorker,setDragWorker]=useState<Worker|null>(null)
+  const [dragSlot,setDragSlot]=useState<string|null>(null)
 
   // Collapsible field columns
   const [collapsedFields,setCollapsedFields]=useState<Set<string>>(new Set())
@@ -750,6 +753,33 @@ export default function GridPage({ params }: { params:{id:string} }) {
         )
       })()}
 
+      {viewMode==='grid'&&dayGames.length>0&&(
+        <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Users size={14} className="text-slate-400"/>
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Staff — drag a name onto a game&apos;s R1 / R2 / R3 / SK slot</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {rosterWorkers.length===0?(
+              <span className="text-xs text-slate-400 italic">No staff on the roster yet.</span>
+            ):rosterWorkers.map(w=>{
+              const count=getGameCount(w.id)
+              const dot=count>=8?'bg-red-500':count>=5?'bg-amber-400':'bg-emerald-500'
+              return(
+                <div key={w.id} draggable
+                  onDragStart={e=>{e.dataTransfer.setData('workerId',w.id);e.dataTransfer.effectAllowed='copy';setDragWorker(w)}}
+                  onDragEnd={()=>{setDragWorker(null);setDragSlot(null)}}
+                  className={`flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] cursor-grab active:cursor-grabbing hover:border-sky-400 transition-colors ${dragWorker?.id===w.id?'opacity-40':''}`}
+                  title={`${w.name} · ${certLabel(w.certLevel)} · ${count} game${count!==1?'s':''} today`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${dot}`}/>
+                  <span className="font-medium text-slate-700">{w.name}</span>
+                  <span className="text-slate-400">{count}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
       {/* ── GRID VIEW ── */}
       {viewMode==='grid'&&games.length===0?(
         <div className="card p-16 text-center"><div className="text-5xl mb-4">📋</div><p className="font-semibold text-slate-700">No games imported yet</p><p className="text-sm text-slate-400 mt-1">Click "↑ Import" to upload your schedule</p></div>
@@ -872,10 +902,10 @@ export default function GridPage({ params }: { params:{id:string} }) {
                               const role=i===0?'ref1':i===1?'ref2':'ref3'
                               const roleObj=GRID_ROLES.find(r=>r.value===role)||{value:role,label:`Ref ${i+1}`,short:`R${i+1}`,color:'#0284c7'}
                               const existing=game.assignments.find(a=>a.role===role)
-                              return<AssignSelect key={role} roleObj={roleObj} existing={existing} workers={rosterWorkers} avails={avails} date={game.date} time={game.startTime} disabled={isAssigning} division={game.division} onAssign={wid=>assign(game.id,role,wid)} getGameCount={getGameCount} doubled={doubled} slotType="ref"/>
+                              return<div key={role} onDragOver={e=>{if(dragWorker){e.preventDefault();setDragSlot(game.id+":"+role)}}} onDragLeave={()=>setDragSlot(null)} onDrop={e=>{e.preventDefault();e.stopPropagation();const wid=e.dataTransfer.getData("workerId");setDragSlot(null);if(wid)assign(game.id,role,wid)}} className={dragSlot===game.id+":"+role?"rounded ring-1 ring-sky-400 bg-sky-50":""}><AssignSelect roleObj={roleObj} existing={existing} workers={rosterWorkers} avails={avails} date={game.date} time={game.startTime} disabled={isAssigning} division={game.division} onAssign={wid=>assign(game.id,role,wid)} getGameCount={getGameCount} doubled={doubled} slotType="ref"/></div>
                             })}
                             {/* Scorekeeper */}
-                            <AssignSelect roleObj={{value:'scorekeeper',label:'Scorekeeper',short:'SK',color:'#059669'}} existing={game.assignments.find(a=>a.role==='scorekeeper')} workers={rosterWorkers} avails={avails} date={game.date} time={game.startTime} disabled={isAssigning} division={game.division} onAssign={wid=>assign(game.id,'scorekeeper',wid)} getGameCount={getGameCount} doubled={doubled} slotType="scorekeeper"/>
+                            <div onDragOver={e=>{if(dragWorker){e.preventDefault();setDragSlot(game.id+":scorekeeper")}}} onDragLeave={()=>setDragSlot(null)} onDrop={e=>{e.preventDefault();e.stopPropagation();const wid=e.dataTransfer.getData("workerId");setDragSlot(null);if(wid)assign(game.id,"scorekeeper",wid)}} className={dragSlot===game.id+":scorekeeper"?"rounded ring-1 ring-sky-400 bg-sky-50":""}><AssignSelect roleObj={{value:'scorekeeper',label:'Scorekeeper',short:'SK',color:'#059669'}} existing={game.assignments.find(a=>a.role==='scorekeeper')} workers={rosterWorkers} avails={avails} date={game.date} time={game.startTime} disabled={isAssigning} division={game.division} onAssign={wid=>assign(game.id,'scorekeeper',wid)} getGameCount={getGameCount} doubled={doubled} slotType="scorekeeper"/></div>
                           </div>
                         </td>
                       )
