@@ -44,9 +44,11 @@ palette and cards), in this order:
 
 Done: shared UI components, Dashboard redesign, TournamentNav header, UTF-8 encoding
 fixes, builder year-regex fix, the full Staff hub — Financials, Roster, Availability,
-Time Entries, Pay Summary — and Registrations (lucide icons, slate/teal palette,
-sentence case; team + individual tabs, import panel, pricing/payment modals).
-Next up: Settings, Scheduler, then the remaining pages.
+Time Entries, Pay Summary — Registrations (lucide icons, slate/teal palette,
+sentence case; team + individual tabs, import panel, pricing/payment modals), and
+Settings (lucide SectionCard icons, slate/teal palette, sentence case; venues/fields,
+fees, divisions, pay rates, ref rules, registration types, copy-tournament modal).
+Next up: Scheduler, then the remaining pages.
 Tracking: Roadmap #57 (consistency pass) and #58 (page consolidation review).
 
 ## Build philosophy
