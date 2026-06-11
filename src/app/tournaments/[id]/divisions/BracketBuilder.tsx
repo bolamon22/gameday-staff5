@@ -442,14 +442,14 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
             Enter team names for each seed. Leave blank to show "Seed N" on the bracket.
           </p>
           {standings.length > 0 && (
-            <div className="mb-5 rounded-xl border border-slate-700 overflow-hidden">
-              <div className="flex items-center justify-between px-3 py-2 bg-slate-800/60">
-                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Pool standings</span>
+            <div className="mb-5 rounded-xl border border-slate-700 overflow-hidden bg-slate-800">
+              <div className="flex items-center justify-between px-3 py-2 bg-slate-900">
+                <span className="text-xs font-semibold text-slate-200 uppercase tracking-wider">Pool standings</span>
                 <button onClick={() => { const next = { ...seeds }; standings.slice(0, bracket.teamCount).forEach((r, i) => { next[String(i + 1)] = r.team }); setSeeds(next) }}
                   className="text-[11px] text-teal-300 hover:text-teal-200">Seed from standings ↓</button>
               </div>
               <table className="w-full text-xs">
-                <thead className="bg-slate-800/40 text-slate-500">
+                <thead className="bg-slate-900 text-slate-400">
                   <tr>
                     <th className="text-left px-3 py-1.5 font-semibold">#</th>
                     <th className="text-left px-2 py-1.5 font-semibold">Team</th>
@@ -459,10 +459,10 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
                     <th className="px-2 py-1.5 font-semibold">Diff</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-700/60">
+                <tbody className="divide-y divide-slate-700">
                   {standings.map((r, i) => (
                     <tr key={r.team}>
-                      <td className="px-3 py-1.5 text-slate-500">{i + 1}</td>
+                      <td className="px-3 py-1.5 text-slate-400">{i + 1}</td>
                       <td className="px-2 py-1.5 font-medium text-white">{r.team}</td>
                       <td className="px-2 py-1.5 text-center text-slate-200">{r.w}-{r.l}{standings.some(x => x.t > 0) ? `-${r.t}` : ''}</td>
                       <td className="px-2 py-1.5 text-center text-slate-200">{r.gf}</td>
