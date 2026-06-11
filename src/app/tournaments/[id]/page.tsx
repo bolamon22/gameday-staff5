@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { formatTime, formatDate, certLabel, GRID_ROLES, getDivisionColor, resetDivisionColors } from '@/lib/utils'
 import TournamentNav from './TournamentNav'
 import ChatWidget from './ChatWidget'
-import { Users, Lock, ClipboardList } from 'lucide-react'
+import { Users, Lock, ClipboardList, ChevronUp, ChevronDown } from 'lucide-react'
 
 interface Worker { id:string;name:string;certLevel:string;defaultRole:string;roles:string;gender:string;payRateOverride:number|null }
 interface Assignment { id:string;workerId:string;role:string;payRate:number;worker:Worker }
@@ -128,6 +128,7 @@ export default function GridPage({ params }: { params:{id:string} }) {
   const [dragSlot,setDragSlot]=useState<string|null>(null)
   const [locked,setLocked]=useState(false)
   const [gamesPerRef,setGamesPerRef]=useState(6)
+  const [reqsOpen,setReqsOpen]=useState(false)
 
   // Collapsible field columns
   const [collapsedFields,setCollapsedFields]=useState<Set<string>>(new Set())
@@ -328,7 +329,8 @@ export default function GridPage({ params }: { params:{id:string} }) {
     const gs=games.filter(g=>g.date===date&&!g.isCanceled)
     let boys=0,girls=0,both=0
     for(const g of gs){const slots=g.isChampionship?Math.max(g.refCount,3):g.refCount;const gg=gameGenderOf(g.division);if(gg==='girls')girls+=slots;else if(gg==='boys')boys+=slots;else both+=slots}
-    return{date,games:gs.length,boys,girls,both,refSlots:boys+girls+both,sk:gs.length}
+    const fields=new Set(gs.filter(g=>g.location).map(g=>g.location)).size
+    return{date,games:gs.length,boys,girls,both,refSlots:boys+girls+both,fields}
   })
 
   // Apply division keyword rules to determine ref count
@@ -791,41 +793,41 @@ export default function GridPage({ params }: { params:{id:string} }) {
       })()}
 
       {viewMode==='grid'&&games.length>0&&(
-        <div className="mb-3 rounded-xl border border-sky-200 bg-sky-50/60 p-3">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <ClipboardList size={14} className="text-sky-500"/>
-            <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">Staffing requirements</span>
-            <label className="ml-auto flex items-center gap-1.5 text-xs text-slate-500">
-              <span className="font-medium">Games per ref:</span>
-              <input type="number" min="1" value={gamesPerRef} onChange={e=>changeGamesPerRef(parseInt(e.target.value))} className="w-14 border border-slate-300 rounded px-2 py-0.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-sky-400"/>
-            </label>
-          </div>
-          <div className="space-y-1">
-            {dayReqs.map(d=>{
-              const minBoys=Math.ceil(d.boys/gamesPerRef),minGirls=Math.ceil(d.girls/gamesPerRef),minBoth=Math.ceil(d.both/gamesPerRef),minSK=Math.ceil(d.sk/gamesPerRef)
-              return(
-                <div key={d.date} className="text-xs flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                  <span className="font-semibold text-slate-700 w-28 shrink-0">{formatDate(d.date)}</span>
-                  <span className="text-slate-500">{d.games} games · {d.refSlots} ref slots{(d.boys||d.girls)?` (${d.boys} boys, ${d.girls} girls${d.both?`, ${d.both} either`:''})`:''} · {d.sk} scorekeeper slots</span>
-                  <span className="text-slate-400">→</span>
-                  <span className="font-medium text-sky-700">~{minBoys} boys ref{minBoys!==1?'s':''}, ~{minGirls} girls ref{minGirls!==1?'s':''}{minBoth?`, ~${minBoth} either`:''}, ~{minSK} scorekeeper{minSK!==1?'s':''}</span>
-                </div>
-              )
-            })}
-          </div>
-          {dayReqs.length>0&&(()=>{
+        <div className="mb-3 rounded-xl border border-sky-200 bg-sky-50/60 px-3 py-2">
+          {(()=>{
             const pB=Math.max(0,...dayReqs.map(d=>Math.ceil(d.boys/gamesPerRef)))
             const pG=Math.max(0,...dayReqs.map(d=>Math.ceil(d.girls/gamesPerRef)))
             const pBoth=Math.max(0,...dayReqs.map(d=>Math.ceil(d.both/gamesPerRef)))
-            const pS=Math.max(0,...dayReqs.map(d=>Math.ceil(d.sk/gamesPerRef)))
+            const pS=Math.max(0,...dayReqs.map(d=>d.fields))
             return(
-              <div className="mt-2 pt-2 border-t border-sky-200 text-xs">
-                <span className="font-semibold text-slate-700">Minimum roster (busiest day): </span>
-                <span className="font-medium text-sky-700">~{pB} boys ref{pB!==1?'s':''}, ~{pG} girls ref{pG!==1?'s':''}{pBoth?`, ~${pBoth} either`:''}, ~{pS} scorekeeper{pS!==1?'s':''}</span>
-                <span className="text-slate-400"> — at {gamesPerRef} games per official. Refs who can do both sides may lower the total.</span>
+              <div className="flex items-center gap-2 flex-wrap text-xs">
+                <ClipboardList size={14} className="text-sky-500 shrink-0"/>
+                <span className="font-semibold text-slate-700">Min staff (busiest day):</span>
+                <span className="font-medium text-sky-700">~{pB} boys · ~{pG} girls refs{pBoth?` · ~${pBoth} either`:''} · ~{pS} scorekeeper{pS!==1?'s':''}</span>
+                <label className="ml-auto flex items-center gap-1 text-slate-500">
+                  <span>Games/ref:</span>
+                  <input type="number" min="1" value={gamesPerRef} onChange={e=>changeGamesPerRef(parseInt(e.target.value))} className="w-12 border border-slate-300 rounded px-1.5 py-0.5 text-sm text-center focus:outline-none focus:ring-1 focus:ring-sky-400"/>
+                </label>
+                <button type="button" onClick={()=>setReqsOpen(v=>!v)} className="flex items-center gap-0.5 text-slate-500 hover:text-slate-700">{reqsOpen?<ChevronUp size={13}/>:<ChevronDown size={13}/>}<span>By day</span></button>
               </div>
             )
           })()}
+          {reqsOpen&&(
+            <div className="mt-2 pt-2 border-t border-sky-200 space-y-1">
+              {dayReqs.map(d=>{
+                const minBoys=Math.ceil(d.boys/gamesPerRef),minGirls=Math.ceil(d.girls/gamesPerRef),minBoth=Math.ceil(d.both/gamesPerRef)
+                return(
+                  <div key={d.date} className="text-xs flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <span className="font-semibold text-slate-700 w-28 shrink-0">{formatDate(d.date)}</span>
+                    <span className="text-slate-500">{d.games} games · {d.refSlots} ref slots{(d.boys||d.girls)?` (${d.boys} boys, ${d.girls} girls${d.both?`, ${d.both} either`:''})`:''} · {d.fields} field{d.fields!==1?'s':''}</span>
+                    <span className="text-slate-400">→</span>
+                    <span className="font-medium text-sky-700">~{minBoys} boys, ~{minGirls} girls ref{minGirls!==1?'s':''}{minBoth?`, ~${minBoth} either`:''}, {d.fields} scorekeeper{d.fields!==1?'s':''}</span>
+                  </div>
+                )
+              })}
+              <p className="text-[10px] text-slate-400 pt-0.5">Scorekeepers stay on one field all day, so one per field. Refs based on {gamesPerRef} games each; refs who do both sides may lower the total.</p>
+            </div>
+          )}
         </div>
       )}
       {viewMode==='grid'&&dayGames.length>0&&(
