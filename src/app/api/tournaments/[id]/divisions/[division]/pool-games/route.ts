@@ -4,8 +4,13 @@ import { prisma } from '@/lib/db'
 // GET – list existing pool games for this division
 export async function GET(_req: NextRequest, { params }: { params: { id: string; division: string } }) {
   const division = decodeURIComponent(params.division)
+  const scope = new URL(_req.url).searchParams.get('scope')
+  // scope=bracket -> the division's bracket games (gameNumber B1, B2 ...); default -> pool games
+  const where = scope === 'bracket'
+    ? { tournamentId: params.id, division, gameNumber: { startsWith: 'B' } }
+    : { tournamentId: params.id, division, pool: { not: null } }
   const games = await prisma.game.findMany({
-    where: { tournamentId: params.id, division, pool: { not: null } },
+    where,
     orderBy: [{ pool: 'asc' }, { gameNumber: 'asc' }],
   })
   return NextResponse.json(games)

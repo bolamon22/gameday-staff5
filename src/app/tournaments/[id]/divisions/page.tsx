@@ -46,6 +46,7 @@ export default function DivisionsPage() {
   const [loadingDiv, setLoadingDiv] = useState(false)
   const [divColors, setDivColors] = useState<Record<string, string>>({})
   const [poolGames, setPoolGames] = useState<PoolGame[]>([])
+  const [bracketGames, setBracketGames] = useState<PoolGame[]>([])
 
   // Pool games state
   const [generating, setGenerating] = useState(false)
@@ -116,6 +117,14 @@ export default function DivisionsPage() {
     const res = await fetch(`/api/tournaments/${id}/divisions/${encodeURIComponent(div)}/pool-games`)
     const data = await res.json()
     setPoolGames(Array.isArray(data) ? data : [])
+  }
+
+  async function loadBracketGames(div: string) {
+    const res = await fetch(`/api/tournaments/${id}/divisions/${encodeURIComponent(div)}/pool-games?scope=bracket`)
+    const data = await res.json()
+    setBracketGames(Array.isArray(data)
+      ? [...data].sort((a, b) => (parseInt(a.gameNumber.slice(1)) || 0) - (parseInt(b.gameNumber.slice(1)) || 0))
+      : [])
   }
 
   async function addTeam() {
@@ -241,6 +250,7 @@ export default function DivisionsPage() {
       setTeams(teamData.teams ?? [])
       setPools(teamData.pools ?? [])
       setPoolGames(Array.isArray(gameData) ? gameData : [])
+      loadBracketGames(div)
       setLoadingDiv(false)
     })
   }, [id])
@@ -492,6 +502,7 @@ export default function DivisionsPage() {
       setTeams(teamData.teams ?? [])
       setPools(teamData.pools ?? [])
       setPoolGames(Array.isArray(gameData) ? gameData : [])
+      loadBracketGames(activeDiv)
     }
 
     setGeneratingAll(false)
@@ -506,7 +517,7 @@ export default function DivisionsPage() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'renumber' }),
     })
-    await loadPoolGames(activeDiv)
+    await Promise.all([loadPoolGames(activeDiv), loadBracketGames(activeDiv)])
     setRenumbering(false)
     toast.success('Games renumbered')
   }
@@ -516,6 +527,7 @@ export default function DivisionsPage() {
     setShowClearConfirm(false)
     await fetch(`/api/tournaments/${id}/divisions/${encodeURIComponent(activeDiv)}/pool-games`, { method: 'DELETE' })
     setPoolGames([])
+    setBracketGames([])
     toast.success('Pool games cleared')
   }
 
@@ -788,7 +800,7 @@ if (loading) return (
                   {(['teams', 'pool-games', 'bracket'] as const).map(tab => (
                     <button key={tab} onClick={() => setActiveTab(tab)}
                       className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px capitalize transition-colors ${activeTab === tab ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-                      {tab === 'teams' ? `Teams & Pools (${teams.length})` : tab === 'pool-games' ? `Pool Games (${poolGames.length})` : `Bracket`}
+                      {tab === 'teams' ? `Teams & Pools (${teams.length})` : tab === 'pool-games' ? `Games (${poolGames.length + bracketGames.length})` : `Bracket`}
                     </button>
                   ))}
                 </div>
@@ -1132,6 +1144,7 @@ if (loading) return (
                                 setTeams(teamData.teams ?? [])
                                 setPools(teamData.pools ?? [])
                                 setPoolGames(Array.isArray(gameData) ? gameData : [])
+                                loadBracketGames(activeDiv)
                               }
                               setGeneratingAll(false)
                               toast.success(`${totalGames} games generated${bracketsCreated ? `, ${bracketsCreated} bracket${bracketsCreated !== 1 ? 's' : ''} created` : ''} · moved to parking lot`)
@@ -1214,12 +1227,13 @@ if (loading) return (
                         <p className="mt-3 text-xs text-amber-600">No pools yet -- create pools and assign teams first.</p>
                       )}
                     </div>
-                    {poolGames.length === 0 ? (
+                    {poolGames.length === 0 && bracketGames.length === 0 ? (
                       <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400 text-sm">
-                        No pool games yet. Add pools with teams, then click Generate Games.
+                        No games yet. Generate pool games above, or build a bracket on the Bracket tab.
                       </div>
                     ) : (
-                      (() => {
+                      <>
+                      {poolGames.length > 0 && (() => {
                         const byPool = poolGames.reduce((acc: Record<string, PoolGame[]>, g) => {
                           const key = g.pool ?? 'Unassigned'
                           if (!acc[key]) acc[key] = []
@@ -1258,7 +1272,41 @@ if (loading) return (
                             </table>
                           </div>
                         ))
-                      })()
+                      })()}
+                      {bracketGames.length > 0 && (
+                        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                          <div className="px-5 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                            <h3 className="font-semibold text-slate-700">Bracket Games</h3>
+                            <span className="text-xs text-slate-400">{bracketGames.length} game{bracketGames.length !== 1 ? 's' : ''}</span>
+                          </div>
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-slate-50/50 border-b border-slate-100">
+                                <th className="text-left px-5 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">#</th>
+                                <th className="text-left px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Home</th>
+                                <th className="text-left px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Away</th>
+                                <th className="text-left px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Date</th>
+                                <th className="text-left px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Time</th>
+                                <th className="text-left px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Location</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {bracketGames.map((g, i) => (
+                                <tr key={g.id} className={`border-b border-slate-50 last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
+                                  <td className="px-5 py-2.5 font-mono text-xs text-teal-600">{g.gameNumber}</td>
+                                  <td className="px-3 py-2.5 font-medium text-slate-800">{g.team1}</td>
+                                  <td className="px-3 py-2.5 text-slate-600">{g.team2}</td>
+                                  <td className="px-3 py-2.5 text-xs text-slate-400">{g.date || '--'}</td>
+                                  <td className="px-3 py-2.5 text-xs text-slate-400">{g.startTime || '--'}</td>
+                                  <td className="px-3 py-2.5 text-xs text-slate-400">{g.location || '--'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          <p className="px-5 py-2 text-[11px] text-slate-400 border-t border-slate-100">Set dates, times and fields on the Scheduler (these games appear in the parking lot as B#).</p>
+                        </div>
+                      )}
+                      </>
                     )}
                   </div>
                 )}
