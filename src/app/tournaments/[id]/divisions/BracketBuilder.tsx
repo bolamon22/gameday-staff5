@@ -73,6 +73,7 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
   const [bracket, setBracket] = useState<BracketData | null>(null)
   const [tab, setTab] = useState<'seeding' | 'manage' | 'preview'>('seeding')
   const [seeds, setSeeds] = useState<Record<string, string>>({})
+  const [standings, setStandings] = useState<{ team: string; w: number; l: number; t: number; gf: number; ga: number }[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -110,6 +111,25 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
   }, [apiBase])
 
   useEffect(() => { loadBracket() }, [loadBracket])
+
+  const loadStandings = useCallback(async () => {
+    try {
+      const pg = await fetch(`/api/tournaments/${tournamentId}/divisions/${division}/pool-games`).then(r => r.ok ? r.json() : [])
+      const stats: Record<string, { w: number; l: number; t: number; gf: number; ga: number }> = {}
+      const add = (team: string) => { if (team && !stats[team]) stats[team] = { w: 0, l: 0, t: 0, gf: 0, ga: 0 } }
+      for (const g of (Array.isArray(pg) ? pg : [])) {
+        add(g.team1); add(g.team2)
+        if (g.score1 == null || g.score2 == null || g.score1 === '' || g.score2 === '') continue
+        const s1 = Number(g.score1), s2 = Number(g.score2)
+        if (stats[g.team1]) { stats[g.team1].gf += s1; stats[g.team1].ga += s2; if (s1 > s2) stats[g.team1].w++; else if (s1 < s2) stats[g.team1].l++; else stats[g.team1].t++ }
+        if (stats[g.team2]) { stats[g.team2].gf += s2; stats[g.team2].ga += s1; if (s2 > s1) stats[g.team2].w++; else if (s2 < s1) stats[g.team2].l++; else stats[g.team2].t++ }
+      }
+      const rows = Object.entries(stats).map(([team, st]) => ({ team, ...st })).sort((a, b) => b.w - a.w || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf)
+      setStandings(rows)
+    } catch { setStandings([]) }
+  }, [tournamentId, division])
+
+  useEffect(() => { loadStandings() }, [loadStandings])
 
   async function handleCreate() {
     setCreating(true); setError(null)
@@ -421,6 +441,39 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
           <p className="text-sm text-slate-400 mb-4">
             Enter team names for each seed. Leave blank to show "Seed N" on the bracket.
           </p>
+          {standings.length > 0 && (
+            <div className="mb-5 rounded-xl border border-slate-700 overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-2 bg-slate-800/60">
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Pool standings</span>
+                <button onClick={() => { const next = { ...seeds }; standings.slice(0, bracket.teamCount).forEach((r, i) => { next[String(i + 1)] = r.team }); setSeeds(next) }}
+                  className="text-[11px] text-teal-300 hover:text-teal-200">Seed from standings ↓</button>
+              </div>
+              <table className="w-full text-xs">
+                <thead className="bg-slate-800/40 text-slate-500">
+                  <tr>
+                    <th className="text-left px-3 py-1.5 font-semibold">#</th>
+                    <th className="text-left px-2 py-1.5 font-semibold">Team</th>
+                    <th className="px-2 py-1.5 font-semibold">W-L{standings.some(x => x.t > 0) ? '-T' : ''}</th>
+                    <th className="px-2 py-1.5 font-semibold">GF</th>
+                    <th className="px-2 py-1.5 font-semibold">GA</th>
+                    <th className="px-2 py-1.5 font-semibold">Diff</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700/60">
+                  {standings.map((r, i) => (
+                    <tr key={r.team}>
+                      <td className="px-3 py-1.5 text-slate-500">{i + 1}</td>
+                      <td className="px-2 py-1.5 font-medium text-white">{r.team}</td>
+                      <td className="px-2 py-1.5 text-center text-slate-200">{r.w}-{r.l}{standings.some(x => x.t > 0) ? `-${r.t}` : ''}</td>
+                      <td className="px-2 py-1.5 text-center text-slate-200">{r.gf}</td>
+                      <td className="px-2 py-1.5 text-center text-slate-200">{r.ga}</td>
+                      <td className={`px-2 py-1.5 text-center font-medium ${r.gf - r.ga > 0 ? 'text-emerald-400' : r.gf - r.ga < 0 ? 'text-red-400' : 'text-slate-400'}`}>{r.gf - r.ga > 0 ? '+' : ''}{r.gf - r.ga}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-5">
             {Array.from({ length: bracket.teamCount }, (_, i) => i + 1).map(n => (
               <div key={n} className="flex items-center gap-3">
