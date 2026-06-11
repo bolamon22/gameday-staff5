@@ -56,6 +56,9 @@ export default function DivisionsPage() {
   const [divGamesPerTeam, setDivGamesPerTeam] = useState<Record<string, string>>({})
   const [generatingAll, setGeneratingAll] = useState(false)
   const [guarantee, setGuarantee] = useState('4')
+  const [smartTable, setSmartTable] = useState<Record<number, number>>({})
+  const [showSmartEditor, setShowSmartEditor] = useState(false)
+  useEffect(() => { try { const raw = localStorage.getItem('smartDefaults:' + id); if (raw) setSmartTable(JSON.parse(raw)) } catch {} }, [id])
 
   // Scheduled games warning state
   const [generateConfirm, setGenerateConfirm] = useState<{div: string; scheduledCount: number; all: boolean} | null>(null)
@@ -345,11 +348,18 @@ export default function DivisionsPage() {
     return Math.min(teamCount - 1, g - 2)  // odd: 2 bracket rounds
   }
 
+  function saveSmartTable() {
+    try { localStorage.setItem('smartDefaults:' + id, JSON.stringify(smartTable)) } catch {}
+    toast.success('Smart defaults saved')
+    setShowSmartEditor(false)
+  }
+
   function applySmartDefaults() {
     const g = Number(guarantee) || 4
     const updated: Record<string, string> = {}
     divisions.forEach(div => {
-      updated[div.name] = String(smartPoolGames(div.teamCount, g))
+      const v = smartTable[div.teamCount] ?? smartPoolGames(div.teamCount, g)
+      updated[div.name] = String(Math.max(1, Math.min(v, Math.max(1, div.teamCount - 1))))
     })
     setDivGamesPerTeam(updated)
     toast.success('Smart defaults applied')
@@ -606,12 +616,17 @@ if (loading) return (
                   className="w-12 border border-slate-200 rounded text-center text-xs py-0.5 focus:outline-none focus:ring-1 focus:ring-teal-400 bg-white"
                 />
               </div>
-              <button
-                onClick={applySmartDefaults}
-                className="w-full flex items-center justify-center gap-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium py-1.5 px-3 rounded-lg transition-colors"
-              >
-                <Sparkles size={13} /> Smart defaults
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={applySmartDefaults}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium py-1.5 px-3 rounded-lg transition-colors"
+                >
+                  <Sparkles size={13} /> Smart defaults
+                </button>
+                <button onClick={() => setShowSmartEditor(true)} title="Edit smart defaults" className="px-2 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg transition-colors">
+                  <Pencil size={13} />
+                </button>
+              </div>
               <button
                 onClick={generateAllDivisions}
                 disabled={generatingAll}
@@ -621,6 +636,43 @@ if (loading) return (
               </button>
               <p className="text-[10px] text-slate-400 text-center leading-tight">Auto-creates Pool A if needed</p>
             </div>
+            {showSmartEditor && (() => {
+              const maxN = Math.max(12, ...divisions.map(d => d.teamCount), 2)
+              const counts: number[] = []; for (let n = 2; n <= maxN; n++) counts.push(n)
+              const g = Number(guarantee) || 4
+              return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowSmartEditor(false)}>
+                  <div className="bg-white rounded-xl shadow-xl w-full max-w-sm max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="px-5 py-4 border-b border-slate-100">
+                      <h3 className="font-bold text-slate-800 flex items-center gap-1.5"><Sparkles size={15} className="text-teal-500" /> Smart defaults</h3>
+                      <p className="text-xs text-slate-400 mt-0.5">Games per team to use for a division, by how many teams it has. The Smart defaults button applies these.</p>
+                    </div>
+                    <div className="px-5 py-3 overflow-y-auto">
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
+                        {counts.map(n => {
+                          const val = smartTable[n] ?? smartPoolGames(n, g)
+                          return (
+                            <div key={n} className="flex items-center justify-between gap-2">
+                              <span className="text-xs text-slate-500">{n} teams</span>
+                              <input type="number" min="1" max={Math.max(1, n - 1)} value={val}
+                                onChange={e => setSmartTable(prev => ({ ...prev, [n]: Math.max(1, Math.min(Number(e.target.value) || 1, Math.max(1, n - 1))) }))}
+                                className="w-14 border border-slate-200 rounded text-center text-xs py-0.5 focus:outline-none focus:ring-1 focus:ring-teal-400" />
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                    <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                      <button onClick={() => { const t: Record<number, number> = {}; counts.forEach(n => { t[n] = smartPoolGames(n, g) }); setSmartTable(t) }} className="text-xs text-slate-500 hover:text-slate-700">Reset from guarantee ({g})</button>
+                      <div className="flex gap-2">
+                        <button onClick={() => setShowSmartEditor(false)} className="text-xs text-slate-500 hover:text-slate-700 px-3 py-1.5">Close</button>
+                        <button onClick={saveSmartTable} className="text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white px-4 py-1.5 rounded-lg transition-colors">Save</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
 
           {/* -- Main content --------------------------------------- */}
