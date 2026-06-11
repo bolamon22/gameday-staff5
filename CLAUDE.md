@@ -47,8 +47,10 @@ fixes, builder year-regex fix, the full Staff hub — Financials, Roster, Availa
 Time Entries, Pay Summary — Registrations (lucide icons, slate/teal palette,
 sentence case; team + individual tabs, import panel, pricing/payment modals), and
 Settings (lucide SectionCard icons, slate/teal palette, sentence case; venues/fields,
-fees, divisions, pay rates, ref rules, registration types, copy-tournament modal).
-Next up: Scheduler, then the remaining pages.
+fees, divisions, pay rates, ref rules, registration types, copy-tournament modal), and
+Scheduler (lucide icons for toolbar + status badges, blue→teal accent, sentence case;
+drag-drop grid, parking lot, swap mode, publish/diff, conflict/back-to-back/bracket badges).
+Next up: Assigner, Divisions, then the remaining pages.
 Tracking: Roadmap #57 (consistency pass) and #58 (page consolidation review).
 
 ## Build philosophy

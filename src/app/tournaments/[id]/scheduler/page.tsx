@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import TournamentNav from '../TournamentNav'
 import toast, { Toaster } from 'react-hot-toast'
+import { RefreshCw, RotateCw, Check, CheckCircle2, ArrowLeftRight, X, Send, ArrowLeft, ArrowRight, PanelRight, PanelLeft, Trash2, ChevronUp, ChevronDown, ArrowUpDown, Clock, MapPin, Building2, AlertTriangle, Zap } from 'lucide-react'
 
 interface Game {
   id: string
@@ -378,7 +379,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
 
   function handleSwapClick(gameId: string) {
     if (!swapMode) return
-    if (!swapSourceId) { setSwapSourceId(gameId); toast('Now click the game to swap with', { icon: '🔄' }); return }
+    if (!swapSourceId) { setSwapSourceId(gameId); toast('Now click the game to swap with', { icon: <RefreshCw size={16} /> }); return }
     if (swapSourceId === gameId) { setSwapSourceId(null); return }
     const a = games.find(g => g.id === swapSourceId)
     const b = games.find(g => g.id === gameId)
@@ -660,7 +661,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
     <div className="min-h-screen bg-slate-50">
       <TournamentNav id={params.id} />
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full" />
+        <div className="animate-spin h-8 w-8 border-2 border-teal-600 border-t-transparent rounded-full" />
       </div>
     </div>
   )
@@ -676,12 +677,12 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b">
               <h2 className="text-lg font-semibold text-slate-900">Unpublished Changes</h2>
-              <button onClick={() => setShowDiff(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
+              <button onClick={() => setShowDiff(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none"><X size={15} /></button>
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
               {diffChanges.newlyScheduled.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-green-700 mb-2">✓ Newly Scheduled ({diffChanges.newlyScheduled.length})</h3>
+                  <h3 className="flex items-center gap-1.5 text-sm font-semibold text-green-700 mb-2"><Check size={14} /> Newly scheduled ({diffChanges.newlyScheduled.length})</h3>
                   <div className="space-y-1">
                     {diffChanges.newlyScheduled.map(g => (
                       <div key={g.id} className="text-xs bg-green-50 border border-green-200 rounded-lg px-3 py-2">
@@ -694,7 +695,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
               )}
               {diffChanges.moved.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-amber-700 mb-2">↔ Moved ({diffChanges.moved.length})</h3>
+                  <h3 className="flex items-center gap-1.5 text-sm font-semibold text-amber-700 mb-2"><ArrowLeftRight size={14} /> Moved ({diffChanges.moved.length})</h3>
                   <div className="space-y-1">
                     {diffChanges.moved.map(({ game: g, from, to }) => (
                       <div key={g.id} className="text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
@@ -711,7 +712,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
               )}
               {diffChanges.nowUnscheduled.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-red-700 mb-2">✕ Unscheduled ({diffChanges.nowUnscheduled.length})</h3>
+                  <h3 className="flex items-center gap-1.5 text-sm font-semibold text-red-700 mb-2"><X size={14} /> Unscheduled ({diffChanges.nowUnscheduled.length})</h3>
                   <div className="space-y-1">
                     {diffChanges.nowUnscheduled.map(g => (
                       <div key={g.id} className="text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">
@@ -727,7 +728,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
               <button onClick={() => setShowDiff(false)} className="text-sm text-slate-600 hover:text-slate-900 px-4 py-2">Cancel</button>
               <button onClick={publishSchedule} disabled={publishing}
                 className="text-sm font-semibold bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg disabled:opacity-50">
-                {publishing ? 'Publishing…' : '🚀 Publish Schedule'}
+                {publishing ? 'Publishing…' : <span className="inline-flex items-center gap-1.5"><Send size={14} /> Publish schedule</span>}
               </button>
             </div>
           </div>
@@ -737,11 +738,11 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
       {/* ── Header (merged with publish status) ── */}
       <div className={`border-b px-4 sm:px-6 py-2 flex items-center gap-3 flex-wrap ${hasChanges ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200'}`}>
         <div className="flex items-center gap-2 mr-1">
-          <Link href={`/tournaments/${params.id}/divisions`} className="text-xs text-blue-600 hover:text-blue-800 hover:underline">← Divisions</Link>
+          <Link href={`/tournaments/${params.id}/divisions`} className="text-xs text-teal-600 hover:text-teal-800 hover:underline"><span className="inline-flex items-center gap-1"><ArrowLeft size={12} /> Divisions</span></Link>
           <span className="text-slate-300">|</span>
           <span className="text-sm font-semibold text-slate-800">Scheduler</span>
           <span className="text-slate-300">|</span>
-          <Link href={`/tournaments/${params.id}`} className="text-xs text-blue-600 hover:text-blue-800 hover:underline">Staff Schedule →</Link>
+          <Link href={`/tournaments/${params.id}`} className="text-xs text-teal-600 hover:text-teal-800 hover:underline"><span className="inline-flex items-center gap-1">Staff schedule <ArrowRight size={12} /></span></Link>
           <span className="text-xs text-slate-400">{games.length} · <span className="text-amber-600 font-medium">{unscheduled.length} left</span></span>
         </div>
         <div className="flex items-center gap-2 text-sm flex-wrap flex-1">
@@ -764,20 +765,20 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
               <option key={h} value={h}>{fmtTime(`${String(h).padStart(2,'0')}:00`)}</option>
             ))}
           </select>
-          {saving && <span className="text-blue-500 text-xs animate-pulse">Saving…</span>}
+          {saving && <span className="text-teal-500 text-xs animate-pulse">Saving…</span>}
           <button onClick={renumberAll}
             className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 rounded-lg px-3 py-1 transition-colors whitespace-nowrap">
-            ↻ Renumber All
+            <span className="inline-flex items-center gap-1"><RotateCw size={13} /> Renumber all</span>
           </button>
           <button onClick={() => setSideStage(v => !v)}
             className={`text-xs border rounded-lg px-3 py-1 transition-colors whitespace-nowrap ${sideStage ? 'bg-slate-800 text-white border-slate-600' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-300'}`}
             title={sideStage ? 'Switch to top bar layout' : 'Switch to side panel layout'}>
-            {sideStage ? '◨ Side Panel' : '◧ Side Panel'}
+            {sideStage ? <span className="inline-flex items-center gap-1"><PanelRight size={13} /> Side panel</span> : <span className="inline-flex items-center gap-1"><PanelLeft size={13} /> Side panel</span>}
           </button>
           {games.some(g => g.date || g.startTime || g.location) && (
             <button onClick={unscheduleAll} disabled={unscheduling}
               className="text-xs bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg px-3 py-1 disabled:opacity-50 transition-colors whitespace-nowrap">
-              {unscheduling ? 'Unscheduling…' : '🗑 Unschedule All'}
+              {unscheduling ? 'Unscheduling…' : <span className="inline-flex items-center gap-1"><Trash2 size={13} /> Unschedule all</span>}
             </button>
           )}
           <div className="flex items-center gap-2 ml-auto flex-shrink-0">
@@ -803,7 +804,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
               className="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-40
                 bg-green-600 hover:bg-green-700 text-white border-green-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:border-slate-300 whitespace-nowrap"
             >
-              {publishing ? 'Publishing…' : '🚀 Publish'}
+              {publishing ? 'Publishing…' : <span className="inline-flex items-center gap-1"><Send size={13} /> Publish</span>}
             </button>
           </div>
         </div>
@@ -818,7 +819,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
           <button onClick={() => setLotExpanded(v => !v)}
             className="text-slate-500 hover:text-slate-300 transition-colors text-xs px-1"
             title={lotExpanded ? 'Collapse' : 'Expand to see all games'}>
-            {lotExpanded ? '▲ Collapse' : '▼ Expand'}
+            {lotExpanded ? <span className="inline-flex items-center gap-1"><ChevronUp size={12} /> Collapse</span> : <span className="inline-flex items-center gap-1"><ChevronDown size={12} /> Expand</span>}
           </button>
           <button
             onClick={() => setLotOrder(
@@ -828,7 +829,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
             )}
             className="text-slate-500 hover:text-slate-300 transition-colors text-xs px-1"
             title="Sort by game number">
-            ↕ Sort
+            <span className="inline-flex items-center gap-1"><ArrowUpDown size={12} /> Sort</span>
           </button>
           <span className="bg-slate-700 text-slate-300 text-xs font-semibold rounded-full px-2 py-0.5 mr-1">
             {unscheduled.length}
@@ -889,14 +890,14 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
               onClick={() => setHideEmptySlots(v => !v)}
               className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${hideEmptySlots ? 'bg-slate-200 text-slate-700 border-slate-300' : 'text-slate-400 border-slate-200 hover:border-slate-400'}`}
               title="Hide time rows with no games">
-              ⏱ Compact
+              <span className="inline-flex items-center gap-1"><Clock size={12} /> Compact</span>
             </button>
             <div className="relative">
               <button
                 onClick={() => setShowFieldPicker(v => !v)}
                 className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${hiddenFields.size > 0 ? 'bg-slate-200 text-slate-700 border-slate-300' : 'text-slate-400 border-slate-200 hover:border-slate-400'}`}
                 title="Show/hide field columns">
-                🏟 Fields{hiddenFields.size > 0 ? ` (${visibleFields.length}/${fields.length})` : ''}
+                <MapPin size={12} className="inline -mt-0.5 mr-1" /> Fields{hiddenFields.size > 0 ? ` (${visibleFields.length}/${fields.length})` : ''}
               </button>
               {showFieldPicker && (
                 <div className="absolute right-0 top-8 z-50 bg-white border border-slate-200 rounded-xl shadow-lg p-3 min-w-[180px]" onClick={e => e.stopPropagation()}>
@@ -909,11 +910,11 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                           if (next.has(f.fullName)) next.delete(f.fullName); else next.add(f.fullName)
                           return next
                         })}
-                        className="rounded accent-blue-600" />
+                        className="rounded accent-teal-600" />
                       <span className="text-xs text-slate-700">{f.fieldName}</span>
                     </label>
                   ))}
-                  {hiddenFields.size > 0 && <button onClick={() => setHiddenFields(new Set())} className="mt-2 text-[10px] text-blue-600 hover:underline block">Show all</button>}
+                  {hiddenFields.size > 0 && <button onClick={() => setHiddenFields(new Set())} className="mt-2 text-[10px] text-teal-600 hover:underline block">Show all</button>}
                 </div>
               )}
             </div>
@@ -961,7 +962,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
           )}
           {swapMode && (
             <span className="ml-auto text-emerald-400 text-xs hidden sm:block">
-              🔄 Click two scheduled games to swap them
+              <RefreshCw size={13} className="inline -mt-0.5 mr-1" /> Click two scheduled games to swap them
             </span>
           )}
         </div>
@@ -972,7 +973,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
             <div className={lotExpanded ? 'flex flex-wrap gap-2' : 'flex flex-wrap gap-2 max-h-[5.5rem] overflow-hidden'}>
               {filtered.length === 0 ? (
                 <p className="text-slate-500 text-sm py-3 italic self-center">
-                  {unscheduled.length === 0 ? '🎉 All games scheduled!' : 'No games match filter'}
+                  {unscheduled.length === 0 ? <span className="inline-flex items-center gap-1"><CheckCircle2 size={14} /> All games scheduled!</span> : 'No games match filter'}
                 </p>
               ) : filteredSorted.map(g => {
                 const color = divColor(g.division, divisions, divColorMap)
@@ -1006,7 +1007,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                       <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center shadow-sm" title={conflictMsgs.get(g.id) ?? 'Same-time conflict'}>!</span>
                     )}
                     {hasB2B && (
-                      <span className="absolute -top-1 -right-1 bg-yellow-400 text-slate-900 text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center shadow-sm" title={backToBackMsgs.get(g.id) ?? 'Back-to-back game'}>↔</span>
+                      <span className="absolute -top-1 -right-1 bg-yellow-400 text-slate-900 text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center shadow-sm" title={backToBackMsgs.get(g.id) ?? 'Back-to-back game'}><ArrowLeftRight size={9} /></span>
                     )}
                     <div className="font-bold leading-none mb-0.5"><span className="opacity-60 text-[9px] mr-1">{g.gameNumber.startsWith('B') ? `${divAbbr(g.division)}-${g.gameNumber}` : g.gameNumber}</span>{g.team1}</div>
                     <div className="opacity-75 text-[10px] leading-none">vs {g.team2} <span className="opacity-60">· {g.division}{g.pool ? ` ${g.pool}` : ''}</span></div>
@@ -1085,7 +1086,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
           <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1.5" onDragOver={e => e.preventDefault()} onDrop={handleDropParking}>
             {filteredSorted.length === 0 ? (
               <p className="text-slate-500 text-xs italic text-center py-4">
-                {unscheduled.length === 0 ? '🎉 All scheduled!' : 'No matches'}
+                {unscheduled.length === 0 ? <span className="inline-flex items-center gap-1"><CheckCircle2 size={14} /> All scheduled!</span> : 'No matches'}
               </p>
             ) : filteredSorted.map(g => {
               const color = divColor(g.division, divisions, divColorMap)
@@ -1101,10 +1102,10 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                   style={{ backgroundColor: color, color: textColor(color) }}
                 >
                   {hasConflict && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title={conflictMsgs.get(g.id) ?? 'Same-time conflict'}>⚠</span>
+                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title={conflictMsgs.get(g.id) ?? 'Same-time conflict'}><AlertTriangle size={10} /></span>
                   )}
                   {hasB2B && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title={backToBackMsgs.get(g.id) ?? 'Back-to-back game'}>↔</span>
+                    <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-slate-900 text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm" title={backToBackMsgs.get(g.id) ?? 'Back-to-back game'}><ArrowLeftRight size={9} /></span>
                   )}
                   <div className="font-bold text-[10px] opacity-70 mb-0.5">{g.gameNumber.startsWith('B') ? `${divAbbr(g.division)}-${g.gameNumber}` : g.gameNumber} · {g.division}{g.pool ? ` · ${g.pool}` : ''}</div>
                   <div className="font-semibold truncate">{g.team1}</div>
@@ -1159,7 +1160,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
 
         {swapMode && swapSourceId && (
           <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 border border-emerald-300 rounded px-2 py-0.5">
-            🔄 Click a game to swap with it
+            <RefreshCw size={13} className="inline -mt-0.5 mr-1" /> Click a game to swap with it
           </span>
         )}
       </div>
@@ -1171,7 +1172,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
             <button key={d} onClick={() => setActiveDate(d)}
               className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeDate === d
-                  ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+                  ? 'border-teal-600 text-teal-600 bg-teal-50/50'
                   : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}>
               {fmtDate(d)}
@@ -1190,22 +1191,22 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
       {/* ── Grid ── */}
       {fields.length === 0 ? (
         <div className="flex-1 flex items-center justify-center flex-col gap-4 text-slate-400 py-20">
-          <div className="text-4xl">🏟️</div>
+          <div className="text-slate-300"><Building2 size={44} /></div>
           <p className="text-base font-medium text-slate-600">No fields configured yet</p>
           {addingField ? (
             <div className="flex items-center gap-2">
               <input autoFocus type="text" placeholder="Field name…" value={newFieldName}
                 onChange={e => setNewFieldName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') addField(); if (e.key === 'Escape') { setAddingField(false); setNewFieldName('') } }}
-                className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-40" />
-              <button onClick={addField} className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">Add</button>
+                className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 w-40" />
+              <button onClick={addField} className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">Add</button>
               <button onClick={() => { setAddingField(false); setNewFieldName('') }} className="text-slate-400 hover:text-slate-600 text-xs px-2">Cancel</button>
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <button onClick={() => setAddingField(true)} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg">+ Add Field</button>
+              <button onClick={() => setAddingField(true)} className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2 rounded-lg">+ Add Field</button>
               <span className="text-slate-400 text-xs">or add in</span>
-              <a href={`/tournaments/${params.id}/builder`} className="text-blue-500 hover:underline text-sm">Builder →</a>
+              <a href={`/tournaments/${params.id}/builder`} className="text-teal-500 hover:underline text-sm"><span className="inline-flex items-center gap-1">Builder <ArrowRight size={12} /></span></a>
             </div>
           )}
         </div>
@@ -1224,7 +1225,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                     <button
                       onClick={() => removeField(f.fullName)}
                       className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 text-xs leading-none transition-opacity"
-                      title="Remove field">×</button>
+                      title="Remove field"><X size={15} /></button>
                   </th>
                 ))}
                 <th className="bg-slate-100 border border-slate-200 px-2 py-2 text-center w-24">
@@ -1233,15 +1234,15 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                       <input autoFocus type="text" placeholder="Name…" value={newFieldName}
                         onChange={e => setNewFieldName(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') addField(); if (e.key === 'Escape') { setAddingField(false); setNewFieldName('') } }}
-                        className="border border-slate-300 rounded px-1.5 py-0.5 text-xs w-20 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        className="border border-slate-300 rounded px-1.5 py-0.5 text-xs w-20 text-slate-700 focus:outline-none focus:ring-1 focus:ring-teal-500" />
                       <div className="flex gap-1">
-                        <button onClick={addField} className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded">Add</button>
-                        <button onClick={() => { setAddingField(false); setNewFieldName('') }} className="text-slate-400 text-[10px] px-1">✕</button>
+                        <button onClick={addField} className="bg-teal-600 text-white text-[10px] px-1.5 py-0.5 rounded">Add</button>
+                        <button onClick={() => { setAddingField(false); setNewFieldName('') }} className="text-slate-400 text-[10px] px-1"><X size={13} /></button>
                       </div>
                     </div>
                   ) : (
                     <button onClick={() => setAddingField(true)}
-                      className="text-slate-400 hover:text-blue-600 text-xs font-medium transition-colors whitespace-nowrap">
+                      className="text-slate-400 hover:text-teal-600 text-xs font-medium transition-colors whitespace-nowrap">
                       + Field
                     </button>
                   )}
@@ -1266,7 +1267,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                     return (
                       <td
                         key={f.fullName}
-                        className={`border border-slate-200 p-1 align-top ${slotHasGame ? 'h-16' : 'h-8'} transition-colors ${isOver ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'}`}
+                        className={`border border-slate-200 p-1 align-top ${slotHasGame ? 'h-16' : 'h-8'} transition-colors ${isOver ? 'bg-teal-50' : 'bg-white hover:bg-slate-50'}`}
                         onDragOver={e => { e.preventDefault(); setOverCell(cellKey) }}
                         onDragLeave={() => setOverCell(null)}
                         onDrop={e => handleDropCell(e, slot, f.fullName)}
@@ -1286,16 +1287,16 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                             style={{ backgroundColor: divColor(game.division, divisions, divColorMap), color: textColor(divColor(game.division, divisions, divColorMap)) }}
                           >
                             {conflictMsgs.has(game.id) && (
-                              <span className="absolute bottom-0.5 right-0.5 bg-red-500 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow" title={conflictMsgs.get(game.id) ?? 'Same-time conflict'}>⚠</span>
+                              <span className="absolute bottom-0.5 right-0.5 bg-red-500 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow" title={conflictMsgs.get(game.id) ?? 'Same-time conflict'}><AlertTriangle size={10} /></span>
                             )}
                             {!conflictMsgs.has(game.id) && backToBackMsgs.has(game.id) && (
-                              <span className="absolute bottom-0.5 right-0.5 bg-yellow-400 text-slate-900 text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow" title={backToBackMsgs.get(game.id) ?? 'Back-to-back game'}>⇔</span>
+                              <span className="absolute bottom-0.5 right-0.5 bg-yellow-400 text-slate-900 text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow" title={backToBackMsgs.get(game.id) ?? 'Back-to-back game'}><ArrowLeftRight size={9} /></span>
                             )}
                             {!conflictMsgs.has(game.id) && !backToBackMsgs.has(game.id) && longGapMsgs.has(game.id) && (
-                              <span className="absolute bottom-0.5 right-0.5 bg-blue-400 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow" title={longGapMsgs.get(game.id) ?? 'Long gap'}>⏱</span>
+                              <span className="absolute bottom-0.5 right-0.5 bg-teal-400 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow" title={longGapMsgs.get(game.id) ?? 'Long gap'}><Clock size={9} /></span>
                             )}
                             {!conflictMsgs.has(game.id) && !backToBackMsgs.has(game.id) && !longGapMsgs.has(game.id) && bracketOrderMsgs.has(game.id) && (
-                              <span className="absolute bottom-0.5 right-0.5 bg-orange-500 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow" title={bracketOrderMsgs.get(game.id) ?? 'Bracket order issue'}>⚡</span>
+                              <span className="absolute bottom-0.5 right-0.5 bg-orange-500 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow" title={bracketOrderMsgs.get(game.id) ?? 'Bracket order issue'}><Zap size={10} /></span>
                             )}
                             <div className="flex items-center justify-between gap-1">
                               <div className="font-bold text-[10px] leading-none" style={{ color: 'inherit' }}>{game.gameNumber.startsWith('B') ? `${divAbbr(game.division)}-${game.gameNumber}` : game.gameNumber}</div>
