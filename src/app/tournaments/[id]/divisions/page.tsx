@@ -58,6 +58,7 @@ export default function DivisionsPage() {
   const [guarantee, setGuarantee] = useState('4')
   const [smartTable, setSmartTable] = useState<Record<number, { games?: number; pools?: number; bracket?: string }>>({})
   const [showSmartEditor, setShowSmartEditor] = useState(false)
+  const [smartMax, setSmartMax] = useState(16)
   useEffect(() => { try { const raw = localStorage.getItem('smartDefaults:' + id); if (raw) setSmartTable(JSON.parse(raw)) } catch {} }, [id])
 
   // Scheduled games warning state
@@ -637,7 +638,7 @@ if (loading) return (
               <p className="text-[10px] text-slate-400 text-center leading-tight">Auto-creates Pool A if needed</p>
             </div>
             {showSmartEditor && (() => {
-              const maxN = Math.max(12, ...divisions.map(d => d.teamCount), 2)
+              const maxN = Math.max(smartMax, ...divisions.map(d => d.teamCount), 2)
               const counts: number[] = []; for (let n = 2; n <= maxN; n++) counts.push(n)
               const g = Number(guarantee) || 4
               const BRACKETS = [{ v: '', l: 'None' }, { v: 'single', l: 'Single elim' }, { v: 'single-con', l: 'Single elim + 3rd' }, { v: 'double', l: 'Double elim' }, { v: '2gg', l: '2-game guarantee' }]
@@ -648,6 +649,7 @@ if (loading) return (
                     <div className="px-5 py-4 border-b border-slate-100">
                       <h3 className="font-bold text-slate-800 flex items-center gap-1.5"><Sparkles size={15} className="text-teal-500" /> Smart defaults</h3>
                       <p className="text-xs text-slate-400 mt-0.5">Your preferred setup for a division by how many teams it has. Smart defaults applies games/team; pools and bracket are saved as your plan.</p>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-slate-500"><span>Show team counts up to</span><input type="number" min="2" value={smartMax} onChange={e => setSmartMax(Math.max(2, Number(e.target.value) || 2))} className="w-16 border border-slate-200 rounded text-center py-0.5 focus:outline-none focus:ring-1 focus:ring-teal-400" /><span>teams</span></div>
                     </div>
                     <div className="px-5 py-2 overflow-y-auto">
                       <table className="w-full text-xs">
