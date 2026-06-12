@@ -154,3 +154,29 @@ seed-flag-football.js got committed during the branch work (harmless local seed 
 Open/next: consistency-pass remaining pages (Scores, Assignments, Results, Staff view, Returning
 teams); double-elim / 3rd-flight (B2) flighting (data model already supports >2 via the flight column);
 show bracket game times/fields on the preview cards.
+
+
+## Session handoff (Jun 12, 2026)
+
+### Shipped to live (all deployed to master):
+
+**Post Scores page** (`/tournaments/[id]/scores`): added page header with "Tournament Director & Schedule Manager" role badge and live scored/total count. Fixed sort-by-date tiebreaker (was returning 1 for equal values, causing unstable sort; now returns 0).
+
+**TournamentNav**: added Scores tab pointing to `/scores`.
+
+**Role permissions** (`src/lib/role-permissions.json`): wired two new features — `tournament_scores` (routes `/tournaments/*/scores`; enabled for director + assigner) and `game_scorekeeper` (routes `/tournaments/*/games/*/scorekeeper`; enabled for scorekeeper + director + assigner). Fixed critical bug: the `scorekeeper` role had ALL permissions set to false — now has `game_scorekeeper: true`.
+
+**Scorekeeper page** (`/tournaments/[id]/games/[gameId]/scorekeeper`): added "Scorekeeper View" green badge to the top bar; reorganized header to show division, game #, and location more clearly.
+
+**Public tournament page — visual bracket tab** (`/tournaments/[id]/public`): replaced the old flat championship list with a full SVG bracket tree. Light/clean style: white game cards, blue winner highlight (bg-blue-50), gray loser (bg-gray-50), amber border for championship games, light gray connector lines. Layout math matches BracketBuilder (bkTop/bkLeft). Resolves team names from seeds and team1Source/team2Source (handles seed:N, winner:N, loser:N). Shows a progress bar (rounds complete), collapsible consolation section, and supports multi-flight brackets via numberOffset.
+
+### Open / next:
+
+- Consistency pass remaining pages: Assignments, Results, Staff view, Returning teams.
+- Bracket game times/fields on the public bracket cards (fetch B-game schedule; show date/time/field on each card).
+- Double-elim / 3rd-flight (B2) support (data model already supports it via the flight column).
+
+### Working notes (this session):
+
+- Sandbox cannot push to GitHub (proxy blocks it). Deployed via push_bracket.bat in the Github Build workspace folder (clones to temp, copies file, commits, pushes via Git Credential Manager browser auth). Token in that bat file may expire — if 401, generate a new Classic PAT with repo scope at github.com/settings/tokens.
+- Office computer working copy path unknown — update "How we ship" when confirmed.
