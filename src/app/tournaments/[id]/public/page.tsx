@@ -156,6 +156,7 @@ interface BkBracket{id:string;format:string;teamCount:number;flight?:string;numb
 // ── Both-ways consolation tournament (mirror) ──────────────────────────────
 function MirrorBracket({bracket,scheduledGames,showFlight}:{bracket:BkBracket;scheduledGames:Game[];showFlight:boolean}){
   const logos=useContext(LogosContext)
+  const [zoom,setZoom]=useState(1)
   const offset=bracket.numberOffset??0
   const schedByNum=new Map(scheduledGames.map(g=>[g.gameNumber,g]))
   function TeamAv({name,isTbd}:{name:string;isTbd:boolean}){
@@ -206,11 +207,11 @@ function MirrorBracket({bracket,scheduledGames,showFlight}:{bracket:BkBracket;sc
   const stepX=BK_W+BK_CONN
   const maxWinDepth=Math.max(0,...wins.map(g=>g.round-minWinRound))
   const maxConsDepth=consBracket.length?Math.max(...consBracket.map(g=>g.round-minWinRound)):0
-  const CX=(maxConsDepth+1)*stepX+10
+  const CX=maxConsDepth*stepX+10
   const colX=(g:BkBracketGame)=>isWin(g)?CX+(g.round-minWinRound)*stepX:CX-(g.round-minWinRound)*stepX
   const positions=new Map<number,{x:number;y:number;cy:number}>()
-  mirGames.forEach(g=>{const y=yByNum[g.gameNumber]-minY+BK_TOP;positions.set(g.gameNumber,{x:colX(g),y,cy:y+BK_BAR_H+BK_BAR_GAP/2})})
-  const canvasW=CX+(maxWinDepth+1)*stepX+BK_W+10
+  mirGames.forEach(g=>{const y=yByNum[g.gameNumber]-minY+BK_TOP+30;positions.set(g.gameNumber,{x:colX(g),y,cy:y+BK_BAR_H+BK_BAR_GAP/2})})
+  const canvasW=CX+maxWinDepth*stepX+BK_W+10
   const allY=[...positions.values()]
   const canvasH=Math.max(220,...allY.map(p=>p.y+2*BK_BAR_H+BK_BAR_GAP))+24
   const conns:JSX.Element[]=[]
@@ -222,13 +223,18 @@ function MirrorBracket({bracket,scheduledGames,showFlight}:{bracket:BkBracket;sc
   const consFinal=consBracket.length?consBracket.slice().sort((a,b)=>b.round-a.round)[0]:null
   const champPos=champGame?positions.get(champGame.gameNumber):null
   const consPos=consFinal?positions.get(consFinal.gameNumber):null
-  if(champPos)conns.push(<path key="champ-c" d={`M${champPos.x+BK_W},${champPos.cy} H${champPos.x+BK_W+BK_CONN}`} fill="none" stroke="#cbd5e1" strokeWidth="1.5"/>)
-  if(consPos)conns.push(<path key="cons-c" d={`M${consPos.x},${consPos.cy} H${consPos.x-BK_CONN}`} fill="none" stroke="#cbd5e1" strokeWidth="1.5"/>)
   return(
     <div>
       {showFlight&&<p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Flight {bracket.flight||'A'}</p>}
+      <div className="flex items-center gap-1 mb-1 text-gray-400">
+        <span className="text-[10px] mr-1">Zoom</span>
+        <button onClick={()=>setZoom(z=>Math.max(0.5,Math.round((z-0.15)*100)/100))} className="w-5 h-5 rounded border border-gray-200 hover:bg-gray-50 text-xs leading-none">−</button>
+        <span className="text-[10px] w-9 text-center">{Math.round(zoom*100)}%</span>
+        <button onClick={()=>setZoom(z=>Math.min(1,Math.round((z+0.15)*100)/100))} className="w-5 h-5 rounded border border-gray-200 hover:bg-gray-50 text-xs leading-none">+</button>
+      </div>
       <div style={{overflowX:'auto',paddingBottom:8}}>
-        <div style={{position:'relative',width:canvasW,height:canvasH}}>
+        <div style={{width:canvasW*zoom,height:canvasH*zoom}}>
+        <div style={{position:'relative',width:canvasW,height:canvasH,transformOrigin:'top left',transform:zoom!==1?`scale(${zoom})`:undefined}}>
           <svg style={{position:'absolute',top:0,left:0,width:canvasW,height:canvasH,pointerEvents:'none'}} viewBox={`0 0 ${canvasW} ${canvasH}`}>{conns}</svg>
           {mirGames.map(g=>{
             const pos=positions.get(g.gameNumber);if(!pos)return null
@@ -260,8 +266,9 @@ function MirrorBracket({bracket,scheduledGames,showFlight}:{bracket:BkBracket;sc
                     </div>)})}
               </div>)
           })}
-          {champPos&&(<div style={{position:'absolute',left:champPos.x+BK_W+BK_CONN,top:champPos.cy-22,width:BK_W,height:44}} className="flex items-center justify-center gap-2 rounded-xl bg-amber-700 text-white font-bold text-[13px] shadow-sm"><Trophy size={14}/> Champion</div>)}
-          {consPos&&(<div style={{position:'absolute',left:consPos.x-BK_CONN-BK_W,top:consPos.cy-22,width:BK_W,height:44}} className="flex items-center justify-center gap-1.5 rounded-xl bg-slate-600 text-white font-semibold text-[12px] shadow-sm"><Medal size={14}/> Consolation Champ</div>)}
+          {champPos&&(<div style={{position:'absolute',left:champPos.x,top:Math.max(2,champPos.y-61),width:BK_W,height:40}} className="flex items-center justify-center gap-2 rounded-xl bg-amber-700 text-white font-bold text-[13px] shadow-sm"><Trophy size={14}/> Champion</div>)}
+          {consPos&&(<div style={{position:'absolute',left:consPos.x,top:Math.max(2,consPos.y-61),width:BK_W,height:40}} className="flex items-center justify-center gap-1.5 rounded-xl bg-slate-600 text-white font-semibold text-[12px] shadow-sm"><Medal size={14}/> Consolation Champ</div>)}
+        </div>
         </div>
       </div>
       {placement.length>0&&(

@@ -878,6 +878,7 @@ function MirrorPreview({ template, seeds, division, numberOffset = 0, logos = {}
   schedule?: Record<number, { date: string; startTime: string; location: string }>
 }) {
   const ROW = 120
+  const [zoom, setZoom] = useState(1)
   const HALF_BAR = (BAR_H + BAR_GAP) / 2
   const isWin = (g: GameTemplate) => g.section === 'winners' || g.section === 'championship'
   const wins = template.filter(isWin)
@@ -909,11 +910,11 @@ function MirrorPreview({ template, seeds, division, numberOffset = 0, logos = {}
   const stepX = GAME_W + CONN_W
   const maxWinDepth = Math.max(0, ...wins.map(g => g.round - minWinRound))
   const maxConsDepth = consBracket.length ? Math.max(...consBracket.map(g => g.round - minWinRound)) : 0
-  const CX = (maxConsDepth + 1) * stepX + 10
+  const CX = maxConsDepth * stepX + 10
   const colX = (g: GameTemplate) => isWin(g) ? CX + (g.round - minWinRound) * stepX : CX - (g.round - minWinRound) * stepX
   const pos: Record<number, { x: number; y: number; cy: number }> = {}
-  mir.forEach(g => { const y = yByNum[g.gameNumber] - minY + TOP_PAD + 14; pos[g.gameNumber] = { x: colX(g), y, cy: y + BAR_H + BAR_GAP / 2 } })
-  const canvasW = CX + (maxWinDepth + 1) * stepX + GAME_W + 10
+  mir.forEach(g => { const y = yByNum[g.gameNumber] - minY + TOP_PAD + 14 + 30; pos[g.gameNumber] = { x: colX(g), y, cy: y + BAR_H + BAR_GAP / 2 } })
+  const canvasW = CX + maxWinDepth * stepX + GAME_W + 10
   const canvasH = Math.max(160, ...mir.map(g => pos[g.gameNumber].y + 2 * BAR_H + BAR_GAP)) + 20
   const conns: JSX.Element[] = []
   mir.forEach(g => { const p = pos[g.gameNumber]; if (!p) return; const win = isWin(g)
@@ -924,8 +925,6 @@ function MirrorPreview({ template, seeds, division, numberOffset = 0, logos = {}
   const consFinal = consBracket.length ? consBracket.slice().sort((a, b) => b.round - a.round)[0] : null
   const cP = champGame ? pos[champGame.gameNumber] : null
   const kP = consFinal ? pos[consFinal.gameNumber] : null
-  if (cP) conns.push(<path key="champ-c" d={`M${cP.x + GAME_W},${cP.cy} H${cP.x + GAME_W + CONN_W}`} fill="none" stroke="#475569" strokeWidth="1.5" />)
-  if (kP) conns.push(<path key="cons-c" d={`M${kP.x},${kP.cy} H${kP.x - CONN_W}`} fill="none" stroke="#475569" strokeWidth="1.5" />)
   const bar = (g: GameTemplate, src: string, idx: number, isChamp: boolean) => {
     const p = pos[g.gameNumber]; const top = p.y + (idx === 0 ? 0 : BAR_H + BAR_GAP)
     const [type, n] = (src || '').split(':'); const isSeed = type === 'seed'
@@ -946,8 +945,15 @@ function MirrorPreview({ template, seeds, division, numberOffset = 0, logos = {}
   return (
     <div>
       <p className="text-[10px] text-slate-500 mb-2">Both-ways consolation · winners &rarr; Champion (right), first-round losers &rarr; Consolation Champion (left)</p>
+      <div className="flex items-center gap-1 mb-2 text-slate-500">
+        <span className="text-[10px] mr-1 uppercase tracking-wider">Zoom</span>
+        <button onClick={() => setZoom(z => Math.max(0.5, Math.round((z - 0.15) * 100) / 100))} className="w-5 h-5 rounded border border-slate-600 text-slate-300 hover:bg-slate-700 text-xs leading-none">−</button>
+        <span className="text-[10px] w-9 text-center text-slate-400">{Math.round(zoom * 100)}%</span>
+        <button onClick={() => setZoom(z => Math.min(1, Math.round((z + 0.15) * 100) / 100))} className="w-5 h-5 rounded border border-slate-600 text-slate-300 hover:bg-slate-700 text-xs leading-none">+</button>
+      </div>
       <div className="overflow-x-auto pb-2">
-        <div style={{ position: 'relative', width: canvasW, height: canvasH }}>
+        <div style={{ width: canvasW * zoom, height: canvasH * zoom }}>
+        <div style={{ position: 'relative', width: canvasW, height: canvasH, transformOrigin: 'top left', transform: zoom !== 1 ? `scale(${zoom})` : undefined }}>
           <svg style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none' }} viewBox={`0 0 ${canvasW} ${canvasH}`}>{conns}</svg>
           {mir.map(g => {
             const p = pos[g.gameNumber]; if (!p) return null
@@ -970,8 +976,9 @@ function MirrorPreview({ template, seeds, division, numberOffset = 0, logos = {}
               </div>
             )
           })}
-          {cP && <div style={{ position: 'absolute', left: cP.x + GAME_W + CONN_W, top: cP.cy - 20, width: GAME_W, height: 40 }} className="flex items-center justify-center rounded-lg bg-amber-600 text-white font-bold text-xs">{division ? `${division} Champion` : 'Champion'}</div>}
-          {kP && <div style={{ position: 'absolute', left: kP.x - CONN_W - GAME_W, top: kP.cy - 20, width: GAME_W, height: 40 }} className="flex items-center justify-center rounded-lg bg-slate-600 text-white font-semibold text-xs">Consolation Champion</div>}
+          {cP && <div style={{ position: 'absolute', left: cP.x, top: Math.max(2, cP.y - 58), width: GAME_W, height: 38 }} className="flex items-center justify-center rounded-lg bg-amber-600 text-white font-bold text-xs">{division ? `${division} Champion` : 'Champion'}</div>}
+          {kP && <div style={{ position: 'absolute', left: kP.x, top: Math.max(2, kP.y - 58), width: GAME_W, height: 38 }} className="flex items-center justify-center rounded-lg bg-slate-600 text-white font-semibold text-xs">Consolation Champion</div>}
+        </div>
         </div>
       </div>
       {placement.length > 0 && (
