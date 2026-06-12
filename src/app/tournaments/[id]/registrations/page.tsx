@@ -1269,7 +1269,7 @@ export default function RegistrationsPage() {
                 {/* Club Logo */}
                 <div>
                   <h3 className="text-sm font-semibold text-slate-700 mb-2">Club Logo</h3>
-                  <p className="text-xs text-slate-400 mb-2">Auto-applied to all teams. Each team can have its own logo too.</p>
+                  <p className="text-xs text-slate-400 mb-2">Auto-applied to all teams. Each team can have its own logo too. PNG or JPG recommended.</p>
                   <div className="flex items-center gap-3">
                     {clubLogoUrl && <img src={clubLogoUrl} alt="Club logo" className="h-12 w-12 object-contain rounded-lg border border-slate-200" />}
                     <label className={`cursor-pointer border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 ${clubLogoUploading ? 'opacity-50' : ''}`}>
