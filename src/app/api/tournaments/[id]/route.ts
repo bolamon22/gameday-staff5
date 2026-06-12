@@ -4,7 +4,17 @@ export async function GET(_: Request, { params }: { params:{id:string} }) {
   try { await prisma.$executeRawUnsafe(`ALTER TABLE "Tournament" ADD COLUMN "tiebreakers" TEXT NOT NULL DEFAULT '{}'`) } catch {}
   const t = await prisma.tournament.findUnique({ where:{id:params.id}, include:{_count:{select:{games:true}}} })
   if (!t) return NextResponse.json({ error:'Not found' }, { status:404 })
-  return NextResponse.json(t)
+  // Effective tiebreakers: the tournament's own, otherwise the saved global default.
+  let tiebreakers = (t as any).tiebreakers || '{}'
+  try {
+    const o = JSON.parse(tiebreakers)
+    const hasOwn = Array.isArray(o) ? o.length : (((o.pool||[]).length) || ((o.division||[]).length))
+    if (!hasOwn) {
+      const def = await prisma.appSetting.findUnique({ where:{ key:'defaultTiebreakers' } }).catch(()=>null)
+      if (def && def.value) tiebreakers = def.value
+    }
+  } catch {}
+  return NextResponse.json({ ...t, tiebreakers })
 }
 export async function PATCH(req: Request, { params }: { params:{id:string} }) {
   const b = await req.json()

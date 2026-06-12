@@ -97,6 +97,7 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
   const [tName, setTName] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [savingDefault, setSavingDefault] = useState(false)
   const [newKeyword, setNewKeyword] = useState('')
   const [newCount, setNewCount] = useState('1')
   // Registration types
@@ -260,6 +261,15 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
       : x))
   }
 
+  async function saveAsDefault() {
+    setSavingDefault(true)
+    try {
+      const res = await fetch('/api/tiebreaker-default', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pool: poolTb.filter(Boolean), division: divTb.filter(Boolean) }) })
+      if (!res.ok) throw new Error()
+      toast.success('Saved as default for new tournaments')
+    } catch { toast.error('Failed to save default') }
+    finally { setSavingDefault(false) }
+  }
   function addRule() { if (!newKeyword.trim()) return; setDivRules(r => ({ ...r, [newKeyword.trim()]: parseInt(newCount) || 1 })); setNewKeyword(''); setNewCount('1') }
   function removeRule(k: string) { setDivRules(r => { const n = { ...r }; delete n[k]; return n }) }
 
@@ -670,6 +680,11 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
               </div>
             ))}
             <p className="text-[11px] text-slate-400 mt-3">Ranked by tie breaker #1 first, then #2, and so on. Head-to-head currently compares two tied teams directly.</p>
+            <button type="button" onClick={saveAsDefault} disabled={savingDefault}
+              className="mt-3 text-xs font-semibold text-teal-700 border border-teal-200 hover:bg-teal-50 rounded-lg px-3 py-2 disabled:opacity-40">
+              {savingDefault ? 'Saving…' : 'Save as default for new tournaments'}
+            </button>
+            <p className="text-[11px] text-slate-400 mt-1.5">New tournaments will start with these tiebreakers. (The Save button above saves them to this tournament only.)</p>
           </SectionCard>
 
           <SectionCard title="Staff Pay Rates" description="Default pay per game for each staff role" icon={Banknote}

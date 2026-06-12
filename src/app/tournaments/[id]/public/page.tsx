@@ -137,7 +137,7 @@ function PoolCard({division,pool,standings,games,followedTeams,tiebreakers,advan
 
 type DivTab = 'standings'|'schedule'|'bracket'
 
-function DivisionView({division,games,followedTeams,toggleFollow,tournamentId}:{division:string;games:Game[];followedTeams:string[];toggleFollow:(t:string)=>void;tournamentId:string}) {
+function DivisionView({division,games,followedTeams,toggleFollow,tournamentId,tiebreakers}:{division:string;games:Game[];followedTeams:string[];toggleFollow:(t:string)=>void;tournamentId:string;tiebreakers:string[]}) {
   const [divTab,setDivTab]=useState<DivTab>('standings')
   const [selectedTeam,setSelectedTeam]=useState<string|null>(null)
   const [advanceCount,setAdvanceCount]=useState(0)
@@ -173,10 +173,10 @@ function DivisionView({division,games,followedTeams,toggleFollow,tournamentId}:{
           {pools.length>0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {pools.map(pool=>(
-                <PoolCard key={pool} division={division} pool={pool} standings={calcStandings(games,division,pool,DEFAULT_TBS)} games={games} followedTeams={followedTeams} tiebreakers={DEFAULT_TBS} advanceCount={advanceCount} numPools={pools.length} onScheduleClick={()=>setDivTab('schedule')} onTeamClick={handleTeamClick}/>
+                <PoolCard key={pool} division={division} pool={pool} standings={calcStandings(games,division,pool,tiebreakers)} games={games} followedTeams={followedTeams} tiebreakers={tiebreakers} advanceCount={advanceCount} numPools={pools.length} onScheduleClick={()=>setDivTab('schedule')} onTeamClick={handleTeamClick}/>
               ))}
             </div>
-          ) : <PoolCard division={division} pool="" standings={calcStandings(games,division,undefined,DEFAULT_TBS)} games={games} followedTeams={followedTeams} tiebreakers={DEFAULT_TBS} advanceCount={advanceCount} numPools={1} onScheduleClick={()=>setDivTab('schedule')} onTeamClick={handleTeamClick}/>}
+          ) : <PoolCard division={division} pool="" standings={calcStandings(games,division,undefined,tiebreakers)} games={games} followedTeams={followedTeams} tiebreakers={tiebreakers} advanceCount={advanceCount} numPools={1} onScheduleClick={()=>setDivTab('schedule')} onTeamClick={handleTeamClick}/>}
         </div>
       )}
 
@@ -260,6 +260,7 @@ export default function PublicTournamentPage() {
   const {id}=useParams()
   const [tournament,setTournament]=useState<Tournament|null>(null)
   const [logos,setLogos]=useState<Record<string,string>>({})
+  const [tiebreakers,setTiebreakers]=useState<string[]>(DEFAULT_TBS)
   const [games,setGames]=useState<Game[]>([])
   const [loading,setLoading]=useState(true)
   const [selectedDiv,setSelectedDiv]=useState<string|null>(null)
@@ -274,7 +275,7 @@ export default function PublicTournamentPage() {
       fetch(`/api/tournaments/${id}`).then(r=>r.json()),
       fetch(`/api/tournaments/${id}/games`).then(r=>r.json()),
       fetch(`/api/tournaments/${id}/team-logos`).then(r=>r.ok?r.json():{}).catch(()=>({})),
-    ]).then(([t,g,lg])=>{setTournament(t);setGames(Array.isArray(g)?g:[]);setLogos(lg||{});setLoading(false)})
+    ]).then(([t,g,lg])=>{setTournament(t);setGames(Array.isArray(g)?g:[]);setLogos(lg||{});try{const o=JSON.parse((t&&t.tiebreakers)||'{}');const pool=Array.isArray(o)?o:(o.pool||[]);if(pool.length)setTiebreakers(pool)}catch{};setLoading(false)})
     try{const saved=JSON.parse(localStorage.getItem(`follows-${id}`)||'[]');setFollowedTeams(saved)}catch{}
   },[id])
 
@@ -310,7 +311,7 @@ export default function PublicTournamentPage() {
       const champ=divGames.find(g=>g.isChampionship&&g.score1!==null&&g.score2!==null)
       const champion=champ?(champ.score1!>champ.score2!?champ.team1:champ.team2):null
       const hasBracket=divGames.some(g=>g.isChampionship)
-      const standings=calcStandings(games,div)
+      const standings=calcStandings(games,div,undefined,tiebreakers)
       const leader=(!champion&&completed>0&&standings.length>0)?standings[0].team:null
       const scored=[...divGames.filter(g=>g.score1!==null)].sort((a,b)=>`${a.date}${a.startTime}`<`${b.date}${b.startTime}`?-1:1)
       const lastUpdated=scored.length>0?fmtDateTime(scored[scored.length-1].date+' '+scored[scored.length-1].startTime):''
@@ -318,7 +319,7 @@ export default function PublicTournamentPage() {
       meta[div]={teams:teamSet.size,total,completed,pools:poolSet.size,leader,champion,lastUpdated,status}
     })
     return meta
-  },[games,divisions])
+  },[games,divisions,tiebreakers])
 
   const submitNotify = () => {
     if (!notifyEmail) return
@@ -576,6 +577,7 @@ export default function PublicTournamentPage() {
               followedTeams={followedTeams}
               toggleFollow={toggleFollow}
               tournamentId={id as string}
+              tiebreakers={tiebreakers}
             />
           </div>
         )}
