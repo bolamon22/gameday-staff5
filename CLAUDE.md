@@ -128,3 +128,29 @@ Open / next:
 - Be careful with secrets and with irreversible actions (deletes, pushes, payments).
 
 <!-- redeploy nudge: 2026-06-11T21:51Z -->
+
+## Session handoff (Jun 11, 2026 - evening)
+Shipped to live (master):
+- STAGE 2 FLIGHTING: a division can split into Flight A/B brackets, each with its own champion.
+  Bracket gains flight + numberOffset columns (every existing bracket = Flight A, offset 0; fully
+  backward compatible). Idempotent admin migration ("Migrate: Flights" button on /admin) - already
+  run on the shared Turso DB. Bracket API GET now returns ALL flights (array); POST supports a
+  split action (cutoff on the seed list -> Flight A seeds 1..N + Flight B rest, continuous B-game
+  numbering via numberOffset); PATCH/DELETE scoped per flight (?flight=A|B). BracketBuilder gained
+  a "Split into flights" panel (cutoff + per-flight format) + a Flight A/B switcher; the scoring
+  page (/bracket) and the Divisions generate-check were updated for the array response.
+- BRACKET REDESIGN (College Football Playoff "rail" style) on BOTH the builder preview and the
+  scoring page: each team on its own bar with a teal seed chip, the team logo (RegisteredTeam.logoUrl,
+  matched by team name; /teams now returns logoUrl), and the name; amber for byes/champion; straight
+  right-angle connectors driven by a feeder-graph layout (games are positioned from what feeds them,
+  so the round-1 winner lines up with the game it advances to). BYE games are offset so the
+  winner-feeder bar pairs with the bye team (mirrored across the bracket centerline) instead of
+  straddling the feeder line; row spacing widened (BracketPreview ROW=120, BracketSection UNIT=140)
+  to prevent column collisions.
+
+Notes: bracket GET is now an array of flights - the only consumers are BracketBuilder + the scoring
+page, both updated. The old gameTop() in BracketBuilder is now dead code (feeder-graph replaced it).
+seed-flag-football.js got committed during the branch work (harmless local seed script).
+Open/next: consistency-pass remaining pages (Scores, Assignments, Results, Staff view, Returning
+teams); double-elim / 3rd-flight (B2) flighting (data model already supports >2 via the flight column);
+show bracket game times/fields on the preview cards.
