@@ -142,6 +142,7 @@ function PoolCard({division,pool,standings,games,followedTeams,tiebreakers,advan
 
 // ── Bracket visual constants ───────────────────────────────────────────────
 const BK_H=82, BK_W=220, BK_CONN=48, BK_GAP=14, BK_UNIT=BK_H+BK_GAP
+const BK_BAR_H=34, BK_BAR_GAP=10, BK_ROW=132, BK_TOP=22
 function bkTop(round:number,idx:number){const sp=BK_UNIT*Math.pow(2,round-1);const fc=BK_H/2+(sp-BK_UNIT)/2;return fc+idx*sp-BK_H/2}
 function bkLeft(round:number){return(round-1)*(BK_W+BK_CONN)}
 function bkRoundLabel(r:number,max:number){if(r===max)return'Championship';if(r===max-1&&max>=3)return'Semifinals';if(r===max-2&&max>=4)return'Quarterfinals';return`Round ${r}`}
@@ -192,7 +193,6 @@ function BracketView({bracketList,scheduledGames}:{bracketList:BkBracket[];sched
         const referenced=new Set<number>()
         mainGames.forEach(g=>feederOf(g).forEach(fn=>{if(fn!=null)referenced.add(fn)}))
         const roots=mainGames.filter(g=>!referenced.has(g.gameNumber)).sort((a,b)=>b.round-a.round||a.gameNumber-b.gameNumber)
-        const BK_ROW=BK_H+BK_GAP
         const yByNum:Record<number,number>={}
         let leaf=0
         const placeY=(num:number):number=>{
@@ -209,10 +209,10 @@ function BracketView({bracketList,scheduledGames}:{bracketList:BkBracket[];sched
         mainGames.forEach(g=>{if(yByNum[g.gameNumber]===undefined)yByNum[g.gameNumber]=leaf++*BK_ROW})
         const minY=Math.min(0,...mainGames.map(g=>yByNum[g.gameNumber]))
         const positions=new Map<number,BkPos>()
-        mainGames.forEach(g=>{const y=yByNum[g.gameNumber]-minY;positions.set(g.gameNumber,{x:bkLeft(g.round),y,cy:y+BK_H/2})})
+        mainGames.forEach(g=>{const y=yByNum[g.gameNumber]-minY+BK_TOP;positions.set(g.gameNumber,{x:bkLeft(g.round),y,cy:y+BK_BAR_H+BK_BAR_GAP/2})})
         const allPos=[...positions.values()]
         const canvasW=bkLeft(maxRound)+BK_W+24
-        const canvasH=allPos.length?Math.max(...allPos.map(p=>p.y+BK_H))+24:200
+        const canvasH=allPos.length?Math.max(...allPos.map(p=>p.y+2*BK_BAR_H+BK_BAR_GAP))+24:200
 
         // SVG connectors
         const connectors:JSX.Element[]=[]
@@ -282,36 +282,35 @@ function BracketView({bracketList,scheduledGames}:{bracketList:BkBracket[];sched
                   const sg=schedByNum.get(sgNum)
                   const isChamp=bg.section==='championship'||(bg.label||'').toLowerCase().includes('championship')
                   const hasScore=sg&&sg.score1!=null&&sg.score2!=null
-                  const t1=resolveTeam(bg.team1Source,sg?.team1)
-                  const t2=resolveTeam(bg.team2Source,sg?.team2)
-                  const t1w=hasScore&&sg!.score1!>sg!.score2!
-                  const t2w=hasScore&&sg!.score2!>sg!.score1!
+                  const hasSched=sg&&(sg.date||sg.startTime||sg.location)
+                  const cap=hasSched?`${fmtShortDate(sg!.date)} ${fmt12bk(sg!.startTime)} · ${(sg!.location||'').split(' - ').pop()||sg!.location}`:(isChamp?(bg.label||'Championship'):'Not scheduled')
+                  const w0=!!hasScore&&sg!.score1!>sg!.score2!, w1=!!hasScore&&sg!.score2!>sg!.score1!
+                  const rows=[
+                    {src:bg.team1Source,team:resolveTeam(bg.team1Source,sg?.team1),score:sg?.score1,win:w0},
+                    {src:bg.team2Source,team:resolveTeam(bg.team2Source,sg?.team2),score:sg?.score2,win:w1},
+                  ]
                   return(
-                    <div key={bg.gameNumber} style={{position:'absolute',left:pos.x,top:pos.y,width:BK_W}}>
-                      <div className={`bg-white rounded-xl overflow-hidden border shadow-sm ${isChamp?'border-amber-200':'border-gray-200'}`}>
-                        {/* Team 1 */}
-                        <div className={`flex items-center gap-2 px-3 py-2.5 ${t1w?'bg-blue-50':t2w?'bg-gray-50':''}`}>
-                          <TeamAv name={t1.name} isTbd={t1.isTbd}/>
-                          <span className={`flex-1 text-[12px] truncate ${t1.isTbd?'text-gray-400 italic':t1w?'font-bold text-gray-900':'font-medium text-gray-700'}`}>{t1.name}</span>
-                          {!t1.isTbd&&hasScore&&<span className={`text-[15px] font-bold ${t1w?'text-blue-600':'text-gray-400'}`}>{sg!.score1}</span>}
-                          {t1w&&<Trophy size={11} className="text-amber-500 flex-shrink-0"/>}
-                        </div>
-                        <div className="border-t border-gray-100"/>
-                        {/* Team 2 */}
-                        <div className={`flex items-center gap-2 px-3 py-2.5 ${t2w?'bg-blue-50':t1w?'bg-gray-50':''}`}>
-                          <TeamAv name={t2.name} isTbd={t2.isTbd}/>
-                          <span className={`flex-1 text-[12px] truncate ${t2.isTbd?'text-gray-400 italic':t2w?'font-bold text-gray-900':'font-medium text-gray-700'}`}>{t2.name}</span>
-                          {!t2.isTbd&&hasScore&&<span className={`text-[15px] font-bold ${t2w?'text-blue-600':'text-gray-400'}`}>{sg!.score2}</span>}
-                          {t2w&&<Trophy size={11} className="text-amber-500 flex-shrink-0"/>}
-                        </div>
-                        {/* Meta */}
-                        <div className={`flex items-center gap-1.5 px-3 py-1.5 border-t border-gray-100 ${isChamp?'bg-amber-50':'bg-gray-50'}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${hasScore?'bg-green-500':'bg-gray-300'}`}/>
-                          <span className="text-[10px] text-gray-500 truncate">
-                            {sg&&(sg.date||sg.startTime||sg.location)?`${fmtShortDate(sg.date)} ${fmt12bk(sg.startTime)} · ${(sg.location||'').split(' - ').pop()||sg.location}`:isChamp?'Championship':'Not scheduled'}
-                          </span>
-                        </div>
+                    <div key={bg.gameNumber}>
+                      {/* Caption (schedule / round) */}
+                      <div style={{position:'absolute',left:pos.x,top:pos.y-17,width:BK_W}} className="flex items-center gap-1 px-1">
+                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${hasScore?'bg-green-500':hasSched?'bg-blue-400':'bg-gray-300'}`}/>
+                        <span className={`text-[10px] truncate ${isChamp?'text-amber-600 font-semibold':'text-gray-400'}`}>{cap}</span>
                       </div>
+                      {/* Team bars */}
+                      {rows.map((r,idx)=>{
+                        const isSeed=r.src.startsWith('seed:')
+                        const top=pos.y+(idx===0?0:BK_BAR_H+BK_BAR_GAP)
+                        return(
+                          <div key={idx} style={{position:'absolute',left:pos.x,top,width:BK_W,height:BK_BAR_H}}
+                            className={`flex items-center rounded-lg border shadow-sm overflow-hidden ${r.win?'border-blue-300 bg-blue-50':isChamp?'border-amber-300 bg-white':'border-gray-200 bg-white'}`}>
+                            <span className={`h-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${isSeed?'bg-teal-600 text-white':'bg-gray-100 text-gray-400'}`} style={{width:26}}>{isSeed?r.src.slice(5):''}</span>
+                            <div className="pl-2 pr-1.5 flex-shrink-0"><TeamAv name={r.team.name} isTbd={r.team.isTbd}/></div>
+                            <span className={`flex-1 text-[12px] truncate ${r.team.isTbd?'text-gray-400 italic':r.win?'font-bold text-gray-900':'font-medium text-gray-700'}`}>{r.team.name}</span>
+                            {!r.team.isTbd&&hasScore&&<span className={`text-[14px] font-bold px-2 ${r.win?'text-blue-600':'text-gray-400'}`}>{r.score}</span>}
+                            {r.win&&<Trophy size={11} className="text-amber-500 flex-shrink-0 mr-2"/>}
+                          </div>
+                        )
+                      })}
                     </div>
                   )
                 })}
