@@ -117,6 +117,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   const [dragGame, setDragGame]         = useState<Game | null>(null)
   const [overCell, setOverCell]         = useState<string | null>(null)
   const [autoFilling, setAutoFilling]   = useState(false)
+  const [gridZoom, setGridZoom]         = useState(1)
 
   // ── Parking lot filters ──────────────────────────────────────────────────
   const [filterDiv,        setFilterDiv]        = useState('__all__')
@@ -544,23 +545,42 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   const visibleFields = fields.filter(f => !hiddenFields.has(f.fullName))
 
   async function autoFillDay() {
-    if (!activeDate) return
-    const toPlace = filtered.map(g => ({ id: g.id, gameNumber: g.gameNumber, division: g.division, pool: g.pool, team1: g.team1, team2: g.team2 }))
-    if (toPlace.length === 0) { toast('Nothing in the parking lot to place'); return }
-    const placed = dayGames.map(g => ({ game: { id: g.id, gameNumber: g.gameNumber, division: g.division, pool: g.pool, team1: g.team1, team2: g.team2 }, time: g.startTime, location: g.location }))
-    const af = autoFill({ toPlace, placed, fields: visibleFields.map(f => ({ fullName: f.fullName })), slots: allSlots })
-    if (af.placements.length === 0) { toast.error('No room to place games — add fields/time or clear some slots'); return }
+    if (filtered.length === 0) { toast('Nothing in the parking lot to place'); return }
+    const day1 = dates[0] || activeDate
+    const day2 = dates[1] || day1
+    const fieldsArg = visibleFields.map(f => ({ fullName: f.fullName }))
+    const toA = (g: Game) => ({ id: g.id, gameNumber: g.gameNumber, division: g.division, pool: g.pool, team1: g.team1, team2: g.team2 })
+    const isBk = (g: Game) => { const t = gameType(g); return t === 'bracket' || t === 'championship' }
+    const poolGames = filtered.filter(g => !isBk(g))
+    const bracketGames = filtered.filter(g => isBk(g))
+    const results: { id: string; time: string; location: string; date: string }[] = []
+    let unfit = 0
+    // pool games → day 1
+    if (poolGames.length) {
+      const placed = games.filter(g => g.date === day1 && g.startTime && g.location).map(g => ({ game: toA(g), time: g.startTime, location: g.location }))
+      const af = autoFill({ toPlace: poolGames.map(toA), placed, fields: fieldsArg, slots: allSlots })
+      af.placements.forEach(p => results.push({ ...p, date: day1 })); unfit += af.unplaceable.length
+    }
+    // bracket games → day 2 (count any same-day pool placements as occupancy)
+    if (bracketGames.length) {
+      const existing = games.filter(g => g.date === day2 && g.startTime && g.location).map(g => ({ game: toA(g), time: g.startTime, location: g.location }))
+      const sameDayNew = results.filter(r => r.date === day2).map(r => { const g = games.find(x => x.id === r.id)!; return { game: toA(g), time: r.time, location: r.location } })
+      const af = autoFill({ toPlace: bracketGames.map(toA), placed: [...existing, ...sameDayNew], fields: fieldsArg, slots: allSlots })
+      af.placements.forEach(p => results.push({ ...p, date: day2 })); unfit += af.unplaceable.length
+    }
+    if (results.length === 0) { toast.error('No room to place games — add fields/time or clear some slots'); return }
     setAutoFilling(true)
     try {
-      await Promise.all(af.placements.map(p =>
+      await Promise.all(results.map(p =>
         fetch(`/api/tournaments/${params.id}/games/${p.id}`, {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ date: activeDate, startTime: p.time, location: p.location }),
+          body: JSON.stringify({ date: p.date, startTime: p.time, location: p.location }),
         })
       ))
-      const byId = new Map(af.placements.map(p => [p.id, p]))
-      setGames(prev => prev.map(g => { const p = byId.get(g.id); return p ? { ...g, date: activeDate, startTime: p.time, location: p.location } : g }))
-      toast.success(`Placed ${af.placements.length} game${af.placements.length !== 1 ? 's' : ''} on ${fmtDate(activeDate)}` + (af.unplaceable.length ? ` · ${af.unplaceable.length} couldn't fit` : ''))
+      const byId = new Map(results.map(p => [p.id, p]))
+      setGames(prev => prev.map(g => { const p = byId.get(g.id); return p ? { ...g, date: p.date, startTime: p.time, location: p.location } : g }))
+      const where = (poolGames.length && bracketGames.length && day1 !== day2) ? `pool → ${fmtDate(day1)}, bracket → ${fmtDate(day2)}` : `on ${fmtDate(results[0].date)}`
+      toast.success(`Placed ${results.length} game${results.length !== 1 ? 's' : ''} (${where})` + (unfit ? ` · ${unfit} couldn't fit` : ''))
     } catch { toast.error('Auto-fill failed') } finally { setAutoFilling(false) }
   }
 
@@ -917,6 +937,12 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
           )}
 
           <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
+            <div className="flex items-center gap-0.5 mr-1 text-slate-400">
+              <span className="text-[10px] mr-0.5">Zoom</span>
+              <button onClick={() => setGridZoom(z => Math.max(0.5, Math.round((z - 0.1) * 100) / 100))} className="w-5 h-5 rounded border border-slate-200 hover:bg-slate-50 text-xs leading-none">−</button>
+              <span className="text-[10px] w-8 text-center tabular-nums">{Math.round(gridZoom * 100)}%</span>
+              <button onClick={() => setGridZoom(z => Math.min(1, Math.round((z + 0.1) * 100) / 100))} className="w-5 h-5 rounded border border-slate-200 hover:bg-slate-50 text-xs leading-none">+</button>
+            </div>
             <button
               onClick={() => setHideEmptySlots(v => !v)}
               className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${hideEmptySlots ? 'bg-slate-200 text-slate-700 border-slate-300' : 'text-slate-400 border-slate-200 hover:border-slate-400'}`}
@@ -1242,7 +1268,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
           )}
         </div>
       ) : (
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto" style={{ zoom: gridZoom }}>
           <table className="border-collapse" style={{ minWidth: `${80 + visibleFields.length * 160}px` }}>
             <thead className="sticky top-0 z-20">
               <tr>

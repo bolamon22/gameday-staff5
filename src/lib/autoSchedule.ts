@@ -9,7 +9,8 @@
 //   - team not already at maxPerDay games that day
 //   - a bracket game lands strictly AFTER all the games that feed it
 // SOFT preferences (minimised, weighted):
-//   - keep a division on the field(s) it's already using (less bouncing)
+//   - spread a division's games across fields (parallelism + rest) while keeping
+//     each team roughly on consistent fields (less bouncing)
 //   - rest spacing: aim "one game on, one off" (~2 slots apart); penalise
 //     back-to-back hardest and long gaps mildly
 //   - pack the day from the top + spread across fields so they finish together
@@ -49,11 +50,11 @@ export interface AutoFillResult {
 }
 
 // Weights (tunable)
-const W_GROUP = 100 // division not yet on this field
 const W_B2B = 70 // back-to-back (1 slot apart)
 const W_REST = 9 // per slot away from the ideal 2-slot spacing
 const W_EARLY = 1 // pack from the top
-const W_BAL = 3 // spread across fields
+const W_BAL = 6 // spread games across fields (parallelism + rest)
+const W_FIELDSWITCH = 14 // a real team moving to a field it hasn't used (light: keep teams on consistent fields without cramming a whole division onto one)
 
 export function bracketFeeders(team: string): string | null {
   const m = (team || '').match(/^[WL]-(B\d+)$/i)
@@ -85,7 +86,7 @@ export function autoFill(input: AutoFillInput): AutoFillResult {
   // Live state (mutated as we place)
   const occ = new Set<string>() // `${time}|${location}`
   const teamSlots = new Map<string, number[]>() // team -> slot indices played
-  const divFieldUse = new Map<string, Set<string>>() // division -> fields it uses
+  const teamFieldUse = new Map<string, Set<string>>() // real team -> fields it has used
   const fieldLoad = new Map<string, number>() // location -> # games
   const gameStartIdx = new Map<string, number>() // gameNumber -> slot index (for feeder ordering)
 
@@ -95,13 +96,17 @@ export function autoFill(input: AutoFillInput): AutoFillResult {
     a.push(i)
     teamSlots.set(team, a)
   }
+  const addTeamField = (team: string, loc: string) => {
+    if (!isRealTeam(team)) return
+    const s = teamFieldUse.get(team) ?? new Set<string>()
+    s.add(loc); teamFieldUse.set(team, s)
+  }
   const seed = (p: PlacedGame) => {
     const i = slotIndex.get(p.time)
     occ.add(`${p.time}|${p.location}`)
     fieldLoad.set(p.location, (fieldLoad.get(p.location) ?? 0) + 1)
-    const dv = divFieldUse.get(p.game.division) ?? new Set<string>()
-    dv.add(p.location)
-    divFieldUse.set(p.game.division, dv)
+    addTeamField(p.game.team1, p.location)
+    addTeamField(p.game.team2, p.location)
     if (i != null) {
       addTeamSlot(p.game.team1, i)
       addTeamSlot(p.game.team2, i)
@@ -169,9 +174,12 @@ export function autoFill(input: AutoFillInput): AutoFillResult {
         if (occ.has(key)) continue
 
         let score = 0
-        // keep division on the same field
-        const used = divFieldUse.get(g.division)
-        if (used && used.size > 0 && !used.has(f.fullName)) score += W_GROUP
+        // keep each real team on consistent field(s) — minimise a team bouncing fields
+        for (const tm of [g.team1, g.team2]) {
+          if (!isRealTeam(tm)) continue
+          const usedF = teamFieldUse.get(tm)
+          if (usedF && usedF.size > 0 && !usedF.has(f.fullName)) score += W_FIELDSWITCH
+        }
         // rest spacing toward one-on/one-off (~2 slots)
         for (const arr of [t1s, t2s]) {
           if (!arr.length) continue
@@ -196,9 +204,8 @@ export function autoFill(input: AutoFillInput): AutoFillResult {
     const i = slotIndex.get(best.time)!
     occ.add(`${best.time}|${best.location}`)
     fieldLoad.set(best.location, (fieldLoad.get(best.location) ?? 0) + 1)
-    const dv = divFieldUse.get(g.division) ?? new Set<string>()
-    dv.add(best.location)
-    divFieldUse.set(g.division, dv)
+    addTeamField(g.team1, best.location)
+    addTeamField(g.team2, best.location)
     addTeamSlot(g.team1, i)
     addTeamSlot(g.team2, i)
     gameStartIdx.set(g.gameNumber, i)
