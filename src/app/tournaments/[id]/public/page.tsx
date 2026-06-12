@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation'
 
 const LogosContext = createContext<Record<string, string>>({})
 import Link from 'next/link'
+import { Users, Calendar, LayoutGrid, Trophy, Clock } from 'lucide-react'
 
 interface Tournament { id:string; name:string; startDate:string; endDate:string; location:string; logoUrl:string; sport:string }
 interface Game { id:string; gameNumber:string; date:string; startTime:string; division:string; pool:string|null; location:string; team1:string; team2:string; score1:number|null; score2:number|null; isCanceled:boolean; isChampionship:boolean }
@@ -261,14 +262,22 @@ export default function PublicTournamentPage() {
   },[games])
 
   const divMeta=useMemo(()=>{
-    const meta:Record<string,{lastUpdated:string;champion:string|null}>={}
+    const meta:Record<string,{teams:number;total:number;completed:number;pools:number;leader:string|null;champion:string|null;lastUpdated:string;status:string}>={}
     divisions.forEach(div=>{
       const divGames=games.filter(g=>g.division===div&&!g.isCanceled)
+      const teamSet=new Set<string>(); divGames.forEach(g=>{teamSet.add(g.team1);teamSet.add(g.team2)})
+      const poolSet=new Set(divGames.filter(g=>g.pool).map(g=>g.pool))
+      const total=divGames.length
+      const completed=divGames.filter(g=>g.score1!==null&&g.score2!==null).length
       const champ=divGames.find(g=>g.isChampionship&&g.score1!==null&&g.score2!==null)
       const champion=champ?(champ.score1!>champ.score2!?champ.team1:champ.team2):null
-      const scored=divGames.filter(g=>g.score1!==null)
+      const hasBracket=divGames.some(g=>g.isChampionship)
+      const standings=calcStandings(games,div)
+      const leader=(!champion&&completed>0&&standings.length>0)?standings[0].team:null
+      const scored=[...divGames.filter(g=>g.score1!==null)].sort((a,b)=>`${a.date}${a.startTime}`<`${b.date}${b.startTime}`?-1:1)
       const lastUpdated=scored.length>0?fmtDateTime(scored[scored.length-1].date+' '+scored[scored.length-1].startTime):''
-      meta[div]={lastUpdated,champion}
+      const status=champion?'Final':hasBracket?'Bracket':'Pool play'
+      meta[div]={teams:teamSet.size,total,completed,pools:poolSet.size,leader,champion,lastUpdated,status}
     })
     return meta
   },[games,divisions])
@@ -470,20 +479,42 @@ export default function PublicTournamentPage() {
             )}
 
             {divisions.length===0 && <div className="text-center py-16 text-gray-400"><div className="text-4xl mb-3">📅</div><p>No games scheduled yet.</p></div>}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {divisions.map(div=>{
-                const meta=divMeta[div]||{}
+                const m=divMeta[div]
+                if(!m) return null
+                const pctDone=m.total>0?Math.round(m.completed/m.total*100):0
+                const pill=m.status==='Final'?'bg-amber-100 text-amber-800':m.status==='Bracket'?'bg-amber-50 text-amber-700':'bg-teal-50 text-teal-700'
                 return (
                   <button key={div} onClick={()=>setSelectedDiv(div)}
-                    className="text-left bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-blue-300 transition-all group">
-                    <h3 className="font-bold text-gray-800 text-sm mb-1 group-hover:text-blue-600 transition-colors">{div}</h3>
-                    {meta.champion && (
-                      <p className="text-xs mb-2"><span className="font-semibold text-gray-500">Champion: </span><span className="font-bold text-rose-600">{meta.champion}</span></p>
-                    )}
-                    {meta.lastUpdated && (
-                      <p className="text-xs text-gray-400"><span className="font-medium">Last Updated</span><br/>{meta.lastUpdated}</p>
-                    )}
-                    {!meta.lastUpdated && <p className="text-xs text-gray-300 italic">No scores yet</p>}
+                    className="text-left bg-white border border-slate-200 rounded-xl p-3.5 hover:border-teal-300 hover:shadow-sm transition-all group">
+                    <div className="flex items-center justify-between gap-2 mb-2.5">
+                      <h3 className="font-semibold text-slate-900 text-sm truncate group-hover:text-teal-700 transition-colors">{div}</h3>
+                      <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full inline-flex items-center gap-1 flex-shrink-0 ${pill}`}>
+                        {m.status==='Final'&&<Trophy size={10}/>}{m.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3.5 mb-3 text-xs text-slate-500 flex-wrap">
+                      <span className="inline-flex items-center gap-1"><Users size={13}/><b className="text-slate-800 font-semibold">{m.teams}</b> teams</span>
+                      <span className="inline-flex items-center gap-1"><Calendar size={13}/><b className="text-slate-800 font-semibold">{m.total}</b> games</span>
+                      {m.pools>0&&<span className="inline-flex items-center gap-1"><LayoutGrid size={13}/><b className="text-slate-800 font-semibold">{m.pools}</b> pool{m.pools!==1?'s':''}</span>}
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1.5">
+                      <span><b className="text-slate-800">{m.completed}</b> of {m.total} complete</span>
+                      {m.completed>=m.total&&m.total>0?<span className="text-teal-600 font-semibold">Done</span>:<span><b className="text-slate-800">{m.total-m.completed}</b> left</span>}
+                    </div>
+                    <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3"><div className="h-full bg-teal-600 rounded-full" style={{width:`${pctDone}%`}}/></div>
+                    <div className="flex items-center gap-1.5 border-t border-slate-100 pt-2.5 text-xs text-slate-600 min-w-0">
+                      {m.champion
+                        ? <><Trophy size={13} className="text-amber-500 flex-shrink-0"/><span className="truncate">Champion: <b className="text-amber-700">{m.champion}</b></span></>
+                        : m.leader
+                          ? <>{logos[m.leader]
+                              ? <img src={logos[m.leader]} alt="" className="w-5 h-5 rounded-full object-contain bg-white border border-slate-200 flex-shrink-0"/>
+                              : <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-500 text-[9px] font-semibold flex items-center justify-center flex-shrink-0">{m.leader.charAt(0).toUpperCase()}</span>}
+                            <span className="truncate">Leader: <b className="text-slate-900">{m.leader}</b></span></>
+                          : <span className="text-slate-400 italic">No scores yet</span>}
+                    </div>
+                    {m.lastUpdated&&<p className="text-[10px] text-slate-400 mt-1.5 flex items-center gap-1"><Clock size={10}/>Updated {m.lastUpdated}</p>}
                   </button>
                 )
               })}
