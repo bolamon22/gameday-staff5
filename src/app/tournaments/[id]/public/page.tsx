@@ -184,12 +184,32 @@ function BracketView({bracketList,scheduledGames}:{bracketList:BkBracket[];sched
         const roundGroups=new Map<number,BkBracketGame[]>()
         mainGames.forEach(g=>{if(!roundGroups.has(g.round))roundGroups.set(g.round,[]);roundGroups.get(g.round)!.push(g)})
         interface BkPos{x:number;y:number;cy:number}
+        // Feeder-graph layout: position each game from the games that feed it, so byes align
+        // with their feeder and round-1 games never overlap (fixes the old bkTop power-of-2 math).
+        const byNum:Record<number,BkBracketGame>={}
+        mainGames.forEach(g=>{byNum[g.gameNumber]=g})
+        const feederOf=(g:BkBracketGame):(number|null)[]=>[g.team1Source,g.team2Source].map(src=>{const m=(src||'').match(/^(winner|loser):(\d+)$/);const n=m?parseInt(m[2]):NaN;return(!isNaN(n)&&byNum[n])?n:null})
+        const referenced=new Set<number>()
+        mainGames.forEach(g=>feederOf(g).forEach(fn=>{if(fn!=null)referenced.add(fn)}))
+        const roots=mainGames.filter(g=>!referenced.has(g.gameNumber)).sort((a,b)=>b.round-a.round||a.gameNumber-b.gameNumber)
+        const BK_ROW=BK_H+BK_GAP
+        const yByNum:Record<number,number>={}
+        let leaf=0
+        const placeY=(num:number):number=>{
+          if(yByNum[num]!==undefined)return yByNum[num]
+          const g=byNum[num];if(!g)return 0
+          const[f1,f2]=feederOf(g)
+          let y:number
+          if(f1!=null&&f2!=null)y=(placeY(f1)+placeY(f2))/2
+          else if(f1!=null||f2!=null)y=placeY((f1!=null?f1:f2) as number)
+          else y=leaf++*BK_ROW
+          yByNum[num]=y;return y
+        }
+        roots.forEach(r=>placeY(r.gameNumber))
+        mainGames.forEach(g=>{if(yByNum[g.gameNumber]===undefined)yByNum[g.gameNumber]=leaf++*BK_ROW})
+        const minY=Math.min(0,...mainGames.map(g=>yByNum[g.gameNumber]))
         const positions=new Map<number,BkPos>()
-        mainGames.forEach(g=>{
-          const rg=roundGroups.get(g.round)||[];const idx=rg.indexOf(g)
-          const y=bkTop(g.round,idx)
-          positions.set(g.gameNumber,{x:bkLeft(g.round),y,cy:y+BK_H/2})
-        })
+        mainGames.forEach(g=>{const y=yByNum[g.gameNumber]-minY;positions.set(g.gameNumber,{x:bkLeft(g.round),y,cy:y+BK_H/2})})
         const allPos=[...positions.values()]
         const canvasW=bkLeft(maxRound)+BK_W+24
         const canvasH=allPos.length?Math.max(...allPos.map(p=>p.y+BK_H))+24:200
@@ -288,7 +308,7 @@ function BracketView({bracketList,scheduledGames}:{bracketList:BkBracket[];sched
                         <div className={`flex items-center gap-1.5 px-3 py-1.5 border-t border-gray-100 ${isChamp?'bg-amber-50':'bg-gray-50'}`}>
                           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${hasScore?'bg-green-500':'bg-gray-300'}`}/>
                           <span className="text-[10px] text-gray-500 truncate">
-                            {sg?`${fmtShortDate(sg.date)} ${fmt12bk(sg.startTime)} · ${(sg.location||'').split(' - ').pop()||sg.location}`:isChamp?'Championship':sgNum}
+                            {sg&&(sg.date||sg.startTime||sg.location)?`${fmtShortDate(sg.date)} ${fmt12bk(sg.startTime)} · ${(sg.location||'').split(' - ').pop()||sg.location}`:isChamp?'Championship':'Not scheduled'}
                           </span>
                         </div>
                       </div>
@@ -328,7 +348,7 @@ function BracketView({bracketList,scheduledGames}:{bracketList:BkBracket[];sched
                           </div>
                           <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-gray-100 bg-gray-50">
                             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${hasScore?'bg-green-500':'bg-gray-300'}`}/>
-                            <span className="text-[10px] text-gray-500 truncate">{sg?`${fmtShortDate(sg.date)} · ${(sg.location||'').split(' - ').pop()||sg.location}`:bg.label||sgNum}</span>
+                            <span className="text-[10px] text-gray-500 truncate">{sg&&(sg.date||sg.location)?`${fmtShortDate(sg.date)} · ${(sg.location||'').split(' - ').pop()||sg.location}`:bg.label||'Not scheduled'}</span>
                           </div>
                         </div>
                       )
