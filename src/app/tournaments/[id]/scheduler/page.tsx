@@ -118,6 +118,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   const [overCell, setOverCell]         = useState<string | null>(null)
   const [autoFilling, setAutoFilling]   = useState(false)
   const [gridZoom, setGridZoom]         = useState(1)
+  const [splitMode, setSplitMode]       = useState<'d1d2'|'spread'|'oneday'>('d1d2')
 
   // ── Parking lot filters ──────────────────────────────────────────────────
   const [filterDiv,        setFilterDiv]        = useState('__all__')
@@ -548,38 +549,62 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
     if (filtered.length === 0) { toast('Nothing in the parking lot to place'); return }
     const day1 = dates[0] || activeDate
     const day2 = dates[1] || day1
+    const lastDay = dates[dates.length - 1] || day1
     const fieldsArg = visibleFields.map(f => ({ fullName: f.fullName }))
     const toA = (g: Game) => ({ id: g.id, gameNumber: g.gameNumber, division: g.division, pool: g.pool, team1: g.team1, team2: g.team2 })
     const isBk = (g: Game) => { const t = gameType(g); return t === 'bracket' || t === 'championship' }
     const poolGames = filtered.filter(g => !isBk(g))
     const bracketGames = filtered.filter(g => isBk(g))
     const results: { id: string; time: string; location: string; date: string }[] = []
-    let unfit = 0
-    // pool games → day 1
-    if (poolGames.length) {
-      const placed = games.filter(g => g.date === day1 && g.startTime && g.location).map(g => ({ game: toA(g), time: g.startTime, location: g.location }))
-      const af = autoFill({ toPlace: poolGames.map(toA), placed, fields: fieldsArg, slots: allSlots })
-      af.placements.forEach(p => results.push({ ...p, date: day1 })); unfit += af.unplaceable.length
+    // occupancy on a day = pre-existing scheduled games + anything placed so far this run
+    const occFor = (d: string) => {
+      const pre = games.filter(g => g.date === d && g.startTime && g.location && !results.some(r => r.id === g.id))
+        .map(g => ({ game: toA(g), time: g.startTime, location: g.location }))
+      const res = results.filter(r => r.date === d).map(r => { const g = games.find(x => x.id === r.id)!; return { game: toA(g), time: r.time, location: r.location } })
+      return [...pre, ...res]
     }
-    // bracket games → day 2 (count any same-day pool placements as occupancy)
-    if (bracketGames.length) {
-      const existing = games.filter(g => g.date === day2 && g.startTime && g.location).map(g => ({ game: toA(g), time: g.startTime, location: g.location }))
-      const sameDayNew = results.filter(r => r.date === day2).map(r => { const g = games.find(x => x.id === r.id)!; return { game: toA(g), time: r.time, location: r.location } })
-      const af = autoFill({ toPlace: bracketGames.map(toA), placed: [...existing, ...sameDayNew], fields: fieldsArg, slots: allSlots })
-      af.placements.forEach(p => results.push({ ...p, date: day2 })); unfit += af.unplaceable.length
+    // fill a set of games across one or more days; overflow carries to the next day (maxPerDay naturally spreads)
+    const fillAcross = (toPlace: Game[], days: string[]) => {
+      let remaining = toPlace
+      for (const d of days) {
+        if (!remaining.length) break
+        const af = autoFill({ toPlace: remaining.map(toA), placed: occFor(d), fields: fieldsArg, slots: allSlots })
+        af.placements.forEach(pp => results.push({ ...pp, date: d }))
+        const done = new Set(af.placements.map(pp => pp.id))
+        remaining = remaining.filter(g => !done.has(g.id))
+      }
+      return remaining.length
+    }
+    let unfit = 0
+    let where = ''
+    if (splitMode === 'oneday') {
+      unfit += fillAcross([...poolGames, ...bracketGames], [activeDate])
+      where = `on ${fmtDate(activeDate)}`
+    } else if (splitMode === 'spread') {
+      const poolDays = dates.length ? dates : [day1]
+      unfit += fillAcross(poolGames, poolDays)
+      if (bracketGames.length) unfit += fillAcross(bracketGames, [lastDay])
+      where = bracketGames.length
+        ? `pool across ${poolDays.length} day${poolDays.length !== 1 ? 's' : ''}, bracket → ${fmtDate(lastDay)}`
+        : `pool across ${poolDays.length} day${poolDays.length !== 1 ? 's' : ''}`
+    } else {
+      unfit += fillAcross(poolGames, [day1])
+      unfit += fillAcross(bracketGames, [day2])
+      where = (poolGames.length && bracketGames.length && day1 !== day2)
+        ? `pool → ${fmtDate(day1)}, bracket → ${fmtDate(day2)}`
+        : `on ${fmtDate((results[0] && results[0].date) || day1)}`
     }
     if (results.length === 0) { toast.error('No room to place games — add fields/time or clear some slots'); return }
     setAutoFilling(true)
     try {
-      await Promise.all(results.map(p =>
-        fetch(`/api/tournaments/${params.id}/games/${p.id}`, {
+      await Promise.all(results.map(pp =>
+        fetch(`/api/tournaments/${params.id}/games/${pp.id}`, {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ date: p.date, startTime: p.time, location: p.location }),
+          body: JSON.stringify({ date: pp.date, startTime: pp.time, location: pp.location }),
         })
       ))
-      const byId = new Map(results.map(p => [p.id, p]))
-      setGames(prev => prev.map(g => { const p = byId.get(g.id); return p ? { ...g, date: p.date, startTime: p.time, location: p.location } : g }))
-      const where = (poolGames.length && bracketGames.length && day1 !== day2) ? `pool → ${fmtDate(day1)}, bracket → ${fmtDate(day2)}` : `on ${fmtDate(results[0].date)}`
+      const byId = new Map(results.map(pp => [pp.id, pp]))
+      setGames(prev => prev.map(g => { const pp = byId.get(g.id); return pp ? { ...g, date: pp.date, startTime: pp.time, location: pp.location } : g }))
       toast.success(`Placed ${results.length} game${results.length !== 1 ? 's' : ''} (${where})` + (unfit ? ` · ${unfit} couldn't fit` : ''))
     } catch { toast.error('Auto-fill failed') } finally { setAutoFilling(false) }
   }
@@ -841,6 +866,16 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> Published
               </span>
             )}
+            <select
+              value={splitMode}
+              onChange={e => setSplitMode(e.target.value as 'd1d2'|'spread'|'oneday')}
+              title="How Auto-fill assigns games to days"
+              className="text-xs rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-slate-700"
+            >
+              <option value="d1d2">Pool d1 / bracket d2</option>
+              <option value="spread">Pool all days / bracket last</option>
+              <option value="oneday">All on this day</option>
+            </select>
             <button
               onClick={autoFillDay}
               disabled={autoFilling || filtered.length === 0}

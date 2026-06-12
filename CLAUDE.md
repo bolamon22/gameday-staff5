@@ -117,14 +117,20 @@ scores → public. Highlights shipped to live:
   engine in `src/lib/autoSchedule.ts`. Places parking-lot games (after your filters) onto the grid by
   the rules: no team/field double-book, bracket games after their feeders, max 3/team/day, **spread a
   division across fields** (parallel play + rest) while keeping each team on consistent fields, and
-  **one-on-one-off** rest spacing (~2 slots; penalise back-to-back). Pool games → day 1, bracket → day 2
-  automatically (Game-Type filter lets you run them separately). A **grid Zoom** control shows more games.
+  **one-on-one-off** rest spacing (~2 slots; penalise back-to-back). A **day-split** dropdown by the Auto-fill
+  button chooses how days are assigned: **Pool d1 / bracket d2** (default, unchanged), **Pool all days /
+  bracket last** (overflow-spreads pool across days, brackets last day), or **All on this day**. The engine
+  (`autoSchedule.ts`) is untouched — only day-assignment orchestration (`autoFillDay` via a `fillAcross`
+  helper) changed. The Game-Type filter still lets you run pool/bracket separately. A **grid Zoom** shows more games.
   Placeholder names (Seed/W-B/L-B/TBD) are NOT real teams (`isRealTeam`) — they repeat across divisions;
   the scheduler's conflict checker uses the same filter. Refs/scorekeepers are scheduled LATER on the Assigner.
 - **Scheduling memory**: `SCHEDULING-PATTERNS.md` records patterns learned from real manually-scheduled
   tournaments (CSV exports or TourneyMachine public links — any sport, rendered via Claude-in-Chrome and
-  parsed). Samples #1 (Sunshine State) + #2 (Monster Mash) confirm spread + one-on-one-off rest and show
-  the day-split varies. Feed more → fold findings into that doc AND the autoSchedule weights.
+  parsed). A Jun-12 batch crunch (8 events, 4 sports — lacrosse/volleyball/baseball/basketball — across
+  TourneyMachine, AES and Summer Faceoff) **validated** the lacrosse weights (rest target 2 slots,
+  spread-across-fields, max 3/day) and showed slot-length / games-per-day / rest-tolerance are
+  **sport-specific**, and day-split varies even within lacrosse. Next work is structural (day-split as a
+  choice = #1), not re-weighting. Full table + takeaways in `SCHEDULING-PATTERNS.md`.
 
 ## Open / next
 - **Consistency pass — remaining pages**: Staff view, Returning teams. (Done: the full Staff hub,
