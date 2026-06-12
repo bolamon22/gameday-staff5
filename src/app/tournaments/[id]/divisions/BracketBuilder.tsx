@@ -497,6 +497,7 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
           </div>
         </div>
 
+        {selFormat !== '2gg' && (
         <label className="mb-5 flex items-start gap-3 bg-slate-800 border border-slate-700 rounded-xl p-4 cursor-pointer">
           <input type="checkbox" checked={loserConsolation} onChange={e => setLoserConsolation(e.target.checked)} className="mt-0.5 accent-teal-500" />
           <span className="text-sm">
@@ -504,6 +505,7 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
             <span className="block text-slate-400 mt-0.5">For 2 pool-game divisions. All teams play; first-round losers get a loser-fed consolation game (plus auto &ldquo;if needed&rdquo; games), so the bracket fills the 4-game guarantee. Set &ldquo;Teams in bracket&rdquo; to the full team count.</span>
           </span>
         </label>
+        )}
 
         <div className="mb-5 bg-slate-800 border border-slate-700 rounded-xl p-4 text-sm">
           {entry ? (
@@ -814,7 +816,23 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
       )}
 
       {/* ── Preview tab ───────────────────────────────────────────────────── */}
-      {tab === 'preview' && (
+      {tab === 'preview' && (bracket.format === '2gg' ? (
+        <MirrorPreview
+          logos={logos}
+          numberOffset={bracket.numberOffset || 0}
+          schedule={schedule}
+          template={bracket.games.map(g => ({
+            gameNumber: g.gameNumber,
+            round: g.round,
+            section: g.section as 'winners' | 'losers' | 'consolation' | 'championship',
+            t1: g.team1Source,
+            t2: g.team2Source,
+            label: g.label || undefined,
+          }))}
+          seeds={seeds}
+          division={division}
+        />
+      ) : (
         <BracketPreview
           logos={logos}
           numberOffset={bracket.numberOffset || 0}
@@ -834,7 +852,7 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
           onRenameSeed={handleRenameSeed}
           onAddGame={() => setShowAddGame(v => !v)}
         />
-      )}
+      ))}
     </div>
   )
 }
@@ -848,6 +866,129 @@ function resolveLabel(src: string, seeds: Record<string, string>, offset = 0): s
   if (type === 'winner') return `W-B${offset + Number(n)}`
   if (type === 'loser') return `L-B${offset + Number(n)}`
   return src
+}
+
+// ── Both-ways consolation tournament (mirror) preview ──────────────────────
+function MirrorPreview({ template, seeds, division, numberOffset = 0, logos = {}, schedule = {} }: {
+  template: GameTemplate[]
+  seeds: Record<string, string>
+  division?: string
+  numberOffset?: number
+  logos?: Record<string, string>
+  schedule?: Record<number, { date: string; startTime: string; location: string }>
+}) {
+  const ROW = 120
+  const HALF_BAR = (BAR_H + BAR_GAP) / 2
+  const isWin = (g: GameTemplate) => g.section === 'winners' || g.section === 'championship'
+  const wins = template.filter(isWin)
+  const cons = template.filter(g => !isWin(g))
+  if (wins.length === 0) return <div className="text-center py-10 text-slate-500 text-sm">No bracket games yet.</div>
+  const byNum: Record<number, GameTemplate> = {}; template.forEach(g => { byNum[g.gameNumber] = g })
+  const feederNums = (g: GameTemplate) => [g.t1, g.t2].map(src => { const m = (src || '').match(/^(winner|loser):(\d+)$/); const n = m ? parseInt(m[2]) : NaN; return byNum[n] ? n : null })
+  const minWinRound = Math.min(...wins.map(g => g.round))
+  const r1 = wins.filter(g => g.round === minWinRound).map(g => g.gameNumber)
+  const consSet = new Set<number>(); let ch = true
+  while (ch) { ch = false; for (const g of cons) { if (consSet.has(g.gameNumber)) continue
+    const ok = [g.t1, g.t2].some(src => { const m = (src || '').match(/^(winner|loser):(\d+)$/); if (!m) return false; const ref = parseInt(m[2]); if (src.startsWith('loser:') && r1.includes(ref)) return true; if (consSet.has(ref)) return true; return false })
+    if (ok) { consSet.add(g.gameNumber); ch = true } } }
+  const consBracket = cons.filter(g => consSet.has(g.gameNumber))
+  const placement = cons.filter(g => !consSet.has(g.gameNumber))
+  const mir = [...wins, ...consBracket]
+  const inMir = new Set(mir.map(g => g.gameNumber))
+  const fOf = (g: GameTemplate) => feederNums(g).map(n => n != null && inMir.has(n) ? n : null)
+  const referenced = new Set<number>(); mir.forEach(g => fOf(g).forEach(n => { if (n != null) referenced.add(n) }))
+  const roots = mir.filter(g => !referenced.has(g.gameNumber)).sort((a, b) => b.round - a.round || a.gameNumber - b.gameNumber)
+  const rough: Record<number, number> = {}; let ls0 = 0
+  const roughY = (num: number): number => { if (rough[num] !== undefined) return rough[num]; const g = byNum[num]; if (!g) return 0; const [a, b] = fOf(g); const cs: number[] = []; if (a != null) cs.push(roughY(a)); if (b != null) cs.push(roughY(b)); const y = cs.length ? cs.reduce((p, q) => p + q, 0) / cs.length : (ls0++ * ROW); rough[num] = y; return y }
+  roots.forEach(r => roughY(r.gameNumber)); mir.forEach(g => { if (rough[g.gameNumber] === undefined) rough[g.gameNumber] = ls0++ * ROW })
+  const rv = mir.map(g => rough[g.gameNumber]); const mid = rv.length ? (Math.min(...rv) + Math.max(...rv)) / 2 : 0
+  const winnerTopOf: Record<number, boolean> = {}; const yByNum: Record<number, number> = {}; let leaf = 0
+  const placeY = (num: number): number => { if (yByNum[num] !== undefined) return yByNum[num]; const g = byNum[num]; if (!g) return 0; const [f1, f2] = fOf(g); let y: number; if (f1 != null && f2 != null) y = (placeY(f1) + placeY(f2)) / 2; else if (f1 != null || f2 != null) { const fN = (f1 != null ? f1 : f2) as number; const wt = rough[fN] <= mid; winnerTopOf[num] = wt; y = placeY(fN) + (wt ? HALF_BAR : -HALF_BAR) } else y = leaf++ * ROW; yByNum[num] = y; return y }
+  roots.forEach(r => placeY(r.gameNumber)); mir.forEach(g => { if (yByNum[g.gameNumber] === undefined) yByNum[g.gameNumber] = leaf++ * ROW })
+  const minY = Math.min(0, ...mir.map(g => yByNum[g.gameNumber]))
+  const stepX = GAME_W + CONN_W
+  const maxWinDepth = Math.max(0, ...wins.map(g => g.round - minWinRound))
+  const maxConsDepth = consBracket.length ? Math.max(...consBracket.map(g => g.round - minWinRound)) : 0
+  const CX = (maxConsDepth + 1) * stepX + 10
+  const colX = (g: GameTemplate) => isWin(g) ? CX + (g.round - minWinRound) * stepX : CX - (g.round - minWinRound) * stepX
+  const pos: Record<number, { x: number; y: number; cy: number }> = {}
+  mir.forEach(g => { const y = yByNum[g.gameNumber] - minY + TOP_PAD + 14; pos[g.gameNumber] = { x: colX(g), y, cy: y + BAR_H + BAR_GAP / 2 } })
+  const canvasW = CX + (maxWinDepth + 1) * stepX + GAME_W + 10
+  const canvasH = Math.max(160, ...mir.map(g => pos[g.gameNumber].y + 2 * BAR_H + BAR_GAP)) + 20
+  const conns: JSX.Element[] = []
+  mir.forEach(g => { const p = pos[g.gameNumber]; if (!p) return; const win = isWin(g)
+    fOf(g).forEach(fn => { if (fn == null) return; const fp = pos[fn]; if (!fp) return
+      const fx = win ? fp.x + GAME_W : fp.x; const tx = win ? p.x : p.x + GAME_W; const mx = (fx + tx) / 2
+      conns.push(<path key={`c${g.gameNumber}-${fn}`} d={`M${fx},${fp.cy} H${mx} V${p.cy} H${tx}`} fill="none" stroke="#475569" strokeWidth="1.5" />) }) })
+  const champGame = wins.find(g => g.section === 'championship') || wins.slice().sort((a, b) => b.round - a.round)[0]
+  const consFinal = consBracket.length ? consBracket.slice().sort((a, b) => b.round - a.round)[0] : null
+  const cP = champGame ? pos[champGame.gameNumber] : null
+  const kP = consFinal ? pos[consFinal.gameNumber] : null
+  if (cP) conns.push(<path key="champ-c" d={`M${cP.x + GAME_W},${cP.cy} H${cP.x + GAME_W + CONN_W}`} fill="none" stroke="#475569" strokeWidth="1.5" />)
+  if (kP) conns.push(<path key="cons-c" d={`M${kP.x},${kP.cy} H${kP.x - CONN_W}`} fill="none" stroke="#475569" strokeWidth="1.5" />)
+  const bar = (g: GameTemplate, src: string, idx: number, isChamp: boolean) => {
+    const p = pos[g.gameNumber]; const top = p.y + (idx === 0 ? 0 : BAR_H + BAR_GAP)
+    const [type, n] = (src || '').split(':'); const isSeed = type === 'seed'
+    const nm = resolveLabel(src, seeds, numberOffset); const computed = nm.startsWith('W-') || nm.startsWith('L-')
+    const named = !!nm && !nm.startsWith('Seed ') && !computed; const logo = named ? logos[nm] : ''
+    const [fa, fb] = fOf(g); const bye = (fa != null) !== (fb != null)
+    return (
+      <div key={idx} style={{ position: 'absolute', left: p.x, top, width: GAME_W, height: BAR_H }}
+        className={`flex items-center rounded-md border overflow-hidden ${isChamp ? 'border-amber-400/60 bg-amber-950/40' : 'border-slate-600/80 bg-slate-800/95'}`}>
+        <span className={`h-full flex items-center justify-center text-[11px] font-semibold shrink-0 ${isSeed ? (bye ? 'bg-amber-500 text-white' : 'bg-teal-600 text-white') : 'bg-slate-700/80 text-slate-500'}`} style={{ width: 24 }}>{isSeed ? n : ''}</span>
+        {logo
+          ? <img src={logo} alt="" className="rounded-full object-cover ml-2 mr-1.5 shrink-0 bg-white" style={{ width: 18, height: 18 }} />
+          : <span className="rounded-full bg-slate-700 text-slate-300 text-[9px] flex items-center justify-center ml-2 mr-1.5 shrink-0" style={{ width: 18, height: 18 }}>{named ? nm.charAt(0).toUpperCase() : ''}</span>}
+        <span className={`flex-1 min-w-0 pr-2 truncate text-xs font-medium ${computed ? 'text-slate-400 italic' : 'text-white'}`}>{nm}</span>
+      </div>
+    )
+  }
+  return (
+    <div>
+      <p className="text-[10px] text-slate-500 mb-2">Both-ways consolation · winners &rarr; Champion (right), first-round losers &rarr; Consolation Champion (left)</p>
+      <div className="overflow-x-auto pb-2">
+        <div style={{ position: 'relative', width: canvasW, height: canvasH }}>
+          <svg style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none' }} viewBox={`0 0 ${canvasW} ${canvasH}`}>{conns}</svg>
+          {mir.map(g => {
+            const p = pos[g.gameNumber]; if (!p) return null
+            const isChamp = g.section === 'championship'
+            const sched = schedule[numberOffset + g.gameNumber]
+            const st = sched ? [sched.startTime, (sched.location || '').split(' - ').pop() || sched.location].map(x => (x || '').trim()).filter(Boolean).join(' · ') : ''
+            const lbl = g.label || (isChamp ? 'Championship' : '')
+            const [fa, fb] = fOf(g); const byeG = (fa != null) !== (fb != null)
+            let topSrc = g.t1, botSrc = g.t2
+            if (byeG) { const feederSrc = fa != null ? g.t1 : g.t2; const byeSrc = fa != null ? g.t2 : g.t1; if (winnerTopOf[g.gameNumber]) { topSrc = feederSrc; botSrc = byeSrc } else { topSrc = byeSrc; botSrc = feederSrc } }
+            return (
+              <div key={g.gameNumber}>
+                <div style={{ position: 'absolute', left: p.x, top: p.cy - BAR_GAP / 2 - BAR_H - 14, width: GAME_W }} className="flex items-center justify-between gap-1">
+                  <span className="text-[9px] font-mono text-teal-300/80 px-0.5 shrink-0">B{numberOffset + g.gameNumber}</span>
+                  <span className="flex-1 text-center text-[8px] truncate px-1 text-slate-400">{st}</span>
+                  {lbl && <span className={`text-[9px] font-semibold shrink-0 ${isChamp ? 'text-amber-400' : 'text-amber-400/70'}`}>{lbl}</span>}
+                </div>
+                {bar(g, topSrc, 0, isChamp)}
+                {bar(g, botSrc, 1, isChamp)}
+              </div>
+            )
+          })}
+          {cP && <div style={{ position: 'absolute', left: cP.x + GAME_W + CONN_W, top: cP.cy - 20, width: GAME_W, height: 40 }} className="flex items-center justify-center rounded-lg bg-amber-600 text-white font-bold text-xs">{division ? `${division} Champion` : 'Champion'}</div>}
+          {kP && <div style={{ position: 'absolute', left: kP.x - CONN_W - GAME_W, top: kP.cy - 20, width: GAME_W, height: 40 }} className="flex items-center justify-center rounded-lg bg-slate-600 text-white font-semibold text-xs">Consolation Champion</div>}
+        </div>
+      </div>
+      {placement.length > 0 && (
+        <div className="mt-4 pt-3 border-t border-slate-700">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Placement</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {placement.map(g => (
+              <div key={g.gameNumber} className="rounded-lg border border-slate-600/80 bg-slate-800/90 text-xs overflow-hidden">
+                <div className="px-2 py-0.5 bg-black/20 text-[10px] font-mono text-teal-300">B{numberOffset + g.gameNumber}{g.label ? ` · ${g.label}` : ''}</div>
+                {[g.t1, g.t2].map((src, i) => <div key={i} className={`px-2 py-1 truncate text-white ${i === 0 ? 'border-b border-slate-700' : ''}`}>{resolveLabel(src, seeds, numberOffset)}</div>)}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function BracketPreview({ template, seeds, division, numberOffset = 0, logos = {}, schedule = {}, onLabelChange, onRemoveGame, onRenameSeed, onAddGame }: {
