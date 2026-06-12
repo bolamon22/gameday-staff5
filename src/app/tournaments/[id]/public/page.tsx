@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation'
 
 const LogosContext = createContext<Record<string, string>>({})
 import Link from 'next/link'
-import { Users, Calendar, LayoutGrid, Trophy, Clock, ChevronDown, Star, CalendarPlus } from 'lucide-react'
+import { Users, Calendar, LayoutGrid, Trophy, Clock, ChevronDown, Star, CalendarPlus, Medal } from 'lucide-react'
 
 interface Tournament { id:string; name:string; startDate:string; endDate:string; location:string; logoUrl:string; sport:string }
 interface Game { id:string; gameNumber:string; date:string; startTime:string; division:string; pool:string|null; location:string; team1:string; team2:string; score1:number|null; score2:number|null; isCanceled:boolean; isChampionship:boolean }
@@ -153,6 +153,133 @@ const isPlaceholderTeam=(n:string)=>/^(seed\s|w-b\d|l-b\d|bracket|winner|loser
 interface BkBracketGame{gameNumber:number;round:number;section:string;team1Source:string;team2Source:string;label:string|null}
 interface BkBracket{id:string;format:string;teamCount:number;flight?:string;numberOffset?:number;games:BkBracketGame[];seeds:Record<string,string>}
 
+// ── Both-ways consolation tournament (mirror) ──────────────────────────────
+function MirrorBracket({bracket,scheduledGames,showFlight}:{bracket:BkBracket;scheduledGames:Game[];showFlight:boolean}){
+  const logos=useContext(LogosContext)
+  const offset=bracket.numberOffset??0
+  const schedByNum=new Map(scheduledGames.map(g=>[g.gameNumber,g]))
+  function TeamAv({name,isTbd}:{name:string;isTbd:boolean}){
+    const sz='w-7 h-7'
+    if(!isTbd&&logos[name])return<div className={`${sz} rounded-full overflow-hidden bg-white border border-slate-200 flex-shrink-0`}><img src={logos[name]} alt="" className="w-full h-full object-contain"/></div>
+    if(isTbd)return<div className={`${sz} rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0`}><span className="text-gray-300 text-[9px]">?</span></div>
+    const initials=name.split(' ').filter((w:string)=>w.length>2).slice(0,2).map((w:string)=>w[0].toUpperCase()).join('')||name.substring(0,2).toUpperCase()
+    const colors=['#1a3a5c','#8b1a1a','#1a5c3a','#5c3a1a','#3a1a5c','#1a5c5c','#5c1a4a','#2a4a1a']
+    const idx=name.split('').reduce((a:number,c:string)=>a+c.charCodeAt(0),0)%colors.length
+    return<div className={`${sz} rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 text-[9px]`} style={{backgroundColor:colors[idx]}}>{initials}</div>
+  }
+  function resolveTeam(src:string,sched:string|undefined):{name:string;isTbd:boolean}{
+    if(sched&&!isPlaceholderTeam(sched))return{name:sched,isTbd:false}
+    if(src.startsWith('seed:')){const sn=src.slice(5);const t=bracket.seeds?.[sn];return t?{name:t,isTbd:false}:{name:`Seed ${sn}`,isTbd:true}}
+    if(src.startsWith('winner:'))return{name:`W-B${parseInt(src.slice(7))+offset}`,isTbd:true}
+    if(src.startsWith('loser:'))return{name:`L-B${parseInt(src.slice(6))+offset}`,isTbd:true}
+    return{name:sched||'TBD',isTbd:true}
+  }
+  const isWin=(g:BkBracketGame)=>g.section==='winners'||g.section==='championship'
+  const wins=bracket.games.filter(isWin)
+  const cons=bracket.games.filter(g=>!isWin(g))
+  if(wins.length===0)return null
+  const byNum:Record<number,BkBracketGame>={}; bracket.games.forEach(g=>{byNum[g.gameNumber]=g})
+  const feederNums=(g:BkBracketGame)=>[g.team1Source,g.team2Source].map(src=>{const m=(src||'').match(/^(winner|loser):(\d+)$/);const n=m?parseInt(m[2]):NaN;return byNum[n]?n:null})
+  const minWinRound=Math.min(...wins.map(g=>g.round))
+  const r1=wins.filter(g=>g.round===minWinRound).map(g=>g.gameNumber)
+  // consolation BRACKET = games reachable from R1 losers (3rd-place placement games excluded)
+  const consSet=new Set<number>(); let ch=true
+  while(ch){ch=false; for(const g of cons){ if(consSet.has(g.gameNumber))continue
+    const ok=[g.team1Source,g.team2Source].some(src=>{const m=(src||'').match(/^(winner|loser):(\d+)$/);if(!m)return false;const ref=parseInt(m[2]);if(src.startsWith('loser:')&&r1.includes(ref))return true;if(consSet.has(ref))return true;return false})
+    if(ok){consSet.add(g.gameNumber);ch=true} } }
+  const consBracket=cons.filter(g=>consSet.has(g.gameNumber))
+  const placement=cons.filter(g=>!consSet.has(g.gameNumber))
+  const mirGames=[...wins,...consBracket]
+  const inMir=new Set(mirGames.map(g=>g.gameNumber))
+  const fOf=(g:BkBracketGame)=>feederNums(g).map(n=>n!=null&&inMir.has(n)?n:null)
+  const HALF_BAR=(BK_BAR_H+BK_BAR_GAP)/2
+  const referenced=new Set<number>(); mirGames.forEach(g=>fOf(g).forEach(n=>{if(n!=null)referenced.add(n)}))
+  const roots=mirGames.filter(g=>!referenced.has(g.gameNumber)).sort((a,b)=>b.round-a.round||a.gameNumber-b.gameNumber)
+  const rough:Record<number,number>={}; let ls0=0
+  const roughY=(num:number):number=>{if(rough[num]!==undefined)return rough[num];const g=byNum[num];if(!g)return 0;const[a,b]=fOf(g);const cs:number[]=[];if(a!=null)cs.push(roughY(a));if(b!=null)cs.push(roughY(b));const y=cs.length?cs.reduce((p,q)=>p+q,0)/cs.length:(ls0++*BK_ROW);rough[num]=y;return y}
+  roots.forEach(r=>roughY(r.gameNumber)); mirGames.forEach(g=>{if(rough[g.gameNumber]===undefined)rough[g.gameNumber]=ls0++*BK_ROW})
+  const rv=mirGames.map(g=>rough[g.gameNumber]); const mid=rv.length?(Math.min(...rv)+Math.max(...rv))/2:0
+  const winnerTopOf:Record<number,boolean>={}; const yByNum:Record<number,number>={}; let leaf=0
+  const placeY=(num:number):number=>{if(yByNum[num]!==undefined)return yByNum[num];const g=byNum[num];if(!g)return 0;const[f1,f2]=fOf(g);let y:number;if(f1!=null&&f2!=null)y=(placeY(f1)+placeY(f2))/2;else if(f1!=null||f2!=null){const fN=(f1!=null?f1:f2) as number;const wt=rough[fN]<=mid;winnerTopOf[num]=wt;y=placeY(fN)+(wt?HALF_BAR:-HALF_BAR)}else y=leaf++*BK_ROW;yByNum[num]=y;return y}
+  roots.forEach(r=>placeY(r.gameNumber)); mirGames.forEach(g=>{if(yByNum[g.gameNumber]===undefined)yByNum[g.gameNumber]=leaf++*BK_ROW})
+  const minY=Math.min(0,...mirGames.map(g=>yByNum[g.gameNumber]))
+  const stepX=BK_W+BK_CONN
+  const maxWinDepth=Math.max(0,...wins.map(g=>g.round-minWinRound))
+  const maxConsDepth=consBracket.length?Math.max(...consBracket.map(g=>g.round-minWinRound)):0
+  const CX=(maxConsDepth+1)*stepX+10
+  const colX=(g:BkBracketGame)=>isWin(g)?CX+(g.round-minWinRound)*stepX:CX-(g.round-minWinRound)*stepX
+  const positions=new Map<number,{x:number;y:number;cy:number}>()
+  mirGames.forEach(g=>{const y=yByNum[g.gameNumber]-minY+BK_TOP;positions.set(g.gameNumber,{x:colX(g),y,cy:y+BK_BAR_H+BK_BAR_GAP/2})})
+  const canvasW=CX+(maxWinDepth+1)*stepX+BK_W+10
+  const allY=[...positions.values()]
+  const canvasH=Math.max(220,...allY.map(p=>p.y+2*BK_BAR_H+BK_BAR_GAP))+24
+  const conns:JSX.Element[]=[]
+  mirGames.forEach(g=>{const pos=positions.get(g.gameNumber);if(!pos)return;const win=isWin(g)
+    fOf(g).forEach(fn=>{if(fn==null)return;const fp=positions.get(fn);if(!fp)return
+      const fx=win?fp.x+BK_W:fp.x; const tx=win?pos.x:pos.x+BK_W; const mx=(fx+tx)/2
+      conns.push(<path key={`c${g.gameNumber}-${fn}`} d={`M${fx},${fp.cy} H${mx} V${pos.cy} H${tx}`} fill="none" stroke="#cbd5e1" strokeWidth="1.5"/>)})})
+  const champGame=wins.find(g=>g.section==='championship')||wins.slice().sort((a,b)=>b.round-a.round)[0]
+  const consFinal=consBracket.length?consBracket.slice().sort((a,b)=>b.round-a.round)[0]:null
+  const champPos=champGame?positions.get(champGame.gameNumber):null
+  const consPos=consFinal?positions.get(consFinal.gameNumber):null
+  if(champPos)conns.push(<path key="champ-c" d={`M${champPos.x+BK_W},${champPos.cy} H${champPos.x+BK_W+BK_CONN}`} fill="none" stroke="#cbd5e1" strokeWidth="1.5"/>)
+  if(consPos)conns.push(<path key="cons-c" d={`M${consPos.x},${consPos.cy} H${consPos.x-BK_CONN}`} fill="none" stroke="#cbd5e1" strokeWidth="1.5"/>)
+  return(
+    <div>
+      {showFlight&&<p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Flight {bracket.flight||'A'}</p>}
+      <div style={{overflowX:'auto',paddingBottom:8}}>
+        <div style={{position:'relative',width:canvasW,height:canvasH}}>
+          <svg style={{position:'absolute',top:0,left:0,width:canvasW,height:canvasH,pointerEvents:'none'}} viewBox={`0 0 ${canvasW} ${canvasH}`}>{conns}</svg>
+          {mirGames.map(g=>{
+            const pos=positions.get(g.gameNumber);if(!pos)return null
+            const sgNum=`B${g.gameNumber+offset}`; const sg=schedByNum.get(sgNum)
+            const isChamp=g.section==='championship'
+            const hasScore=sg&&sg.score1!=null&&sg.score2!=null
+            const hasSched=sg&&(sg.date||sg.startTime||sg.location)
+            const cap=hasSched?`${fmtShortDate(sg!.date)} ${fmt12bk(sg!.startTime)} · ${(sg!.location||'').split(' - ').pop()||sg!.location}`:(g.label||(isChamp?'Championship':'Not scheduled'))
+            const w0=!!hasScore&&sg!.score1!>sg!.score2!, w1=!!hasScore&&sg!.score2!>sg!.score1!
+            const ra={src:g.team1Source,team:resolveTeam(g.team1Source,sg?.team1),score:sg?.score1,win:w0}
+            const rb={src:g.team2Source,team:resolveTeam(g.team2Source,sg?.team2),score:sg?.score2,win:w1}
+            const[fa,fb]=fOf(g); const isByeGame=(fa!=null)!==(fb!=null)
+            let rows=[ra,rb]
+            if(isByeGame){const feederRow=fa!=null?ra:rb;const byeRow=fa!=null?rb:ra;rows=winnerTopOf[g.gameNumber]?[feederRow,byeRow]:[byeRow,feederRow]}
+            return(
+              <div key={g.gameNumber}>
+                <div style={{position:'absolute',left:pos.x,top:pos.y-17,width:BK_W}} className="flex items-center gap-1 px-1">
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${hasScore?'bg-green-500':hasSched?'bg-blue-400':'bg-gray-300'}`}/>
+                  <span className={`text-[10px] truncate ${isChamp?'text-amber-600 font-semibold':'text-gray-400'}`}>{cap}</span>
+                </div>
+                {rows.map((r,idx)=>{const isSeed=r.src.startsWith('seed:');const top=pos.y+(idx===0?0:BK_BAR_H+BK_BAR_GAP)
+                  return(
+                    <div key={idx} style={{position:'absolute',left:pos.x,top,width:BK_W,height:BK_BAR_H}} className={`flex items-center rounded-lg border shadow-sm overflow-hidden ${r.win?'border-blue-300 bg-blue-50':isChamp?'border-amber-300 bg-white':'border-gray-200 bg-white'}`}>
+                      <span className={`h-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${isSeed?(isByeGame?'bg-amber-500 text-white':'bg-teal-600 text-white'):'bg-gray-100 text-gray-400'}`} style={{width:26}}>{isSeed?r.src.slice(5):''}</span>
+                      <div className="pl-2 pr-1.5 flex-shrink-0"><TeamAv name={r.team.name} isTbd={r.team.isTbd}/></div>
+                      <span className={`flex-1 text-[12px] truncate ${r.team.isTbd?'text-gray-400 italic':r.win?'font-bold text-gray-900':'font-medium text-gray-700'}`}>{r.team.name}</span>
+                      {!r.team.isTbd&&hasScore&&<span className={`text-[14px] font-bold px-2 ${r.win?'text-blue-600':'text-gray-400'}`}>{r.score}</span>}
+                      {r.win&&<Trophy size={11} className="text-amber-500 flex-shrink-0 mr-2"/>}
+                    </div>)})}
+              </div>)
+          })}
+          {champPos&&(<div style={{position:'absolute',left:champPos.x+BK_W+BK_CONN,top:champPos.cy-22,width:BK_W,height:44}} className="flex items-center justify-center gap-2 rounded-xl bg-amber-700 text-white font-bold text-[13px] shadow-sm"><Trophy size={14}/> Champion</div>)}
+          {consPos&&(<div style={{position:'absolute',left:consPos.x-BK_CONN-BK_W,top:consPos.cy-22,width:BK_W,height:44}} className="flex items-center justify-center gap-1.5 rounded-xl bg-slate-600 text-white font-semibold text-[12px] shadow-sm"><Medal size={14}/> Consolation Champ</div>)}
+        </div>
+      </div>
+      {placement.length>0&&(
+        <div className="mt-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Placement</p>
+          <div className="flex flex-wrap gap-3">
+            {placement.map(g=>{const sgNum=`B${g.gameNumber+offset}`;const sg=schedByNum.get(sgNum);const hasScore=sg&&sg.score1!=null&&sg.score2!=null;const t1=resolveTeam(g.team1Source,sg?.team1);const t2=resolveTeam(g.team2Source,sg?.team2);const t1w=hasScore&&sg!.score1!>sg!.score2!,t2w=hasScore&&sg!.score2!>sg!.score1!
+              return(<div key={g.gameNumber} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm" style={{width:BK_W}}>
+                <div className="px-3 py-1 bg-gray-50 border-b border-gray-100 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">{g.label||'Placement'}</div>
+                {[{r:t1,sc:sg?.score1,w:t1w},{r:t2,sc:sg?.score2,w:t2w}].map((x,i)=>(<div key={i} className={`flex items-center gap-2 px-3 py-2 ${i===0?'border-b border-gray-100':''} ${x.w?'bg-blue-50':''}`}><TeamAv name={x.r.name} isTbd={x.r.isTbd}/><span className={`flex-1 text-[12px] truncate ${x.r.isTbd?'text-gray-400 italic':x.w?'font-bold text-gray-900':'text-gray-700'}`}>{x.r.name}</span>{!x.r.isTbd&&hasScore&&<span className={`text-[13px] font-bold ${x.w?'text-blue-600':'text-gray-400'}`}>{x.sc}</span>}</div>))}
+              </div>)})}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function BracketView({bracketList,scheduledGames}:{bracketList:BkBracket[];scheduledGames:Game[]}){
   const [showCons,setShowCons]=useState(false)
   const logos=useContext(LogosContext)
@@ -177,6 +304,7 @@ function BracketView({bracketList,scheduledGames}:{bracketList:BkBracket[];sched
   return(
     <div className="space-y-6">
       {bracketList.map(bracket=>{
+        if(bracket.format==='2gg')return <MirrorBracket key={bracket.id} bracket={bracket} scheduledGames={scheduledGames} showFlight={bracketList.length>1}/>
         const offset=bracket.numberOffset??0
         const schedByNum=new Map(scheduledGames.map(g=>[g.gameNumber,g]))
         const mainGames=bracket.games.filter(g=>g.section==='winners'||g.section==='championship')
