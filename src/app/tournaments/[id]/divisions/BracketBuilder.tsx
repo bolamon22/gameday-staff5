@@ -904,22 +904,50 @@ function BracketPreview({ template, seeds, division, numberOffset = 0, logos = {
     .sort((a, b) => b.round - a.round || a.gameNumber - b.gameNumber)
   const yByNum: Record<number, number> = {}
   let leafSlot = 0
+  const HALF_BAR = (BAR_H + BAR_GAP) / 2
+  // Pass 1: rough positions (byes centred) to learn each game's half of the bracket.
+  const ROW = 120
+  const rough: Record<number, number> = {}
+  let ls0 = 0
+  const roughY = (num: number): number => {
+    if (rough[num] !== undefined) return rough[num]
+    const g = mainByNum[num]; if (!g) return 0
+    const [a, b] = feederOf(g)
+    const cs: number[] = []
+    if (a != null) cs.push(roughY(a))
+    if (b != null) cs.push(roughY(b))
+    const y = cs.length ? cs.reduce((p, q) => p + q, 0) / cs.length : (ls0++ * ROW)
+    rough[num] = y; return y
+  }
+  roots.forEach(r => roughY(r.gameNumber))
+  mainGames.forEach(g => { if (rough[g.gameNumber] === undefined) rough[g.gameNumber] = ls0++ * ROW })
+  const roughVals = mainGames.map(g => rough[g.gameNumber])
+  const mid = roughVals.length ? (Math.min(...roughVals) + Math.max(...roughVals)) / 2 : 0
+  // Pass 2: final positions. For a bye game, align the winner-feeder bar with its feeder
+  // (winner toward the outer edge, bye toward centre) so it reads as a real matchup.
+  const winnerTopOf: Record<number, boolean> = {}
   const placeY = (num: number): number => {
     if (yByNum[num] !== undefined) return yByNum[num]
-    const g = mainByNum[num]
-    if (!g) return 0
+    const g = mainByNum[num]; if (!g) return 0
     const [f1, f2] = feederOf(g)
-    const childYs: number[] = []
-    if (f1) childYs.push(placeY(f1))
-    if (f2) childYs.push(placeY(f2))
-    const y = childYs.length > 0
-      ? childYs.reduce((a, b) => a + b, 0) / childYs.length
-      : (leafSlot++ * UNIT)
+    let y: number
+    if (f1 != null && f2 != null) {
+      y = (placeY(f1) + placeY(f2)) / 2
+    } else if (f1 != null || f2 != null) {
+      const fNum = (f1 != null ? f1 : f2) as number
+      const winnerTop = rough[fNum] <= mid
+      winnerTopOf[num] = winnerTop
+      y = placeY(fNum) + (winnerTop ? HALF_BAR : -HALF_BAR)
+    } else {
+      y = leafSlot++ * ROW
+    }
     yByNum[num] = y
     return y
   }
   roots.forEach(r => placeY(r.gameNumber))
-  mainGames.forEach(g => { if (yByNum[g.gameNumber] === undefined) yByNum[g.gameNumber] = leafSlot++ * UNIT })
+  mainGames.forEach(g => { if (yByNum[g.gameNumber] === undefined) yByNum[g.gameNumber] = leafSlot++ * ROW })
+  const minY = Math.min(0, ...mainGames.map(g => yByNum[g.gameNumber]))
+  mainGames.forEach(g => { yByNum[g.gameNumber] -= minY })
 
   const positions: Record<number, { x: number; y: number; cy: number }> = {}
   mainGames.forEach(g => {
@@ -1043,8 +1071,17 @@ function BracketPreview({ template, seeds, division, numberOffset = 0, logos = {
                     {onRemoveGame && <button onClick={() => onRemoveGame(game.gameNumber)} title="Remove game" className="text-[11px] leading-none text-slate-500 hover:text-red-400">×</button>}
                   </span>
                 </div>
-                {teamBar(game, game.t1, 0, isChamp)}
-                {teamBar(game, game.t2, 1, isChamp)}
+                {(() => {
+                  const [fa, fb] = feederOf(game)
+                  let topSrc = game.t1, botSrc = game.t2
+                  if ((fa != null) !== (fb != null)) {
+                    const feederSrc = fa != null ? game.t1 : game.t2
+                    const byeSrc = fa != null ? game.t2 : game.t1
+                    if (winnerTopOf[game.gameNumber]) { topSrc = feederSrc; botSrc = byeSrc }
+                    else { topSrc = byeSrc; botSrc = feederSrc }
+                  }
+                  return <>{teamBar(game, topSrc, 0, isChamp)}{teamBar(game, botSrc, 1, isChamp)}</>
+                })()}
               </div>
             )
           })}

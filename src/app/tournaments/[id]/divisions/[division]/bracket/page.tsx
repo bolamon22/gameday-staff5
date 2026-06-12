@@ -26,9 +26,9 @@ function teamLogo(name: string, logos: Record<string, string>, isTBD: boolean) {
   return <span className="rounded-full bg-slate-700 text-slate-300 text-[9px] flex items-center justify-center shrink-0" style={{ width: 18, height: 18 }}>{!isTBD && name ? name.charAt(0).toUpperCase() : ''}</span>
 }
 
-function GameCard({ game, seeds, allGames, logos = {}, onClick, isChamp }: {
+function GameCard({ game, seeds, allGames, logos = {}, flip = false, onClick, isChamp }: {
   game: BracketGame; seeds: Record<string, string>
-  allGames: BracketGame[]; logos?: Record<string, string>; onClick: () => void; isChamp?: boolean
+  allGames: BracketGame[]; logos?: Record<string, string>; flip?: boolean; onClick: () => void; isChamp?: boolean
 }) {
   const t1 = game.team1 || resolveTeam(game.team1Source, seeds, allGames)
   const t2 = game.team2 || resolveTeam(game.team2Source, seeds, allGames)
@@ -53,8 +53,11 @@ function GameCard({ game, seeds, allGames, logos = {}, onClick, isChamp }: {
         {(game.label || isChamp) && <span className={`text-[9px] font-semibold uppercase tracking-wider ${isChamp ? 'text-amber-500' : 'text-slate-400'}`}>{game.label || 'Championship'}</span>}
       </div>
       <button onClick={onClick} className="w-full flex flex-col gap-1.5 text-left">
-        {bar(t1, seedOf(game.team1Source), game.score1, win(t1), 1)}
-        {bar(t2, seedOf(game.team2Source), game.score2, win(t2), 2)}
+        {(() => {
+          const rowA = bar(t1, seedOf(game.team1Source), game.score1, win(t1), 1)
+          const rowB = bar(t2, seedOf(game.team2Source), game.score2, win(t2), 2)
+          return <>{flip ? rowB : rowA}{flip ? rowA : rowB}</>
+        })()}
       </button>
       <div className="h-[14px] flex items-center px-0.5 text-[9px] text-slate-400 truncate">{meta || `Game ${game.gameNumber}`}</div>
     </div>
@@ -66,7 +69,7 @@ function BracketSection({ games, seeds, allGames, logos = {}, onGameClick, secti
   logos?: Record<string, string>; onGameClick: (g: BracketGame) => void; sectionLabel?: string
 }) {
   if (games.length === 0) return null
-  const CARD_W = 200, COL_GAP = 56, BARS_TOP = 14, BARS_H = 66, UNIT = 104
+  const CARD_W = 200, COL_GAP = 56, BARS_TOP = 14, BARS_H = 66, UNIT = 140
   const cardCenter = BARS_TOP + BARS_H / 2
   const rounds = [...new Set(games.map(g => g.round))].sort((a, b) => a - b)
   const minRound = rounds[0]
@@ -91,18 +94,42 @@ function BracketSection({ games, seeds, allGames, logos = {}, onGameClick, secti
   const roots = games.filter(g => !referenced.has(g.gameNumber)).sort((a, b) => b.round - a.round || a.gameNumber - b.gameNumber)
   const yBy: Record<number, number> = {}
   let leaf = 0
+  const HALF = 18
+  const rough: Record<number, number> = {}
+  let rl = 0
+  const roughY = (num: number): number => {
+    if (rough[num] !== undefined) return rough[num]
+    const g = byNum[num]; if (!g) return 0
+    const [a, b] = feederOf(g)
+    const cs: number[] = []
+    if (a != null) cs.push(roughY(a))
+    if (b != null) cs.push(roughY(b))
+    const y = cs.length ? cs.reduce((p, q) => p + q, 0) / cs.length : (rl++ * UNIT)
+    rough[num] = y; return y
+  }
+  roots.forEach(r => roughY(r.gameNumber))
+  games.forEach(g => { if (rough[g.gameNumber] === undefined) rough[g.gameNumber] = rl++ * UNIT })
+  const rv = games.map(g => rough[g.gameNumber])
+  const mid = rv.length ? (Math.min(...rv) + Math.max(...rv)) / 2 : 0
+  const winnerTopOf: Record<number, boolean> = {}
   const placeY = (num: number): number => {
     if (yBy[num] !== undefined) return yBy[num]
     const g = byNum[num]; if (!g) return 0
     const [f1, f2] = feederOf(g)
-    const cs: number[] = []
-    if (f1) cs.push(placeY(f1))
-    if (f2) cs.push(placeY(f2))
-    const y = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : (leaf++ * UNIT)
+    let y: number
+    if (f1 != null && f2 != null) y = (placeY(f1) + placeY(f2)) / 2
+    else if (f1 != null || f2 != null) {
+      const fNum = (f1 != null ? f1 : f2) as number
+      const winnerTop = rough[fNum] <= mid
+      winnerTopOf[num] = winnerTop
+      y = placeY(fNum) + (winnerTop ? HALF : -HALF)
+    } else y = leaf++ * UNIT
     yBy[num] = y; return y
   }
   roots.forEach(r => placeY(r.gameNumber))
   games.forEach(g => { if (yBy[g.gameNumber] === undefined) yBy[g.gameNumber] = leaf++ * UNIT })
+  const minY = Math.min(0, ...games.map(g => yBy[g.gameNumber]))
+  games.forEach(g => { yBy[g.gameNumber] -= minY })
   const pos: Record<number, { x: number; y: number; cy: number }> = {}
   games.forEach(g => { const y = yBy[g.gameNumber]; pos[g.gameNumber] = { x: colLeft(g.round), y, cy: y + cardCenter } })
   const width = colLeft(maxRound) + CARD_W + 8
@@ -134,11 +161,16 @@ function BracketSection({ games, seeds, allGames, logos = {}, onGameClick, secti
         </div>
         <div style={{ position: 'relative', width, height, minHeight: 80 }}>
           <svg style={{ position: 'absolute', top: 0, left: 0, width, height, pointerEvents: 'none' }} viewBox={`0 0 ${width} ${height}`}>{conns}</svg>
-          {games.map(g => (
-            <div key={g.id} style={{ position: 'absolute', left: pos[g.gameNumber].x, top: pos[g.gameNumber].y }}>
-              <GameCard game={g} seeds={seeds} allGames={allGames} logos={logos} onClick={() => onGameClick(g)} isChamp={g.section === 'championship'} />
-            </div>
-          ))}
+          {games.map(g => {
+            const [fa, fb] = feederOf(g)
+            const isBye = (fa != null) !== (fb != null)
+            const flip = isBye && ((winnerTopOf[g.gameNumber] && fb != null) || (!winnerTopOf[g.gameNumber] && fa != null))
+            return (
+              <div key={g.id} style={{ position: 'absolute', left: pos[g.gameNumber].x, top: pos[g.gameNumber].y }}>
+                <GameCard game={g} seeds={seeds} allGames={allGames} logos={logos} flip={flip} onClick={() => onGameClick(g)} isChamp={g.section === 'championship'} />
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
