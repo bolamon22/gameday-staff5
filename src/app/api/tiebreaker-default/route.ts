@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
+// The AppSetting table is hand-migrated and may not exist yet on some databases.
+async function ensureTable() {
+  try {
+    await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "AppSetting" ("key" TEXT NOT NULL PRIMARY KEY, "value" TEXT NOT NULL, "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`)
+  } catch { /* ignore */ }
+}
+
 // Global default tiebreakers (new/unconfigured tournaments inherit these).
 export async function GET() {
   try {
+    await ensureTable()
     const row = await prisma.appSetting.findUnique({ where: { key: 'defaultTiebreakers' } })
     return NextResponse.json(row ? JSON.parse(row.value || '{}') : {})
   } catch {
@@ -13,6 +21,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    await ensureTable()
     const body = await req.json()
     const value = JSON.stringify({ pool: body.pool || [], division: body.division || [] })
     await prisma.appSetting.upsert({
