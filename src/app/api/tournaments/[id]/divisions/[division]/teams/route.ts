@@ -41,6 +41,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string;
         id: t.id,
         teamName: t.teamName,
         clubName: t.clubName,
+        logoUrl: t.logoUrl || '',
         division: t.division,
         coachName: t.coachName,
         coachPhone: t.coachPhone,

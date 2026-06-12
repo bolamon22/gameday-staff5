@@ -20,82 +20,126 @@ interface Bracket {
   seeds: Record<string, string>; games: BracketGame[]
 }
 
-function GameCard({ game, seeds, allGames, onClick, isChamp }: {
+function teamLogo(name: string, logos: Record<string, string>, isTBD: boolean) {
+  const url = !isTBD ? logos[name] : ''
+  if (url) return <img src={url} alt="" className="rounded-full object-cover bg-white shrink-0" style={{ width: 18, height: 18 }} />
+  return <span className="rounded-full bg-slate-700 text-slate-300 text-[9px] flex items-center justify-center shrink-0" style={{ width: 18, height: 18 }}>{!isTBD && name ? name.charAt(0).toUpperCase() : ''}</span>
+}
+
+function GameCard({ game, seeds, allGames, logos = {}, onClick, isChamp }: {
   game: BracketGame; seeds: Record<string, string>
-  allGames: BracketGame[]; onClick: () => void; isChamp?: boolean
+  allGames: BracketGame[]; logos?: Record<string, string>; onClick: () => void; isChamp?: boolean
 }) {
   const t1 = game.team1 || resolveTeam(game.team1Source, seeds, allGames)
   const t2 = game.team2 || resolveTeam(game.team2Source, seeds, allGames)
+  const seedOf = (src: string) => src && src.startsWith('seed:') ? src.split(':')[1] : ''
   const hasScore = game.score1 !== null && game.score2 !== null
-  const isDone = !!game.winner
-  return (
-    <button onClick={onClick}
-      className={`w-48 text-left rounded-lg border transition-all hover:shadow-md ${
-        isChamp ? 'border-amber-400 bg-amber-50 shadow-sm'
-        : isDone ? 'border-green-300 bg-green-50'
-        : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-      {game.label && (
-        <div className={`px-2 py-0.5 text-xs font-bold uppercase tracking-wider rounded-t-lg ${
-          isChamp ? 'bg-amber-400 text-white' : 'bg-slate-600 text-white'}`}>
-          {game.label}
-        </div>
-      )}
-      <div className="px-2 py-1.5">
-        <div className={`flex items-center justify-between text-sm py-0.5 border-b border-slate-100 ${
-          isDone && game.winner === t1 ? 'font-bold text-green-700' : 'text-slate-700'}`}>
-          <span className="truncate max-w-[120px]">{t1 || <span className="text-slate-300 italic text-xs">TBD</span>}</span>
-          {hasScore && <span className={`ml-1 font-mono text-xs w-5 text-right ${game.winner === t1 ? 'text-green-700 font-bold' : 'text-slate-500'}`}>{game.score1}</span>}
-        </div>
-        <div className={`flex items-center justify-between text-sm py-0.5 ${
-          isDone && game.winner === t2 ? 'font-bold text-green-700' : 'text-slate-700'}`}>
-          <span className="truncate max-w-[120px]">{t2 || <span className="text-slate-300 italic text-xs">TBD</span>}</span>
-          {hasScore && <span className={`ml-1 font-mono text-xs w-5 text-right ${game.winner === t2 ? 'text-green-700 font-bold' : 'text-slate-500'}`}>{game.score2}</span>}
-        </div>
-        {(game.field || game.startTime || game.gameDate) ? (
-          <div className="mt-1 text-xs text-slate-400 truncate">{[game.gameDate, game.startTime, game.field].filter(Boolean).join(' · ')}</div>
-        ) : (
-          <div className="mt-1 text-xs text-slate-300">G{game.gameNumber} · click to edit</div>
-        )}
+  const win = (t: string) => !!game.winner && game.winner === t
+  const meta = [game.gameDate, game.startTime, game.field].filter(Boolean).join(' \u00b7 ')
+  const bar = (name: string, seedNum: string, score: number | null, isW: boolean, key: number) => {
+    const tbd = !name
+    return (
+      <div key={key} className={`flex items-center rounded-md border overflow-hidden ${isChamp ? 'border-amber-400/70 bg-amber-950/50' : isW ? 'border-teal-500/70 bg-slate-800' : 'border-slate-700 bg-slate-800'}`} style={{ height: 30 }}>
+        <span className={`h-full flex items-center justify-center text-[11px] font-semibold shrink-0 ${seedNum ? 'bg-teal-600 text-white' : 'bg-slate-700 text-slate-500'}`} style={{ width: 22 }}>{seedNum}</span>
+        <span className="mx-1.5 shrink-0">{teamLogo(name, logos, tbd)}</span>
+        <span className={`flex-1 truncate text-xs ${tbd ? 'text-slate-500 italic' : isW ? 'text-white font-semibold' : 'text-slate-200'}`}>{name || 'TBD'}</span>
+        {hasScore && <span className={`px-2 text-xs font-mono shrink-0 ${isW ? 'text-teal-300' : 'text-slate-400'}`}>{score}</span>}
       </div>
-    </button>
+    )
+  }
+  return (
+    <div style={{ width: 200 }}>
+      <div className="h-[14px] flex items-center px-0.5">
+        {(game.label || isChamp) && <span className={`text-[9px] font-semibold uppercase tracking-wider ${isChamp ? 'text-amber-500' : 'text-slate-400'}`}>{game.label || 'Championship'}</span>}
+      </div>
+      <button onClick={onClick} className="w-full flex flex-col gap-1.5 text-left">
+        {bar(t1, seedOf(game.team1Source), game.score1, win(t1), 1)}
+        {bar(t2, seedOf(game.team2Source), game.score2, win(t2), 2)}
+      </button>
+      <div className="h-[14px] flex items-center px-0.5 text-[9px] text-slate-400 truncate">{meta || `Game ${game.gameNumber}`}</div>
+    </div>
   )
 }
 
-function BracketSection({ games, seeds, allGames, onGameClick, sectionLabel }: {
+function BracketSection({ games, seeds, allGames, logos = {}, onGameClick, sectionLabel }: {
   games: BracketGame[]; seeds: Record<string, string>; allGames: BracketGame[]
-  onGameClick: (g: BracketGame) => void; sectionLabel?: string
+  logos?: Record<string, string>; onGameClick: (g: BracketGame) => void; sectionLabel?: string
 }) {
   if (games.length === 0) return null
+  const CARD_W = 200, COL_GAP = 56, BARS_TOP = 14, BARS_H = 66, UNIT = 104
+  const cardCenter = BARS_TOP + BARS_H / 2
   const rounds = [...new Set(games.map(g => g.round))].sort((a, b) => a - b)
   const minRound = rounds[0]
-  const BASE_SLOT = 100
-
-  function rlabel(r: number) {
+  const maxRound = rounds[rounds.length - 1]
+  const colLeft = (r: number) => (r - minRound) * (CARD_W + COL_GAP)
+  const rlabel = (r: number) => {
     const rfe = rounds.length - (r - minRound)
     if (rfe === 1) return 'Final'
-    if (rfe === 2) return 'Semis'
-    if (rfe === 3) return 'Quarters'
+    if (rfe === 2) return 'Semifinals'
+    if (rfe === 3) return 'Quarterfinals'
     return `Round ${r - minRound + 1}`
   }
-
+  const byNum: Record<number, BracketGame> = {}
+  games.forEach(g => { byNum[g.gameNumber] = g })
+  const feederOf = (g: BracketGame) => [g.team1Source, g.team2Source].map(src => {
+    const [type, n] = (src || '').split(':')
+    const num = parseInt(n)
+    return (type === 'winner' || type === 'loser') && byNum[num] ? num : null
+  })
+  const referenced = new Set<number>()
+  games.forEach(g => feederOf(g).forEach(fn => { if (fn) referenced.add(fn) }))
+  const roots = games.filter(g => !referenced.has(g.gameNumber)).sort((a, b) => b.round - a.round || a.gameNumber - b.gameNumber)
+  const yBy: Record<number, number> = {}
+  let leaf = 0
+  const placeY = (num: number): number => {
+    if (yBy[num] !== undefined) return yBy[num]
+    const g = byNum[num]; if (!g) return 0
+    const [f1, f2] = feederOf(g)
+    const cs: number[] = []
+    if (f1) cs.push(placeY(f1))
+    if (f2) cs.push(placeY(f2))
+    const y = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : (leaf++ * UNIT)
+    yBy[num] = y; return y
+  }
+  roots.forEach(r => placeY(r.gameNumber))
+  games.forEach(g => { if (yBy[g.gameNumber] === undefined) yBy[g.gameNumber] = leaf++ * UNIT })
+  const pos: Record<number, { x: number; y: number; cy: number }> = {}
+  games.forEach(g => { const y = yBy[g.gameNumber]; pos[g.gameNumber] = { x: colLeft(g.round), y, cy: y + cardCenter } })
+  const width = colLeft(maxRound) + CARD_W + 8
+  const height = Math.max(...games.map(g => pos[g.gameNumber].y)) + BARS_TOP + BARS_H + 18
+  const conns: JSX.Element[] = []
+  games.forEach(g => {
+    const p = pos[g.gameNumber]
+    const fs = feederOf(g).filter((x): x is number => x !== null && !!pos[x])
+    if (fs.length >= 2) {
+      const f1 = pos[fs[0]], f2 = pos[fs[1]], midX = f1.x + CARD_W + COL_GAP / 2
+      conns.push(<path key={`a${g.gameNumber}`} d={`M${f1.x + CARD_W},${f1.cy} H${midX}`} stroke="#cbd5e1" strokeWidth="1.5" fill="none" />)
+      conns.push(<path key={`b${g.gameNumber}`} d={`M${f2.x + CARD_W},${f2.cy} H${midX}`} stroke="#cbd5e1" strokeWidth="1.5" fill="none" />)
+      conns.push(<line key={`c${g.gameNumber}`} x1={midX} y1={f1.cy} x2={midX} y2={f2.cy} stroke="#cbd5e1" strokeWidth="1.5" />)
+      conns.push(<path key={`d${g.gameNumber}`} d={`M${midX},${p.cy} H${p.x}`} stroke="#cbd5e1" strokeWidth="1.5" fill="none" />)
+    } else if (fs.length === 1) {
+      const f = pos[fs[0]]
+      conns.push(<path key={`s${g.gameNumber}`} d={`M${f.x + CARD_W},${f.cy} H${p.x}`} stroke="#cbd5e1" strokeWidth="1.5" fill="none" />)
+    }
+  })
   return (
     <div>
-      {sectionLabel && <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2 mt-4">{sectionLabel}</p>}
-      <div className="flex items-start gap-10 overflow-x-auto pb-2">
-        {rounds.map(round => {
-          const roundGames = games.filter(g => g.round === round)
-          const slotH = BASE_SLOT * Math.pow(2, round - minRound)
-          return (
-            <div key={round} className="flex flex-col flex-shrink-0">
-              <p className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">{rlabel(round)}</p>
-              {roundGames.map(g => (
-                <div key={g.id} className="flex items-center" style={{ height: slotH }}>
-                  <GameCard game={g} seeds={seeds} allGames={allGames} onClick={() => onGameClick(g)} isChamp={g.section === 'championship'} />
-                </div>
-              ))}
+      {sectionLabel && <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 mt-4">{sectionLabel}</p>}
+      <div className="overflow-x-auto pb-2">
+        <div style={{ position: 'relative', width }} className="mb-1">
+          {rounds.map(r => (
+            <div key={r} style={{ position: 'absolute', left: colLeft(r), width: CARD_W }} className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{rlabel(r)}</div>
+          ))}
+          <div style={{ height: 16 }} />
+        </div>
+        <div style={{ position: 'relative', width, height, minHeight: 80 }}>
+          <svg style={{ position: 'absolute', top: 0, left: 0, width, height, pointerEvents: 'none' }} viewBox={`0 0 ${width} ${height}`}>{conns}</svg>
+          {games.map(g => (
+            <div key={g.id} style={{ position: 'absolute', left: pos[g.gameNumber].x, top: pos[g.gameNumber].y }}>
+              <GameCard game={g} seeds={seeds} allGames={allGames} logos={logos} onClick={() => onGameClick(g)} isChamp={g.section === 'championship'} />
             </div>
-          )
-        })}
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -296,6 +340,17 @@ export default function BracketPage() {
   const [activeFlight, setActiveFlight] = useState<string>('A')
   const activeFlightRef = useRef('A')
   useEffect(() => { activeFlightRef.current = activeFlight }, [activeFlight])
+  const [logos, setLogos] = useState<Record<string, string>>({})
+  useEffect(() => {
+    fetch(`/api/tournaments/${id}/divisions/${division}/teams`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d?.teams) return
+        const m: Record<string, string> = {}
+        for (const t of d.teams) if (t.logoUrl) m[t.teamName] = t.logoUrl
+        setLogos(m)
+      }).catch(() => {})
+  }, [id, division])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [selectedGame, setSelectedGame] = useState<BracketGame | null>(null)
@@ -687,15 +742,15 @@ export default function BracketPage() {
       ) : (
       <div className="px-6 py-6 overflow-x-auto">
         {bracket.format === 'single' ? (
-          <BracketSection games={[...winnerGames, ...champGames]} seeds={bracket.seeds} allGames={bracket.games} onGameClick={setSelectedGame} />
+          <BracketSection games={[...winnerGames, ...champGames]} seeds={bracket.seeds} allGames={bracket.games} logos={logos} onGameClick={setSelectedGame} />
         ) : (
           <div className="space-y-2">
-            <BracketSection games={winnerGames} seeds={bracket.seeds} allGames={bracket.games} onGameClick={setSelectedGame} sectionLabel="Winners Bracket" />
-            <BracketSection games={loserGames}  seeds={bracket.seeds} allGames={bracket.games} onGameClick={setSelectedGame} sectionLabel="Losers Bracket" />
+            <BracketSection games={winnerGames} seeds={bracket.seeds} allGames={bracket.games} logos={logos} onGameClick={setSelectedGame} sectionLabel="Winners Bracket" />
+            <BracketSection games={loserGames}  seeds={bracket.seeds} allGames={bracket.games} logos={logos} onGameClick={setSelectedGame} sectionLabel="Losers Bracket" />
             {champGames.length > 0 && (
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2 mt-4">Championship</p>
-                <div className="flex gap-3">{champGames.map(g => <GameCard key={g.id} game={g} seeds={bracket.seeds} allGames={bracket.games} onClick={() => setSelectedGame(g)} isChamp />)}</div>
+                <div className="flex gap-3">{champGames.map(g => <GameCard key={g.id} game={g} seeds={bracket.seeds} allGames={bracket.games} logos={logos} onClick={() => setSelectedGame(g)} isChamp />)}</div>
               </div>
             )}
           </div>

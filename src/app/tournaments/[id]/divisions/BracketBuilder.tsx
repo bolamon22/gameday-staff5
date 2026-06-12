@@ -41,6 +41,9 @@ const CONN_W = 48
 const GAME_GAP = 16
 const UNIT = GAME_H + GAME_GAP
 const LABEL_H = 28
+const BAR_H = 28
+const BAR_GAP = 8
+const TOP_PAD = 16
 
 function gameTop(round: number, idx: number): number {
   const spacing = UNIT * Math.pow(2, round - 1)
@@ -96,6 +99,17 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
   const [fmtA, setFmtA] = useState<'single' | 'double' | '2gg'>('single')
   const [fmtB, setFmtB] = useState<'single' | 'double' | '2gg'>('single')
   const [splitting, setSplitting] = useState(false)
+  const [logos, setLogos] = useState<Record<string, string>>({})
+  useEffect(() => {
+    fetch(`/api/tournaments/${tournamentId}/divisions/${division}/teams`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d?.teams) return
+        const m: Record<string, string> = {}
+        for (const t of d.teams) if (t.logoUrl) m[t.teamName] = t.logoUrl
+        setLogos(m)
+      }).catch(() => {})
+  }, [tournamentId, division])
 
   // Add-game form state
   const [addSection, setAddSection] = useState('consolation')
@@ -793,6 +807,7 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
       {/* ── Preview tab ───────────────────────────────────────────────────── */}
       {tab === 'preview' && (
         <BracketPreview
+          logos={logos}
           numberOffset={bracket.numberOffset || 0}
           template={bracket.games.map(g => ({
             gameNumber: g.gameNumber,
@@ -825,11 +840,12 @@ function resolveLabel(src: string, seeds: Record<string, string>, offset = 0): s
   return src
 }
 
-function BracketPreview({ template, seeds, division, numberOffset = 0, onLabelChange, onRemoveGame, onRenameSeed, onAddGame }: {
+function BracketPreview({ template, seeds, division, numberOffset = 0, logos = {}, onLabelChange, onRemoveGame, onRenameSeed, onAddGame }: {
   template: GameTemplate[]
   seeds: Record<string, string>
   division?: string
   numberOffset?: number
+  logos?: Record<string, string>
   onLabelChange?: (gameNumber: number, label: string) => void
   onRemoveGame?: (gameNumber: number) => void
   onRenameSeed?: (seedNum: number, value: string) => void
@@ -907,7 +923,7 @@ function BracketPreview({ template, seeds, division, numberOffset = 0, onLabelCh
 
   const positions: Record<number, { x: number; y: number; cy: number }> = {}
   mainGames.forEach(g => {
-    const y = yByNum[g.gameNumber]
+    const y = yByNum[g.gameNumber] + TOP_PAD
     positions[g.gameNumber] = { x: colLeft(g.round), y, cy: y + GAME_H / 2 }
   })
 
@@ -944,6 +960,31 @@ function BracketPreview({ template, seeds, division, numberOffset = 0, onLabelCh
       }
     }
   })
+
+  const teamBar = (game: GameTemplate, src: string, idx: number, isChamp: boolean) => {
+    const pos = positions[game.gameNumber]
+    if (!pos) return null
+    const top = idx === 0 ? pos.cy - BAR_GAP / 2 - BAR_H : pos.cy + BAR_GAP / 2
+    const [type, n] = (src || '').split(':')
+    const isSeed = type === 'seed'
+    const isComputed = type === 'winner' || type === 'loser'
+    const nm = resolveLabel(src, seeds, numberOffset)
+    const named = !!nm && !nm.startsWith('Seed ') && !isComputed
+    const logo = named ? logos[nm] : ''
+    const initial = named ? nm.charAt(0).toUpperCase() : ''
+    return (
+      <div key={idx} style={{ position: 'absolute', left: pos.x, top, width: GAME_W, height: BAR_H }}
+        className={`flex items-center rounded-md border overflow-hidden ${isChamp ? 'border-amber-400/60 bg-amber-950/40' : 'border-slate-600/80 bg-slate-800/95'}`}>
+        <span className={`h-full flex items-center justify-center text-[11px] font-semibold shrink-0 ${isSeed ? 'bg-teal-600 text-white' : 'bg-slate-700/80 text-slate-500'}`} style={{ width: 24 }}>
+          {isSeed ? n : ''}
+        </span>
+        {logo
+          ? <img src={logo} alt="" className="rounded-full object-cover ml-2 mr-1.5 shrink-0 bg-white" style={{ width: 18, height: 18 }} />
+          : <span className="rounded-full bg-slate-700 text-slate-300 text-[9px] flex items-center justify-center ml-2 mr-1.5 shrink-0" style={{ width: 18, height: 18 }}>{initial}</span>}
+        <div className="flex-1 min-w-0 pr-2">{renderSlot(game.gameNumber, src, idx)}</div>
+      </div>
+    )
+  }
 
   if (mainGames.length === 0) {
     return (
@@ -983,43 +1024,27 @@ function BracketPreview({ template, seeds, division, numberOffset = 0, onLabelCh
             const pos = positions[game.gameNumber]
             if (!pos) return null
             const isChamp = game.section === 'championship'
+            const displayLabel = game.label || (isChamp ? (division ? `${division} Champion` : 'Champion') : undefined)
             return (
-              <div key={game.gameNumber} style={{ position: 'absolute', left: pos.x, top: pos.y, width: GAME_W, height: GAME_H }}
-                className={`rounded-lg border text-xs flex flex-col overflow-hidden ${isChamp ? 'border-amber-400/60 bg-gradient-to-b from-amber-950/60 to-slate-900 shadow-lg shadow-amber-900/20' : 'border-slate-600/80 bg-slate-800/90'}`}>
-                <div className={`px-2 py-0.5 flex items-center justify-between ${isChamp ? 'bg-amber-500/10' : 'bg-black/20'}`}>
-                  <span className="text-[10px] font-mono text-teal-300">B{numberOffset + game.gameNumber}</span>
-                  {(() => {
-                    const displayLabel = game.label || (isChamp ? (division ? `${division} Champion` : 'Champion') : undefined)
-                    if (!displayLabel) return null
-                    if (editingLabel?.gameNumber === game.gameNumber) {
-                      return (
-                        <input
-                          autoFocus
-                          value={editingLabel.value}
+              <div key={game.gameNumber}>
+                <div style={{ position: 'absolute', left: pos.x, top: pos.cy - BAR_GAP / 2 - BAR_H - 14, width: GAME_W, height: 13 }}
+                  className="flex items-center justify-between">
+                  <span className="text-[9px] font-mono text-teal-300/80 px-0.5">B{numberOffset + game.gameNumber}</span>
+                  <span className="flex items-center gap-1">
+                    {displayLabel && (editingLabel?.gameNumber === game.gameNumber
+                      ? <input autoFocus value={editingLabel.value}
                           onChange={e => setEditingLabel({ gameNumber: game.gameNumber, value: e.target.value })}
                           onBlur={() => { onLabelChange?.(game.gameNumber, editingLabel.value); setEditingLabel(null) }}
                           onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { onLabelChange?.(game.gameNumber, editingLabel.value); setEditingLabel(null) } }}
-                          className="text-[10px] bg-transparent border-b border-amber-400 text-amber-300 outline-none w-28 text-right"
-                        />
-                      )
-                    }
-                    return (
-                      <button
-                        onClick={() => setEditingLabel({ gameNumber: game.gameNumber, value: displayLabel })}
-                        title="Click to edit label"
-                        className={`text-[10px] font-semibold hover:opacity-70 cursor-text text-right ${isChamp ? 'text-amber-400' : 'text-amber-400/70'}`}
-                      >
-                        {isChamp && '🏆 '}{displayLabel}
-                      </button>
-                    )
-                  })()}
-                  {onRemoveGame && <button onClick={() => onRemoveGame(game.gameNumber)} title="Remove game" className="text-[12px] leading-none text-slate-500 hover:text-red-400 ml-1">×</button>}
+                          className="text-[9px] bg-transparent border-b border-amber-400 text-amber-300 outline-none w-24 text-right" />
+                      : <button onClick={() => setEditingLabel({ gameNumber: game.gameNumber, value: displayLabel })} title="Click to edit label"
+                          className={`text-[9px] font-semibold hover:opacity-70 cursor-text ${isChamp ? 'text-amber-400' : 'text-amber-400/70'}`}>{displayLabel}</button>
+                    )}
+                    {onRemoveGame && <button onClick={() => onRemoveGame(game.gameNumber)} title="Remove game" className="text-[11px] leading-none text-slate-500 hover:text-red-400">×</button>}
+                  </span>
                 </div>
-                {[game.t1, game.t2].map((src, i) => (
-                  <div key={i} className={`flex-1 flex items-center px-2.5 ${i === 0 ? 'border-b border-slate-700/80' : ''}`}>
-                    {renderSlot(game.gameNumber, src, i)}
-                  </div>
-                ))}
+                {teamBar(game, game.t1, 0, isChamp)}
+                {teamBar(game, game.t2, 1, isChamp)}
               </div>
             )
           })}
