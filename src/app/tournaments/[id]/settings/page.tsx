@@ -39,7 +39,15 @@ interface Venue { id: string; name: string; fields: Field[] }
 
 function uid() { return Math.random().toString(36).slice(2, 10) }
 
-type Section = 'general' | 'fees' | 'divisions' | 'payrates' | 'refrules' | 'venues' | 'registration'
+type Section = 'general' | 'fees' | 'divisions' | 'payrates' | 'refrules' | 'venues' | 'registration' | 'tiebreakers'
+const TB_OPTS = [
+  { v:'record', l:'Record' }, { v:'win_pct', l:'Winning Percentage' },
+  { v:'head_to_head', l:'Head to Head' }, { v:'h2h_two', l:'Head to Head Two Teams Only' },
+  { v:'h2h_gd', l:'Head to Head Goal Diff' }, { v:'goal_diff', l:'Goal Diff' },
+  { v:'goals_for', l:'Goals Scored' }, { v:'goals_against', l:'Goals Allowed' },
+]
+const DEFAULT_TB = ['record','goal_diff','goals_for']
+const pad6 = (a:string[]) => { const n=[...a]; while(n.length<6) n.push(''); return n.slice(0,6) }
 
 function SectionCard({ title, description, icon: Icon, open, onToggle, children, badge }: {
   title: string; description: string; icon: LucideIcon; open: boolean
@@ -74,6 +82,8 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
   const [name, setName] = useState('')
   const [rates, setRates] = useState<PayRates>(DEFAULT_PAY_RATES)
   const [divRules, setDivRules] = useState<Record<string, number>>({})
+  const [poolTb, setPoolTb] = useState<string[]>(pad6(DEFAULT_TB))
+  const [divTb, setDivTb] = useState<string[]>(pad6(DEFAULT_TB))
   const [pricing, setPricing] = useState(DEFAULT_PRICING)
   const [divisions, setDivisions] = useState<string[]>([])
   const [newDivision, setNewDivision] = useState('')
@@ -148,6 +158,7 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
       }
       setRates({ ...DEFAULT_PAY_RATES, ...JSON.parse(t.payRates) })
       setDivRules(JSON.parse(t.divisionRules || '{}'))
+      try { const obj = JSON.parse(t.tiebreakers || '{}'); const pool = Array.isArray(obj)?obj:(obj.pool||[]); const division = Array.isArray(obj)?obj:(obj.division||[]); setPoolTb(pad6(pool.length?pool:DEFAULT_TB)); setDivTb(pad6(division.length?division:DEFAULT_TB)) } catch {}
       try { const p = JSON.parse(t.registrationPricing || '{}'); if (p.tier1) setPricing(p) } catch {}
       try { const d = JSON.parse(t.registrationDivisions || '[]'); if (d.length > 0) setDivisions(d) } catch {}
       try { const v = JSON.parse(t.venues || '[]'); setVenues(v) } catch {}
@@ -174,7 +185,7 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
       fetch(`/api/tournaments/${params.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name, payRates: rates, divisionRules: divRules,
+          name, payRates: rates, divisionRules: divRules, tiebreakers: { pool: poolTb.filter(Boolean), division: divTb.filter(Boolean) },
           registrationPricing: JSON.stringify(pricing),
           registrationDivisions: JSON.stringify(divisions),
           teamRegEnabled,
@@ -635,6 +646,30 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
             </div>
             <button type="button" onClick={() => setDivisions(DEFAULT_DIVISIONS)}
               className="text-xs text-slate-400 hover:text-slate-600 underline mt-3 block">Reset to defaults</button>
+          </SectionCard>
+
+          <SectionCard title="Standings tiebreakers" description="How teams level on points are ranked" icon={ClipboardList}
+            open={open === 'tiebreakers'} onToggle={() => toggle('tiebreakers')}>
+            {[{ t:'Tie breakers within pools', d:'Applied when breaking ties within a pool.', arr: poolTb, set: setPoolTb },
+              { t:'Tie breakers within divisions', d:'Applied when ranking teams across pools in a division (for seeding).', arr: divTb, set: setDivTb }].map(sec => (
+              <div key={sec.t} className="mb-5 last:mb-0">
+                <p className="text-sm font-semibold text-slate-700">{sec.t}</p>
+                <p className="text-xs text-slate-400 mb-2.5">{sec.d}</p>
+                <div className="space-y-2 max-w-lg">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <span className="text-xs font-medium text-slate-500 w-24 flex-shrink-0">Tie breaker #{i + 1}</span>
+                      <select value={sec.arr[i] || ''} onChange={e => { const n = pad6(sec.arr); n[i] = e.target.value; sec.set(n) }}
+                        className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-400">
+                        <option value="">—</option>
+                        {TB_OPTS.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <p className="text-[11px] text-slate-400 mt-3">Ranked by tie breaker #1 first, then #2, and so on. Head-to-head currently compares two tied teams directly.</p>
           </SectionCard>
 
           <SectionCard title="Staff Pay Rates" description="Default pay per game for each staff role" icon={Banknote}
