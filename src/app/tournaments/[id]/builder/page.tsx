@@ -972,8 +972,9 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
           <div className="bg-white border border-slate-200 rounded-xl">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-semibold text-slate-800">
-                  {SECTIONS.find(s => s.id === activeSection)?.icon} {SECTIONS.find(s => s.id === activeSection)?.label}
+                <h2 className="text-base font-semibold text-slate-800 flex items-center gap-2">
+                  {(() => { const Icon = SECTIONS.find(s => s.id === activeSection)?.icon; return Icon ? <Icon size={18} className="text-slate-400" /> : null })()}
+                  {SECTIONS.find(s => s.id === activeSection)?.label}
                 </h2>
               </div>
               <div className="flex gap-2">
