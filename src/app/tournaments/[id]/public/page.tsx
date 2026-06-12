@@ -1,10 +1,10 @@
 'use client'
-import { useEffect, useState, useMemo, useContext, createContext } from 'react'
+import { useEffect, useState, useMemo, useContext, createContext, Fragment } from 'react'
 import { useParams } from 'next/navigation'
 
 const LogosContext = createContext<Record<string, string>>({})
 import Link from 'next/link'
-import { Users, Calendar, LayoutGrid, Trophy, Clock } from 'lucide-react'
+import { Users, Calendar, LayoutGrid, Trophy, Clock, ChevronDown } from 'lucide-react'
 
 interface Tournament { id:string; name:string; startDate:string; endDate:string; location:string; logoUrl:string; sport:string }
 interface Game { id:string; gameNumber:string; date:string; startTime:string; division:string; pool:string|null; location:string; team1:string; team2:string; score1:number|null; score2:number|null; isCanceled:boolean; isChampionship:boolean }
@@ -24,30 +24,55 @@ function TeamAvatar({name,size='md'}:{name:string,size?:'sm'|'md'|'lg'}) {
   return <div className={`${sz} rounded-full flex items-center justify-center font-bold text-white flex-shrink-0`} style={{backgroundColor:colors[idx]}}>{initials}</div>
 }
 
-function calcStandings(games:Game[],division:string,pool?:string):Standing[] {
+const DEFAULT_TBS=['record','goal_diff','goals_for']
+const TB_LABEL:Record<string,string>={record:'record',win_pct:'win %',head_to_head:'head-to-head',h2h_two:'head-to-head',h2h_gd:'H2H goal diff',goal_diff:'goal diff',goals_for:'goals scored',goals_against:'goals allowed'}
+function calcStandings(games:Game[],division:string,pool?:string,tbs:string[]=DEFAULT_TBS):Standing[] {
   const map:Record<string,Standing>={}
   const ensure=(t:string)=>{if(!map[t])map[t]={team:t,w:0,l:0,t:0,gf:0,ga:0,pts:0}}
   const rel=games.filter(g=>g.division===division&&!g.isCanceled&&!g.isChampionship&&(pool!==undefined?g.pool===pool:true))
   rel.forEach(g=>{ensure(g.team1);ensure(g.team2)})
-  rel.filter(g=>g.score1!==null&&g.score2!==null).forEach(g=>{
+  const scored=rel.filter(g=>g.score1!==null&&g.score2!==null)
+  scored.forEach(g=>{
     const s1=g.score1!,s2=g.score2!
     map[g.team1].gf+=s1;map[g.team1].ga+=s2;map[g.team2].gf+=s2;map[g.team2].ga+=s1
     if(s1>s2){map[g.team1].w++;map[g.team1].pts+=3;map[g.team2].l++}
     else if(s2>s1){map[g.team2].w++;map[g.team2].pts+=3;map[g.team1].l++}
     else{map[g.team1].t++;map[g.team1].pts++;map[g.team2].t++;map[g.team2].pts++}
   })
-  return Object.values(map).sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga))
+  const mp=(x:Standing)=>x.w+x.l+x.t
+  const h2h=(aT:string,bT:string)=>{let aP=0,bP=0,aGd=0;scored.filter(g=>(g.team1===aT&&g.team2===bT)||(g.team1===bT&&g.team2===aT)).forEach(g=>{const aS=g.team1===aT?g.score1!:g.score2!,bS=g.team1===aT?g.score2!:g.score1!;aGd+=aS-bS;if(aS>bS)aP+=3;else if(bS>aS)bP+=3;else{aP++;bP++}});return {aP,bP,aGd}}
+  const cmp=(a:Standing,b:Standing)=>{
+    for(const tb of tbs){
+      let d=0
+      if(tb==='record')d=b.pts-a.pts
+      else if(tb==='win_pct')d=(b.w+0.5*b.t)/Math.max(1,mp(b))-(a.w+0.5*a.t)/Math.max(1,mp(a))
+      else if(tb==='goal_diff')d=(b.gf-b.ga)-(a.gf-a.ga)
+      else if(tb==='goals_for')d=b.gf-a.gf
+      else if(tb==='goals_against')d=a.ga-b.ga
+      else if(tb==='head_to_head'||tb==='h2h_two'){const h=h2h(a.team,b.team);d=h.bP-h.aP}
+      else if(tb==='h2h_gd'){const h=h2h(a.team,b.team);d=-2*h.aGd}
+      if(d)return d
+    }
+    return 0
+  }
+  return Object.values(map).sort(cmp)
 }
 
-function PoolCard({division,pool,standings,followedTeams,onScheduleClick,onTeamClick}:{division:string;pool:string;standings:Standing[];followedTeams:string[];onScheduleClick:()=>void;onTeamClick:(team:string)=>void}) {
+function PoolCard({division,pool,standings,games,followedTeams,tiebreakers,advanceCount,numPools,onScheduleClick,onTeamClick}:{division:string;pool:string;standings:Standing[];games:Game[];followedTeams:string[];tiebreakers:string[];advanceCount:number;numPools:number;onScheduleClick:()=>void;onTeamClick:(team:string)=>void}) {
   const [pview,setPview]=useState<'grid'|'list'>('list')
+  const teamForm=(team:string)=>{
+    const tg=games.filter(g=>g.division===division&&!g.isCanceled&&!g.isChampionship&&(pool?g.pool===pool:true)&&(g.team1===team||g.team2===team)&&g.score1!==null&&g.score2!==null)
+      .sort((a,b)=>`${a.date}${a.startTime}`<`${b.date}${b.startTime}`?-1:1)
+    return tg.slice(-3).map(g=>{const my=g.team1===team?g.score1!:g.score2!,op=g.team1===team?g.score2!:g.score1!;return my>op?'W':my<op?'L':'T'})
+  }
+  const cutoff = numPools>1 ? Math.max(1,Math.ceil(advanceCount/numPools)) : advanceCount
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-      <div className="bg-gray-900 px-4 py-3 flex items-center justify-between">
+    <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-slate-900 px-4 py-3 flex items-center justify-between">
         <span className="text-white font-bold text-sm uppercase tracking-wide">{division}{pool ? ` — Group ${pool}` : ''}</span>
         <div className="flex gap-1">
           {(['grid','list'] as const).map(v=>(
-            <button key={v} onClick={()=>setPview(v)} className={`p-1.5 rounded ${pview===v?'bg-white/20 text-white':'text-gray-400 hover:text-white'}`}>
+            <button key={v} onClick={()=>setPview(v)} className={`p-1.5 rounded ${pview===v?'bg-white/20 text-white':'text-slate-400 hover:text-white'}`}>
               {v==='grid'
                 ? <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
                 : <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="2" rx="1"/><rect x="1" y="7" width="14" height="2" rx="1"/><rect x="1" y="12" width="14" height="2" rx="1"/></svg>}
@@ -56,13 +81,13 @@ function PoolCard({division,pool,standings,followedTeams,onScheduleClick,onTeamC
         </div>
       </div>
       {pview==='grid' && (
-        <div className="grid grid-cols-2 divide-x divide-y divide-gray-100 bg-white">
+        <div className="grid grid-cols-2 divide-x divide-y divide-slate-100 bg-white">
           {standings.map((s,i)=>(
-            <button key={s.team} onClick={()=>onTeamClick(s.team)} className="flex flex-col items-center py-5 px-3 gap-2 hover:bg-blue-50 transition-colors w-full cursor-pointer" title={`View ${s.team} schedule`}>
+            <button key={s.team} onClick={()=>onTeamClick(s.team)} className="flex flex-col items-center py-5 px-3 gap-2 hover:bg-teal-50 transition-colors w-full cursor-pointer" title={`View ${s.team} schedule`}>
               <TeamAvatar name={s.team}/>
               <div className="text-center">
-                <div className="text-xs text-gray-400 mb-0.5">{i+1}</div>
-                <div className="text-xs font-bold text-gray-800 uppercase leading-tight">{s.team}</div>
+                <div className="text-xs text-slate-400 mb-0.5">{i+1}</div>
+                <div className="text-xs font-bold text-slate-800 uppercase leading-tight">{s.team}</div>
               </div>
             </button>
           ))}
@@ -70,33 +95,39 @@ function PoolCard({division,pool,standings,followedTeams,onScheduleClick,onTeamC
       )}
       {pview==='list' && (
         <div className="bg-white overflow-x-auto">
-          <table className="w-full text-xs min-w-[280px]">
-            <thead><tr className="border-b border-gray-100">
-              <th className="px-3 py-2.5 w-6 text-gray-400 font-semibold"></th>
-              <th className="text-left px-2 py-2.5 text-gray-500 font-semibold">Team</th>
-              <th className="text-center px-2 py-2.5 text-gray-500 font-semibold w-8">MP</th>
-              <th className="text-center px-2 py-2.5 text-gray-500 font-semibold w-10">W-L</th>
-              <th className="text-center px-2 py-2.5 text-gray-500 font-semibold w-8">GF</th>
-              <th className="text-center px-2 py-2.5 text-gray-500 font-semibold w-8">GA</th>
-              <th className="text-center px-2 py-2.5 text-gray-500 font-semibold w-10">GD</th>
+          <table className="w-full text-xs min-w-[340px]">
+            <thead><tr className="border-b border-slate-100 bg-slate-50">
+              <th className="px-3 py-2.5 w-6 text-slate-400 font-semibold"></th>
+              <th className="text-left px-2 py-2.5 text-slate-500 font-semibold">Team</th>
+              <th className="text-center px-2 py-2.5 text-slate-500 font-semibold w-8">MP</th>
+              <th className="text-center px-2 py-2.5 text-slate-500 font-semibold">W-L-T</th>
+              <th className="text-center px-2 py-2.5 text-slate-500 font-semibold w-10">GD</th>
+              <th className="text-center px-2 py-2.5 text-teal-700 font-bold w-9">PTS</th>
+              <th className="text-center px-2 py-2.5 text-slate-500 font-semibold">Last 3</th>
             </tr></thead>
             <tbody>
               {standings.map((s,i)=>{
-                const mp=s.w+s.l+s.t,gd=s.gf-s.ga
+                const mp=s.w+s.l+s.t,gd=s.gf-s.ga,form=teamForm(s.team)
                 return (
-                  <tr key={s.team} className={`border-t border-gray-50 ${i===0&&mp>0?'bg-gray-50':''}`}>
-                    <td className="px-3 py-2.5 text-gray-400 font-medium">{i+1}</td>
-                    <td className="px-2 py-2.5"><div className="flex items-center gap-2"><TeamAvatar name={s.team} size="sm"/><span className={`font-semibold uppercase text-xs leading-tight ${followedTeams.includes(s.team)?'text-blue-600':'text-gray-800'}`}>{s.team}</span></div></td>
-                    <td className="px-2 py-2.5 text-center text-gray-600">{mp}</td>
-                    <td className="px-2 py-2.5 text-center font-semibold text-gray-700">{s.w}-{s.l}</td>
-                    <td className="px-2 py-2.5 text-center text-gray-600">{s.gf}</td>
-                    <td className="px-2 py-2.5 text-center text-gray-600">{s.ga}</td>
-                    <td className={`px-2 py-2.5 text-center font-bold ${gd>0?'text-green-600':gd<0?'text-red-500':'text-gray-400'}`}>{gd>0?'+':''}{gd}</td>
-                  </tr>
+                  <Fragment key={s.team}>
+                    <tr className={`border-t border-slate-50 ${i===0&&mp>0?'bg-amber-50/40':''}`}>
+                      <td className="px-3 py-2.5 text-slate-400 font-semibold">{i+1}</td>
+                      <td className="px-2 py-2.5"><div className="flex items-center gap-2"><TeamAvatar name={s.team} size="sm"/><span className={`font-semibold text-xs leading-tight ${followedTeams.includes(s.team)?'text-teal-700':'text-slate-800'}`}>{s.team}</span></div></td>
+                      <td className="px-2 py-2.5 text-center text-slate-600">{mp}</td>
+                      <td className="px-2 py-2.5 text-center font-semibold text-slate-700">{s.w}-{s.l}-{s.t}</td>
+                      <td className={`px-2 py-2.5 text-center font-bold ${gd>0?'text-emerald-600':gd<0?'text-red-500':'text-slate-400'}`}>{gd>0?'+':''}{gd}</td>
+                      <td className="px-2 py-2.5 text-center font-extrabold text-teal-700 text-sm">{s.pts}</td>
+                      <td className="px-2 py-2.5"><div className="flex items-center justify-center gap-1">{form.length===0?<span className="text-slate-300">—</span>:form.map((r,fi)=><span key={fi} className={`w-4 h-4 rounded-full text-[8px] font-bold text-white flex items-center justify-center ${r==='W'?'bg-emerald-500':r==='L'?'bg-red-500':'bg-slate-400'}`}>{r}</span>)}</div></td>
+                    </tr>
+                    {cutoff>0 && cutoff<standings.length && i===cutoff-1 && (
+                      <tr><td colSpan={7} className="p-0"><div className="border-t-2 border-dashed border-teal-300 mx-3 relative h-0"><span className="absolute right-2 -top-2 bg-white px-2 text-[9px] font-semibold text-teal-600 uppercase tracking-wide">Advances &uarr;</span></div></td></tr>
+                    )}
+                  </Fragment>
                 )
               })}
             </tbody>
           </table>
+          {tiebreakers.length>0 && <div className="px-3 py-2 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-400">Tiebreakers: {tiebreakers.map((tb,i)=>(i?' \u2192 ':'')+(TB_LABEL[tb]||tb)).join('')}</div>}
         </div>
       )}
       <button onClick={onScheduleClick} className="w-full bg-[#0f1f3d] hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-widest py-3 transition-colors">Schedule</button>
@@ -106,9 +137,16 @@ function PoolCard({division,pool,standings,followedTeams,onScheduleClick,onTeamC
 
 type DivTab = 'standings'|'schedule'|'bracket'
 
-function DivisionView({division,games,followedTeams,toggleFollow}:{division:string;games:Game[];followedTeams:string[];toggleFollow:(t:string)=>void}) {
+function DivisionView({division,games,followedTeams,toggleFollow,tournamentId}:{division:string;games:Game[];followedTeams:string[];toggleFollow:(t:string)=>void;tournamentId:string}) {
   const [divTab,setDivTab]=useState<DivTab>('standings')
   const [selectedTeam,setSelectedTeam]=useState<string|null>(null)
+  const [advanceCount,setAdvanceCount]=useState(0)
+  useEffect(()=>{
+    fetch(`/api/tournaments/${tournamentId}/divisions/${encodeURIComponent(division)}/bracket`).then(r=>r.ok?r.json():[]).then(b=>{
+      const fl=Array.isArray(b)?b:(b&&b.id?[b]:[])
+      setAdvanceCount(fl.reduce((acc:number,x:any)=>acc+(x.teamCount||0),0))
+    }).catch(()=>setAdvanceCount(0))
+  },[tournamentId,division])
   const handleTeamClick=(team:string)=>{setSelectedTeam(team);setDivTab('schedule')}
   const divGames=games.filter(g=>g.division===division&&!g.isCanceled)
   const pools=Array.from(new Set(divGames.map(g=>g.pool).filter(Boolean))).sort() as string[]
@@ -135,10 +173,10 @@ function DivisionView({division,games,followedTeams,toggleFollow}:{division:stri
           {pools.length>0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {pools.map(pool=>(
-                <PoolCard key={pool} division={division} pool={pool} standings={calcStandings(games,division,pool)} followedTeams={followedTeams} onScheduleClick={()=>setDivTab('schedule')} onTeamClick={handleTeamClick}/>
+                <PoolCard key={pool} division={division} pool={pool} standings={calcStandings(games,division,pool,DEFAULT_TBS)} games={games} followedTeams={followedTeams} tiebreakers={DEFAULT_TBS} advanceCount={advanceCount} numPools={pools.length} onScheduleClick={()=>setDivTab('schedule')} onTeamClick={handleTeamClick}/>
               ))}
             </div>
-          ) : <PoolCard division={division} pool="" standings={calcStandings(games,division)} followedTeams={followedTeams} onScheduleClick={()=>setDivTab('schedule')} onTeamClick={handleTeamClick}/>}
+          ) : <PoolCard division={division} pool="" standings={calcStandings(games,division,undefined,DEFAULT_TBS)} games={games} followedTeams={followedTeams} tiebreakers={DEFAULT_TBS} advanceCount={advanceCount} numPools={1} onScheduleClick={()=>setDivTab('schedule')} onTeamClick={handleTeamClick}/>}
         </div>
       )}
 
@@ -401,9 +439,16 @@ export default function PublicTournamentPage() {
       <div className="max-w-5xl mx-auto px-3 sm:px-4 py-5">
         {/* Back button when viewing a division */}
         {selectedDiv && (
-          <button onClick={()=>setSelectedDiv(null)} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-4 font-medium transition-colors">
-            ← Back to Divisions
-          </button>
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <div className="relative">
+              <select value={selectedDiv} onChange={e=>setSelectedDiv(e.target.value)}
+                className="appearance-none bg-white border border-slate-300 rounded-lg pl-3 pr-9 py-2 text-sm font-semibold text-slate-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-400">
+                {divisions.map(d=><option key={d} value={d}>{d}</option>)}
+              </select>
+              <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+            </div>
+            <button onClick={()=>setSelectedDiv(null)} className="text-sm text-slate-500 hover:text-teal-700 font-medium">All divisions</button>
+          </div>
         )}
 
         {/* Division grid overview */}
@@ -525,12 +570,12 @@ export default function PublicTournamentPage() {
         {/* Per-division view with tabs */}
         {selectedDiv && (
           <div>
-            <h2 className="text-xl font-black text-gray-900 mb-4 uppercase">{selectedDiv}</h2>
             <DivisionView
               division={selectedDiv}
               games={games}
               followedTeams={followedTeams}
               toggleFollow={toggleFollow}
+              tournamentId={id as string}
             />
           </div>
         )}
