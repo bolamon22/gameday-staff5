@@ -1029,6 +1029,9 @@ if (loading) return (
                                 <td className="px-5 py-3 font-semibold text-slate-800">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     {(isSwapA || isSwapB) && <ArrowLeftRight size={12} className="text-amber-500" />}
+                                    {(team as any).logoUrl
+                                      ? <img src={(team as any).logoUrl} alt="" className="h-6 w-6 rounded object-contain border border-slate-200 bg-white flex-shrink-0" />
+                                      : <span className="h-6 w-6 rounded bg-slate-100 border border-slate-200 text-slate-400 text-[10px] font-semibold flex items-center justify-center flex-shrink-0">{(team.teamName || '?').charAt(0).toUpperCase()}</span>}
                                     {team.teamName}
                                     {team.status === 'placeholder' && (
                                       <span className="text-[10px] font-medium bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">Unconfirmed</span>
