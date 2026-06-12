@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation'
 
 const LogosContext = createContext<Record<string, string>>({})
 import Link from 'next/link'
-import { Users, Calendar, LayoutGrid, Trophy, Clock, ChevronDown } from 'lucide-react'
+import { Users, Calendar, LayoutGrid, Trophy, Clock, ChevronDown, Star, CalendarPlus } from 'lucide-react'
 
 interface Tournament { id:string; name:string; startDate:string; endDate:string; location:string; logoUrl:string; sport:string }
 interface Game { id:string; gameNumber:string; date:string; startTime:string; division:string; pool:string|null; location:string; team1:string; team2:string; score1:number|null; score2:number|null; isCanceled:boolean; isChampionship:boolean }
@@ -12,6 +12,8 @@ interface Standing { team:string; w:number; l:number; t:number; gf:number; ga:nu
 
 const fmtDate = (d:string) => { if(!d) return ''; const[y,m,day]=d.split('-'); return `${parseInt(m)}/${parseInt(day)}/${y}` }
 const fmtDateTime = (d:string) => { if(!d) return ''; const dt=new Date(d); return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}) }
+const fmtDayHeader = (d:string) => { if(!d) return ''; const dt=new Date(d+'T12:00:00'); return dt.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'}) }
+const parseStartMs = (date:string,t:string):number|null => { if(!date||!t) return null; let str=t.trim().toUpperCase(); let ap:string|null=null; if(str.endsWith('AM')){ap='AM';str=str.slice(0,-2).trim()} else if(str.endsWith('PM')){ap='PM';str=str.slice(0,-2).trim()}; const p=str.split(':'); let h=parseInt(p[0])||0; const m=parseInt(p[1])||0; if(ap==='PM'&&h<12)h+=12; if(ap==='AM'&&h===12)h=0; const dt=new Date(date+'T00:00:00'); dt.setHours(h,m,0,0); return dt.getTime() }
 
 function TeamAvatar({name,size='md'}:{name:string,size?:'sm'|'md'|'lg'}) {
   const logos=useContext(LogosContext)
@@ -142,6 +144,10 @@ type DivTab = 'standings'|'schedule'|'bracket'
 function DivisionView({division,games,followedTeams,toggleFollow,tournamentId,tiebreakers}:{division:string;games:Game[];followedTeams:string[];toggleFollow:(t:string)=>void;tournamentId:string;tiebreakers:string[]}) {
   const [divTab,setDivTab]=useState<DivTab>('standings')
   const [selectedTeam,setSelectedTeam]=useState<string|null>(null)
+  const [schedStatus,setSchedStatus]=useState<'all'|'upcoming'|'final'>('all')
+  const [schedField,setSchedField]=useState('')
+  const [schedGroup,setSchedGroup]=useState<'time'|'field'>('time')
+  const schedLogos=useContext(LogosContext)
   const [advanceCount,setAdvanceCount]=useState(0)
   useEffect(()=>{
     fetch(`/api/tournaments/${tournamentId}/divisions/${encodeURIComponent(division)}/bracket`).then(r=>r.ok?r.json():[]).then(b=>{
@@ -182,45 +188,103 @@ function DivisionView({division,games,followedTeams,toggleFollow,tournamentId,ti
         </div>
       )}
 
-      {divTab==='schedule' && (
-        <div className="space-y-2">
-          {selectedTeam && (
-            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-3">
-              <span className="text-sm font-semibold text-blue-700">📋 {selectedTeam}</span>
-              <button onClick={()=>setSelectedTeam(null)} className="ml-auto text-xs text-blue-500 hover:text-blue-700 font-medium">✕ Show all</button>
-            </div>
-          )}
-          {scheduleGames.filter(g=>!selectedTeam||g.team1===selectedTeam||g.team2===selectedTeam).length===0 && <div className="text-center py-12 text-gray-400">No games found.</div>}
-          {scheduleGames.filter(g=>!selectedTeam||g.team1===selectedTeam||g.team2===selectedTeam).map(g=>{
-            const hasScore=g.score1!==null&&g.score2!==null
-            const isHL=followedTeams.includes(g.team1)||followedTeams.includes(g.team2)
-            return (
-              <div key={g.id} className={`bg-white border rounded-xl overflow-hidden ${isHL?'border-blue-300 shadow-sm':'border-gray-200'}`}>
-                <div className="px-4 py-3">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-400 mb-2">
-                    <span className="font-medium text-gray-600">{fmtDate(g.date)}</span>
-                    <span>·</span><span className="font-semibold text-gray-700">{g.startTime}</span>
-                    <span>·</span><span>{g.location}</span>
-                    {g.pool&&<span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-semibold">Pool {g.pool}</span>}
-                    <span className="ml-auto text-gray-300">#{g.gameNumber}</span>
+      {divTab==='schedule' && (() => {
+        const now = Date.now()
+        const all = [...divGames].sort((a,b)=>a.date!==b.date?(a.date<b.date?-1:1):((parseStartMs(a.date,a.startTime)||0)-(parseStartMs(b.date,b.startTime)||0)))
+        const teamsInDiv = [...new Set(divGames.flatMap(g=>[g.team1,g.team2]).filter(Boolean))].sort()
+        const fieldsInDiv = [...new Set(divGames.map(g=>g.location).filter(Boolean))].sort()
+        const isLive = (g:Game)=>{ if(g.score1!=null) return false; const st=parseStartMs(g.date,g.startTime); return st!=null && now>=st && now<=st+90*60000 }
+        const crest = (name:string)=> schedLogos[name]
+          ? <img src={schedLogos[name]} alt="" className="w-5 h-5 rounded-full object-contain bg-white border border-slate-200 flex-shrink-0"/>
+          : <span className="w-5 h-5 rounded-full bg-slate-300 text-white text-[9px] font-semibold flex items-center justify-center flex-shrink-0">{(name||'?').charAt(0).toUpperCase()}</span>
+        const downloadIcs = (g:Game)=>{ const st=parseStartMs(g.date,g.startTime); if(st==null) return; const fmt=(ms:number)=>new Date(ms).toISOString().replace(/[-:]/g,'').split('.')[0]+'Z'; const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//GameDay//EN','BEGIN:VEVENT','UID:'+g.id+'@gameday','DTSTART:'+fmt(st),'DTEND:'+fmt(st+3600000),'SUMMARY:'+g.team1+' vs '+g.team2,'LOCATION:'+(g.location||''),'DESCRIPTION:'+division,'END:VEVENT','END:VCALENDAR'].join('\r\n'); const blob=new Blob([ics],{type:'text/calendar'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=(g.team1+'-vs-'+g.team2).replace(/[^a-z0-9]+/gi,'-')+'.ics'; a.click(); URL.revokeObjectURL(url) }
+        const upNext = followedTeams.length>0 ? all.find(g=>g.score1==null && (followedTeams.includes(g.team1)||followedTeams.includes(g.team2))) : null
+        const base = all.filter(g=>{
+          if(selectedTeam && g.team1!==selectedTeam && g.team2!==selectedTeam) return false
+          if(schedField && g.location!==schedField) return false
+          const hs=g.score1!=null&&g.score2!=null
+          if(schedStatus==='final'&&!hs) return false
+          if(schedStatus==='upcoming'&&hs) return false
+          return true
+        })
+        const groups = schedGroup==='time'
+          ? [...new Set(base.map(g=>g.date))].map(d=>({key:d,label:fmtDayHeader(d),sub:base.filter(g=>g.date===d).length+' games',games:base.filter(g=>g.date===d)}))
+          : [...new Set(base.map(g=>g.location||'TBD'))].sort().map(fl=>({key:fl,label:fl,sub:base.filter(g=>(g.location||'TBD')===fl).length+' games',games:base.filter(g=>(g.location||'TBD')===fl)}))
+        const card = (g:Game)=>{
+          const hs=g.score1!=null&&g.score2!=null
+          const live=isLive(g)
+          const t1w=hs&&g.score1!>g.score2!, t2w=hs&&g.score2!>g.score1!
+          const isHL=followedTeams.includes(g.team1)||followedTeams.includes(g.team2)
+          const chipCls=g.isChampionship?'bg-amber-100 text-amber-800':'bg-teal-100 text-teal-700'
+          const pill=hs?{t:'Final',c:'bg-slate-100 text-slate-500'}:live?{t:'Live',c:'bg-red-100 text-red-700'}:g.isChampionship?{t:'Bracket',c:'bg-amber-50 text-amber-700'}:g.pool?{t:'Pool '+g.pool,c:'bg-teal-50 text-teal-700'}:{t:'Upcoming',c:'bg-slate-100 text-slate-500'}
+          return (
+            <div key={g.id} className={`bg-white border rounded-xl px-2.5 py-2 flex items-center gap-2.5 ${live?'border-red-200':isHL?'border-teal-300 bg-teal-50/30':'border-slate-200'}`}>
+              <span className={`text-[10px] font-bold w-8 text-center py-0.5 rounded flex-shrink-0 ${chipCls}`}>{g.gameNumber}</span>
+              <div className="w-[58px] flex-shrink-0 text-center border-r border-slate-100 pr-2">
+                <div className="text-[12px] font-semibold text-slate-800">{g.startTime||'TBD'}</div>
+                <div className="text-[10px] text-slate-400 truncate">{(g.location||'').split(' - ').pop()||''}</div>
+              </div>
+              <div className="flex-1 flex items-center gap-1.5 min-w-0">
+                <div className="flex-1 flex items-center justify-end gap-1.5 min-w-0">
+                  <button onClick={()=>toggleFollow(g.team1)} className="flex-shrink-0">{followedTeams.includes(g.team1)?<Star size={12} className="text-amber-500" fill="currentColor"/>:<Star size={12} className="text-slate-300"/>}</button>
+                  <span className={`text-[12.5px] truncate ${t1w?'font-semibold text-teal-700':'text-slate-700'}`}>{g.team1||'TBD'}</span>
+                  {crest(g.team1)}
+                </div>
+                {hs ? (
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <span className={`w-6 h-6 rounded text-[13px] font-bold flex items-center justify-center ${t1w?'bg-emerald-100 text-emerald-700':'bg-slate-100 text-slate-500'}`}>{g.score1}</span>
+                    <span className="text-slate-300 text-[10px]">–</span>
+                    <span className={`w-6 h-6 rounded text-[13px] font-bold flex items-center justify-center ${t2w?'bg-emerald-100 text-emerald-700':'bg-slate-100 text-slate-500'}`}>{g.score2}</span>
                   </div>
-                  <div className="space-y-1.5">
-                    {[{team:g.team1,score:g.score1,opp:g.score2},{team:g.team2,score:g.score2,opp:g.score1}].map(({team,score,opp})=>(
-                      <div key={team} className={`flex items-center justify-between rounded-lg px-3 py-2.5 ${hasScore&&score!>opp!?'bg-green-50':hasScore&&score!<opp!?'bg-red-50/40':'bg-gray-50'}`}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <button onClick={()=>toggleFollow(team)} className="text-base hover:scale-110 transition-transform flex-shrink-0 touch-manipulation">{followedTeams.includes(team)?'⭐':'☆'}</button>
-                          <span className={`font-semibold text-sm truncate ${hasScore&&score!>opp!?'text-green-700':'text-gray-800'}`}>{team}</span>
-                        </div>
-                        {hasScore&&<span className={`text-xl font-bold ml-2 flex-shrink-0 ${score!>opp!?'text-green-700':'text-gray-500'}`}>{score}</span>}
-                      </div>
-                    ))}
-                  </div>
+                ) : <span className="text-[11px] text-slate-400 font-medium flex-shrink-0">vs</span>}
+                <div className="flex-1 flex items-center gap-1.5 min-w-0">
+                  {crest(g.team2)}
+                  <span className={`text-[12.5px] truncate ${t2w?'font-semibold text-teal-700':'text-slate-700'}`}>{g.team2||'TBD'}</span>
+                  <button onClick={()=>toggleFollow(g.team2)} className="flex-shrink-0">{followedTeams.includes(g.team2)?<Star size={12} className="text-amber-500" fill="currentColor"/>:<Star size={12} className="text-slate-300"/>}</button>
                 </div>
               </div>
-            )
-          })}
-        </div>
-      )}
+              {!hs && parseStartMs(g.date,g.startTime)!=null && <button onClick={()=>downloadIcs(g)} title="Add to calendar" className="flex-shrink-0 text-slate-400 hover:text-teal-600"><CalendarPlus size={15}/></button>}
+              <span className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0 ${pill.c}`}>{live?'● ':''}{pill.t}</span>
+            </div>
+          )
+        }
+        return (
+          <div>
+            <div className="flex items-center gap-2 flex-wrap mb-3">
+              <select value={selectedTeam||''} onChange={e=>setSelectedTeam(e.target.value||null)} className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-400">
+                <option value="">All teams</option>
+                {teamsInDiv.map(t=><option key={t} value={t}>{t}</option>)}
+              </select>
+              <select value={schedField} onChange={e=>setSchedField(e.target.value)} className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-400">
+                <option value="">All fields</option>
+                {fieldsInDiv.map(fl=><option key={fl} value={fl}>{fl}</option>)}
+              </select>
+              <div className="flex bg-slate-100 rounded-lg p-0.5">
+                {(['all','upcoming','final'] as const).map(st=><button key={st} onClick={()=>setSchedStatus(st)} className={`text-[11px] px-2.5 py-1 rounded-md capitalize transition-colors ${schedStatus===st?'bg-white shadow text-teal-700 font-medium':'text-slate-500 hover:text-slate-700'}`}>{st}</button>)}
+              </div>
+              <div className="flex bg-slate-100 rounded-lg p-0.5 ml-auto">
+                {(['time','field'] as const).map(gp=><button key={gp} onClick={()=>setSchedGroup(gp)} className={`text-[11px] px-2.5 py-1 rounded-md transition-colors ${schedGroup===gp?'bg-white shadow text-teal-700 font-medium':'text-slate-500 hover:text-slate-700'}`}>By {gp}</button>)}
+              </div>
+            </div>
+            {upNext && (
+              <div className="bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 mb-3 flex items-center gap-2">
+                <Clock size={14} className="text-teal-600 flex-shrink-0"/>
+                <span className="text-xs text-teal-700 truncate"><b>Up next</b> · {upNext.startTime} · {upNext.team1} vs {upNext.team2}{upNext.location?' · '+(upNext.location.split(' - ').pop()):''}</span>
+              </div>
+            )}
+            {groups.length===0 ? <div className="text-center py-12 text-slate-400">No games found.</div> : groups.map(grp=>(
+              <div key={grp.key} className="mb-4">
+                <div className="flex items-center gap-2 mb-2 mt-1">
+                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">{grp.label}</p>
+                  <span className="text-[10px] text-slate-400">{grp.sub}</span>
+                  <span className="flex-1 border-t border-slate-200"></span>
+                </div>
+                <div className="space-y-2">{grp.games.map(card)}</div>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
 
       {divTab==='bracket' && (
         <div>
