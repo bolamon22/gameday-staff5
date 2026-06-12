@@ -304,6 +304,35 @@ export default function RegistrationsPage() {
       reader.readAsDataURL(file)
     })
 
+  // Shrink an existing data-URL logo (e.g. one already saved on the registration) so editing
+  // and re-saving never re-sends a multi-MB string that exceeds the request/database limit.
+  const compressDataUrl = (dataUrl: string, maxDim = 512): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => {
+        let { width, height } = img
+        if (width > maxDim || height > maxDim) {
+          if (width >= height) { height = Math.round((height * maxDim) / width); width = maxDim }
+          else { width = Math.round((width * maxDim) / height); height = maxDim }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width; canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) { reject(new Error('Canvas not supported')); return }
+        ctx.drawImage(img, 0, 0, width, height)
+        let url = canvas.toDataURL('image/png')
+        if (url.length > 200000) url = canvas.toDataURL('image/jpeg', 0.85)
+        resolve(url)
+      }
+      img.onerror = () => reject(new Error('Could not read image'))
+      img.src = dataUrl
+    })
+
+  const shrinkIfBig = async (u: string): Promise<string> => {
+    if (!u || !u.startsWith('data:image') || u.length < 200000) return u
+    try { return await compressDataUrl(u) } catch { return u }
+  }
+
   const uploadTeamLogo = async (i: number, file: File) => {
     setLogoUploading(i)
     try {
@@ -483,16 +512,25 @@ export default function RegistrationsPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true)
     try {
+      // Compact any oversized logo (fresh upload or one already saved) so the payload stays small.
+      const clubLogoCompact = await shrinkIfBig(clubLogoUrl)
+      const teamsCompact = await Promise.all(
+        teams.map(async t => ({ ...t, logoUrl: await shrinkIfBig(t.logoUrl) }))
+      )
       const url = editingId ? `/api/registrations/${editingId}` : '/api/registrations'
       const res = await fetch(url, {
         method: editingId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tournamentId, clubName, clubContact, contactEmail, contactPhone, clubBasedIn, clubWebsite, needsHotel, paymentMethod, notes, teams, invoiceAmount, discountAmount, discountNote, clubLogoUrl }),
+        body: JSON.stringify({ tournamentId, clubName, clubContact, contactEmail, contactPhone, clubBasedIn, clubWebsite, needsHotel, paymentMethod, notes, teams: teamsCompact, invoiceAmount, discountAmount, discountNote, clubLogoUrl: clubLogoCompact }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        let msg = ''
+        try { const d = await res.json(); msg = d?.error || '' } catch { /* ignore */ }
+        throw new Error(msg || `Save failed (${res.status})`)
+      }
       toast.success(editingId ? 'Updated!' : 'Registration added!')
       setShowForm(false); resetForm(); load()
-    } catch { toast.error('Failed to save.') }
+    } catch (err: any) { toast.error(err?.message ? `Failed to save: ${err.message}` : 'Failed to save.') }
     finally { setSaving(false) }
   }
 
