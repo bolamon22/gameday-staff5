@@ -55,7 +55,7 @@ function roundLabel(round: number, maxRound: number): string {
 const FORMAT_LABELS: Record<string, string> = {
   single: 'Single Elimination',
   double: 'Double Elimination',
-  '2gg': '2-Game Guarantee',
+  '2gg': 'Consolation (both-ways)',
 }
 
 const SECTION_LABELS: Record<string, string> = {

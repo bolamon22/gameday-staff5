@@ -206,9 +206,9 @@ export const TEMPLATE_CATALOG: TemplateCatalogEntry[] = [
   { key: 'single-16-con', label: 'Single Elim + 3rd Place',  teamCount: 16, gameCount: 16, description: '16 games · championship + 3rd place',        format: 'single' },
   { key: 'double-4',      label: 'Double Elimination',       teamCount: 4,  gameCount: 6,  description: '6 games · must lose twice to be eliminated',  format: 'double' },
   { key: 'double-8',      label: 'Double Elimination',       teamCount: 8,  gameCount: 14, description: '14 games · must lose twice to be eliminated', format: 'double' },
-  { key: '2gg-4',         label: '2-Game Guarantee',         teamCount: 4,  gameCount: 4,  description: '4 games · every team plays at least 2',       format: '2gg'    },
-  { key: '2gg-8',         label: '2-Game Guarantee',         teamCount: 8,  gameCount: 11, description: '11 games · every team plays at least 2',      format: '2gg'    },
-  { key: '2gg-16',        label: '2-Game Guarantee',         teamCount: 16, gameCount: 23, description: '23 games · every team plays at least 2',      format: '2gg'    },
+  { key: '2gg-4',         label: 'Consolation (both-ways)',   teamCount: 4,  gameCount: 4,  description: '4 games · championship + 3rd place',          format: '2gg'    },
+  { key: '2gg-8',         label: 'Consolation (both-ways)',   teamCount: 8,  gameCount: 11, description: '11 games · winners + consolation brackets · Champion & Consolation Champion (every team plays 2 bracket games)', format: '2gg'    },
+  { key: '2gg-16',        label: 'Consolation (both-ways)',   teamCount: 16, gameCount: 23, description: '23 games · winners + consolation brackets · Champion & Consolation Champion (every team plays 2 bracket games)', format: '2gg'    },
 ]
 
 export function getTemplate(format: string, teamCount: number): GameTemplate[] | null {
