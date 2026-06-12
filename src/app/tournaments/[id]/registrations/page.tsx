@@ -1521,13 +1521,19 @@ export default function RegistrationsPage() {
               const totalPaid = reg.payments.reduce((s, p) => s + p.amount, 0)
               const due = reg.invoiceAmount - reg.discountAmount
               const balance = due - totalPaid
+              const clubLogo = (reg as any).clubLogoUrl || reg.teams.find(t => (t as any).logoUrl)?.logoUrl || ''
               return (
                 <div key={reg.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
                   {/* Row header */}
                   <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-3">
-                    <button onClick={() => setExpanded(expanded === reg.id ? null : reg.id)} className="flex-1 text-left min-w-0">
-                      <div className="font-semibold text-slate-800 truncate">{reg.clubName || reg.clubContact}</div>
-                      <div className="text-sm text-slate-500">{reg.contactEmail} · {reg.contactPhone}</div>
+                    <button onClick={() => setExpanded(expanded === reg.id ? null : reg.id)} className="flex-1 text-left min-w-0 flex items-center gap-3">
+                      {clubLogo
+                        ? <img src={clubLogo} alt="" className="h-9 w-9 rounded-lg object-contain bg-white border border-slate-200 flex-shrink-0" />
+                        : <span className="h-9 w-9 rounded-lg bg-slate-100 border border-slate-200 text-slate-400 text-sm font-semibold flex items-center justify-center flex-shrink-0">{(reg.clubName || reg.clubContact || '?').charAt(0).toUpperCase()}</span>}
+                      <div className="min-w-0">
+                        <div className="font-semibold text-slate-800 truncate">{reg.clubName || reg.clubContact}</div>
+                        <div className="text-sm text-slate-500 truncate">{reg.contactEmail} · {reg.contactPhone}</div>
+                      </div>
                     </button>
 
                     {/* Billing summary */}
