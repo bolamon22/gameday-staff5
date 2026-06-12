@@ -831,6 +831,8 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
           }))}
           seeds={seeds}
           division={division}
+          onRemoveGame={handleRemoveGame}
+          onAddGame={() => setShowAddGame(v => !v)}
         />
       ) : (
         <BracketPreview
@@ -869,13 +871,15 @@ function resolveLabel(src: string, seeds: Record<string, string>, offset = 0): s
 }
 
 // ── Both-ways consolation tournament (mirror) preview ──────────────────────
-function MirrorPreview({ template, seeds, division, numberOffset = 0, logos = {}, schedule = {} }: {
+function MirrorPreview({ template, seeds, division, numberOffset = 0, logos = {}, schedule = {}, onRemoveGame, onAddGame }: {
   template: GameTemplate[]
   seeds: Record<string, string>
   division?: string
   numberOffset?: number
   logos?: Record<string, string>
   schedule?: Record<number, { date: string; startTime: string; location: string }>
+  onRemoveGame?: (gameNumber: number) => void
+  onAddGame?: () => void
 }) {
   const ROW = 120
   const [zoom, setZoom] = useState(1)
@@ -944,7 +948,10 @@ function MirrorPreview({ template, seeds, division, numberOffset = 0, logos = {}
   }
   return (
     <div>
-      <p className="text-[10px] text-slate-500 mb-2">Both-ways consolation · winners &rarr; Champion (right), first-round losers &rarr; Consolation Champion (left)</p>
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <p className="text-[10px] text-slate-500">Both-ways consolation &middot; winners &rarr; Champion (right), losers &rarr; Consolation Champion (left) &middot; &times; removes a game</p>
+        {onAddGame && <button onClick={onAddGame} className="text-[11px] text-slate-400 hover:text-teal-300 shrink-0">+ Add game</button>}
+      </div>
       <div className="flex items-center gap-1 mb-2 text-slate-500">
         <span className="text-[10px] mr-1 uppercase tracking-wider">Zoom</span>
         <button onClick={() => setZoom(z => Math.max(0.5, Math.round((z - 0.15) * 100) / 100))} className="w-5 h-5 rounded border border-slate-600 text-slate-300 hover:bg-slate-700 text-xs leading-none">−</button>
@@ -970,6 +977,7 @@ function MirrorPreview({ template, seeds, division, numberOffset = 0, logos = {}
                   <span className="text-[9px] font-mono text-teal-300/80 px-0.5 shrink-0">B{numberOffset + g.gameNumber}</span>
                   <span className="flex-1 text-center text-[8px] truncate px-1 text-slate-400">{st}</span>
                   {lbl && <span className={`text-[9px] font-semibold shrink-0 ${isChamp ? 'text-amber-400' : 'text-amber-400/70'}`}>{lbl}</span>}
+                  {onRemoveGame && <button onClick={() => onRemoveGame(g.gameNumber)} title="Remove game" className="text-[11px] leading-none text-slate-500 hover:text-red-400 shrink-0">&times;</button>}
                 </div>
                 {bar(g, topSrc, 0, isChamp)}
                 {bar(g, botSrc, 1, isChamp)}
@@ -987,7 +995,10 @@ function MirrorPreview({ template, seeds, division, numberOffset = 0, logos = {}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {placement.map(g => (
               <div key={g.gameNumber} className="rounded-lg border border-slate-600/80 bg-slate-800/90 text-xs overflow-hidden">
-                <div className="px-2 py-0.5 bg-black/20 text-[10px] font-mono text-teal-300">B{numberOffset + g.gameNumber}{g.label ? ` · ${g.label}` : ''}</div>
+                <div className="px-2 py-0.5 bg-black/20 text-[10px] font-mono text-teal-300 flex items-center justify-between">
+                  <span>B{numberOffset + g.gameNumber}{g.label ? ` · ${g.label}` : ''}</span>
+                  {onRemoveGame && <button onClick={() => onRemoveGame(g.gameNumber)} title="Remove game" className="text-[11px] leading-none text-slate-500 hover:text-red-400">&times;</button>}
+                </div>
                 {[g.t1, g.t2].map((src, i) => <div key={i} className={`px-2 py-1 truncate text-white ${i === 0 ? 'border-b border-slate-700' : ''}`}>{resolveLabel(src, seeds, numberOffset)}</div>)}
               </div>
             ))}
