@@ -725,6 +725,7 @@ export default function PublicTournamentPage() {
       fetch(`/api/tournaments/${id}/team-logos`).then(r=>r.ok?r.json():{}).catch(()=>({})),
     ]).then(([t,g,lg])=>{setTournament(t);setGames(Array.isArray(g)?g:[]);setLogos(lg||{});try{const o=JSON.parse((t&&t.tiebreakers)||'{}');const pool=Array.isArray(o)?o:(o.pool||[]);if(pool.length)setTiebreakers(pool)}catch{};setLoading(false)})
     try{const saved=JSON.parse(localStorage.getItem(`follows-${id}`)||'[]');setFollowedTeams(saved)}catch{}
+    fetch(`/api/tournaments/${id}/info`).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.sections))setInfoSections(d.sections)}).catch(()=>{})
   },[id])
 
   const toggleFollow=(team:string)=>{
@@ -843,6 +844,30 @@ export default function PublicTournamentPage() {
         </div>
       )}
 
+      {/* Info modal */}
+      {showInfo && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={()=>setShowInfo(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[85vh] overflow-auto" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 sticky top-0 bg-white">
+              <h3 className="text-lg font-bold text-gray-800 inline-flex items-center gap-2"><Info size={18}/> Tournament Info</h3>
+              <button onClick={()=>setShowInfo(false)} className="text-gray-400 hover:text-gray-600"><X size={18}/></button>
+            </div>
+            <div className="p-5 space-y-4">
+              {infoSections.map((s:any,i:number)=>{const C=INFO_ICONS[s.icon]||Info;return (
+                <div key={i} className="flex gap-3">
+                  <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center"><C size={18}/></div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-gray-800">{s.title}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{s.body}</p>
+                  </div>
+                </div>
+              )})}
+              {infoSections.length===0 && <p className="text-sm text-gray-400 text-center py-6">No tournament info posted yet.</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sport header bar */}
       <div className="bg-[#0f1f3d] text-white px-4 py-2.5 flex items-center gap-2">
         <span className="text-sm">{sportIcon}</span>
@@ -882,6 +907,9 @@ export default function PublicTournamentPage() {
               </button>
               <button className="flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-bold px-3 py-2 rounded hover:bg-gray-200 transition-colors">
                 <Share2 size={14}/> Share
+              </button>
+              <button onClick={()=>setShowInfo(true)} className="flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-bold px-3 py-2 rounded hover:bg-gray-200 transition-colors">
+                <Info size={14}/> Info
               </button>
             </div>
           </div>
