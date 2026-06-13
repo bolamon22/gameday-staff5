@@ -45,6 +45,8 @@ export async function middleware(req: NextRequest) {
   if (PUBLIC_ROUTES.some(r => pathname.startsWith(r))) return NextResponse.next()
   if (pathname.startsWith('/api/')) return NextResponse.next()
   if (pathname.startsWith('/_next') || pathname.startsWith('/favicon')) return NextResponse.next()
+  // Public tournament pages (divisions, schedule, standings, bracket, rules) — no login required
+  if (/^\/tournaments\/[^/]+\/public(\/|$)/.test(pathname)) return NextResponse.next()
 
   const token = await getToken({
     req,
