@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
 import { DEFAULT_PAY_RATES, PayRates } from '@/lib/utils'
 import TournamentNav from '../TournamentNav'
-import { Trophy, MapPin, DollarSign, Award, Banknote, Users, ClipboardList, ChevronUp, ChevronDown, Copy, Calendar, X, Clock, Lightbulb, Check, Info, type LucideIcon } from 'lucide-react'
+import { Trophy, MapPin, DollarSign, Award, Banknote, Users, ClipboardList, ChevronUp, ChevronDown, Copy, Calendar, X, Clock, Lightbulb, Check, Info, Megaphone, type LucideIcon } from 'lucide-react'
 
 const RATE_FIELDS = [
   { key: 'youth', label: 'Referee – Youth Cert' },
@@ -19,6 +19,13 @@ const RATE_FIELDS = [
 const DEFAULT_PRICING = { tier1: 1495, tier1Max: 3, tier2: 1450, tier2Max: 6, tier3: 1395, sevenVSeven: 1095 }
 
 const INFO_ICON_OPTIONS = ['info', 'heart-pulse', 'shirt', 'square-parking', 'scroll-text', 'utensils', 'phone', 'cloud-lightning']
+
+const BROADCAST_ROLE_OPTIONS = [
+  { key: 'assigner', label: 'Assigners' },
+  { key: 'staff', label: 'Staff (field ops, medical, etc.)' },
+  { key: 'scorekeeper', label: 'Scorekeepers' },
+  { key: 'ref', label: 'Referees' },
+]
 
 const DEFAULT_DIVISIONS = [
   'Boys U8',
@@ -41,7 +48,7 @@ interface Venue { id: string; name: string; fields: Field[] }
 
 function uid() { return Math.random().toString(36).slice(2, 10) }
 
-type Section = 'general' | 'fees' | 'divisions' | 'payrates' | 'refrules' | 'venues' | 'registration' | 'tiebreakers' | 'info'
+type Section = 'general' | 'fees' | 'divisions' | 'payrates' | 'refrules' | 'venues' | 'registration' | 'tiebreakers' | 'info' | 'broadcast'
 const TB_OPTS = [
   { v:'record', l:'Record' }, { v:'win_pct', l:'Winning Percentage' },
   { v:'head_to_head', l:'Head to Head' }, { v:'h2h_two', l:'Head to Head Two Teams Only' },
@@ -117,6 +124,8 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
   const [open, setOpen] = useState<Section>('general')
   const [infoSections, setInfoSections] = useState<{ icon: string; title: string; body: string }[]>([])
   const [savingInfo, setSavingInfo] = useState(false)
+  const [broadcastRoles, setBroadcastRoles] = useState<string[]>(['assigner'])
+  const [savingBroadcastRoles, setSavingBroadcastRoles] = useState(false)
 
   const toggle = (s: Section) => setOpen(o => o === s ? ('' as any) : s)
 
@@ -183,6 +192,7 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
       }
     }).catch(() => {})
     fetch(`/api/tournaments/${params.id}/info`).then(r => r.ok ? r.json() : null).then(d => { if (d && Array.isArray(d.sections)) setInfoSections(d.sections) }).catch(() => {})
+    fetch(`/api/tournaments/${params.id}/broadcast-roles`).then(r => r.ok ? r.json() : null).then(d => { if (d && Array.isArray(d.roles)) setBroadcastRoles(d.roles.filter((r: string) => r !== 'director')) }).catch(() => {})
   }, [params.id])
 
   async function saveInfo() {
@@ -194,6 +204,17 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
       })
       if (res.ok) toast.success('Tournament info saved!'); else toast.error('Failed to save info')
     } catch { toast.error('Failed to save info') } finally { setSavingInfo(false) }
+  }
+
+  async function saveBroadcastRoles() {
+    setSavingBroadcastRoles(true)
+    try {
+      const res = await fetch(`/api/tournaments/${params.id}/broadcast-roles`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roles: broadcastRoles }),
+      })
+      if (res.ok) toast.success('Broadcast permissions saved!'); else { const e = await res.json().catch(() => ({})); toast.error(e.error || 'Failed to save') }
+    } catch { toast.error('Failed to save') } finally { setSavingBroadcastRoles(false) }
   }
 
   async function save(e: React.FormEvent) {
@@ -702,6 +723,31 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
                 className="bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-semibold">{savingInfo ? 'Saving…' : 'Save info'}</button>
             </div>
             <p className="text-[11px] text-slate-400 mt-2">This content appears on the public page under the “Info” button. The icon dropdown matches the public display.</p>
+          </SectionCard>
+
+          <SectionCard title="Broadcast permissions" description="Which staff roles may post broadcasts to the public page (you, the director, always can)" icon={Megaphone}
+            open={open === 'broadcast'} onToggle={() => toggle('broadcast')} badge={`${broadcastRoles.length + 1} roles`}>
+            <div className="space-y-2 max-w-md">
+              <div className="flex items-center gap-2 rounded-xl px-3 py-2 bg-teal-50 border border-teal-100">
+                <input type="checkbox" checked readOnly className="w-4 h-4 accent-teal-600" />
+                <span className="text-sm font-medium text-slate-800">Tournament Director</span>
+                <span className="text-[11px] text-slate-400 ml-auto">Always allowed</span>
+              </div>
+              {BROADCAST_ROLE_OPTIONS.map(o => {
+                const on = broadcastRoles.includes(o.key)
+                return (
+                  <label key={o.key} className={`flex items-center gap-2 rounded-xl px-3 py-2 cursor-pointer border ${on ? 'bg-teal-50 border-teal-100' : 'bg-slate-50 border-transparent'}`}>
+                    <input type="checkbox" checked={on}
+                      onChange={e => setBroadcastRoles(rs => e.target.checked ? Array.from(new Set([...rs, o.key])) : rs.filter(r => r !== o.key))}
+                      className="w-4 h-4 accent-teal-600" />
+                    <span className="text-sm text-slate-700">{o.label}</span>
+                  </label>
+                )
+              })}
+            </div>
+            <button type="button" onClick={saveBroadcastRoles} disabled={savingBroadcastRoles}
+              className="mt-3 bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-semibold">{savingBroadcastRoles ? 'Saving…' : 'Save permissions'}</button>
+            <p className="text-[11px] text-slate-400 mt-2">Allowed staff get a Broadcast page (/broadcast) to post to the public announcement banner. You can remove any post.</p>
           </SectionCard>
 
           <SectionCard title="Standings tiebreakers" description="How teams level on points are ranked" icon={ClipboardList}

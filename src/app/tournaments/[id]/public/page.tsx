@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation'
 
 const LogosContext = createContext<Record<string, string>>({})
 import Link from 'next/link'
-import { Users, Calendar, LayoutGrid, Trophy, Clock, ChevronDown, ChevronUp, Star, CalendarPlus, Medal, Sun, Moon, MapPin, ClipboardList, Bell, Share2, X, Info, HeartPulse, Shirt, SquareParking, ScrollText, Utensils, Phone, CloudLightning } from 'lucide-react'
+import { Users, Calendar, LayoutGrid, Trophy, Clock, ChevronDown, ChevronUp, Star, CalendarPlus, Medal, Sun, Moon, MapPin, ClipboardList, Bell, Share2, X, Info, HeartPulse, Shirt, SquareParking, ScrollText, Utensils, Phone, CloudLightning, Megaphone } from 'lucide-react'
 
 const INFO_ICONS: Record<string, any> = { 'heart-pulse': HeartPulse, 'shirt': Shirt, 'square-parking': SquareParking, 'scroll-text': ScrollText, 'utensils': Utensils, 'phone': Phone, 'cloud-lightning': CloudLightning, 'info': Info }
 
@@ -718,6 +718,8 @@ export default function PublicTournamentPage() {
   const [notifySent,setNotifySent]=useState(false)
   const [showInfo,setShowInfo]=useState(false)
   const [infoSections,setInfoSections]=useState<any[]>([])
+  const [announcements,setAnnouncements]=useState<any[]>([])
+  const [annOpen,setAnnOpen]=useState(false)
   const [dark,setDark]=useState(false)
   useEffect(()=>{ try{ setDark(localStorage.getItem(`theme-${id}`)==='dark') }catch{} },[id])
   useEffect(()=>{ try{ localStorage.setItem(`theme-${id}`, dark?'dark':'light') }catch{} },[dark,id])
@@ -730,6 +732,7 @@ export default function PublicTournamentPage() {
     ]).then(([t,g,lg])=>{setTournament(t);setGames(Array.isArray(g)?g:[]);setLogos(lg||{});try{const o=JSON.parse((t&&t.tiebreakers)||'{}');const pool=Array.isArray(o)?o:(o.pool||[]);if(pool.length)setTiebreakers(pool)}catch{};setLoading(false)})
     try{const saved=JSON.parse(localStorage.getItem(`follows-${id}`)||'[]');setFollowedTeams(saved)}catch{}
     fetch(`/api/tournaments/${id}/info`).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.sections))setInfoSections(d.sections)}).catch(()=>{})
+    fetch(`/api/tournaments/${id}/announcements`).then(r=>r.ok?r.json():null).then(d=>{if(d&&Array.isArray(d.announcements))setAnnouncements(d.announcements)}).catch(()=>{})
   },[id])
 
   const toggleFollow=(team:string)=>{
@@ -921,6 +924,29 @@ export default function PublicTournamentPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-3 sm:px-4 py-5">
+        {announcements.length > 0 && (
+          <div className="mb-4">
+            <button onClick={() => setAnnOpen(o => !o)}
+              className={`w-full text-left rounded-xl px-4 py-3 border flex items-start gap-2.5 shadow-sm ${announcements[0].urgent ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200'}`}>
+              <Megaphone size={16} className={`mt-0.5 flex-shrink-0 ${announcements[0].urgent ? 'text-amber-500' : 'text-teal-600'}`} />
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm ${announcements[0].urgent ? 'text-amber-800 font-medium' : 'text-slate-700'} ${annOpen ? '' : 'truncate'}`}>{announcements[0].text}</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">{announcements[0].scope} · {new Date(announcements[0].createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}{announcements.length > 1 ? ` · ${annOpen ? 'hide' : announcements.length + ' announcements'}` : ''}</p>
+              </div>
+              {announcements.length > 1 && (annOpen ? <ChevronUp size={15} className="text-slate-400 flex-shrink-0" /> : <ChevronDown size={15} className="text-slate-400 flex-shrink-0" />)}
+            </button>
+            {annOpen && announcements.length > 1 && (
+              <div className="mt-1.5 space-y-1.5">
+                {announcements.slice(1).map((a: any) => (
+                  <div key={a.id} className={`rounded-lg px-4 py-2.5 border text-sm ${a.urgent ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-white border-slate-200 text-slate-700'}`}>
+                    <p>{a.text}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{a.scope} · {new Date(a.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {/* Back button when viewing a division */}
         {selectedDiv && (
           <div className="flex items-center gap-2 mb-4 flex-wrap">
