@@ -728,7 +728,7 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
           <SectionCard title="Broadcast permissions" description="Which staff roles may post broadcasts to the public page (you, the director, always can)" icon={Megaphone}
             open={open === 'broadcast'} onToggle={() => toggle('broadcast')} badge={`${broadcastRoles.length + 1} roles`}>
             <div className="space-y-2 max-w-md">
-              <div className="flex items-center gap-2 rounded-xl px-3 py-2 bg-teal-50 border border-teal-100">
+              <div className="flex items-center gap-2 rounded-xl px-3 py-2 bg-teal-500/10 border border-teal-500/40">
                 <input type="checkbox" checked readOnly className="w-4 h-4 accent-teal-600" />
                 <span className="text-sm font-medium text-slate-800">Tournament Director</span>
                 <span className="text-[11px] text-slate-400 ml-auto">Always allowed</span>
@@ -736,7 +736,7 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
               {BROADCAST_ROLE_OPTIONS.map(o => {
                 const on = broadcastRoles.includes(o.key)
                 return (
-                  <label key={o.key} className={`flex items-center gap-2 rounded-xl px-3 py-2 cursor-pointer border ${on ? 'bg-teal-50 border-teal-100' : 'bg-slate-50 border-transparent'}`}>
+                  <label key={o.key} className={`flex items-center gap-2 rounded-xl px-3 py-2 cursor-pointer border ${on ? 'bg-teal-500/10 border-teal-500/40' : 'bg-slate-50 border-transparent'}`}>
                     <input type="checkbox" checked={on}
                       onChange={e => setBroadcastRoles(rs => e.target.checked ? Array.from(new Set([...rs, o.key])) : rs.filter(r => r !== o.key))}
                       className="w-4 h-4 accent-teal-600" />
