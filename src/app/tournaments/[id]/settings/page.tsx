@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
 import { DEFAULT_PAY_RATES, PayRates } from '@/lib/utils'
 import TournamentNav from '../TournamentNav'
-import { Trophy, MapPin, DollarSign, Award, Banknote, Users, ClipboardList, ChevronUp, ChevronDown, Copy, Calendar, X, Clock, Lightbulb, Check, type LucideIcon } from 'lucide-react'
+import { Trophy, MapPin, DollarSign, Award, Banknote, Users, ClipboardList, ChevronUp, ChevronDown, Copy, Calendar, X, Clock, Lightbulb, Check, Info, type LucideIcon } from 'lucide-react'
 
 const RATE_FIELDS = [
   { key: 'youth', label: 'Referee – Youth Cert' },
@@ -17,6 +17,8 @@ const RATE_FIELDS = [
 ]
 
 const DEFAULT_PRICING = { tier1: 1495, tier1Max: 3, tier2: 1450, tier2Max: 6, tier3: 1395, sevenVSeven: 1095 }
+
+const INFO_ICON_OPTIONS = ['info', 'heart-pulse', 'shirt', 'square-parking', 'scroll-text', 'utensils', 'phone', 'cloud-lightning']
 
 const DEFAULT_DIVISIONS = [
   'Boys U8',
@@ -39,7 +41,7 @@ interface Venue { id: string; name: string; fields: Field[] }
 
 function uid() { return Math.random().toString(36).slice(2, 10) }
 
-type Section = 'general' | 'fees' | 'divisions' | 'payrates' | 'refrules' | 'venues' | 'registration' | 'tiebreakers'
+type Section = 'general' | 'fees' | 'divisions' | 'payrates' | 'refrules' | 'venues' | 'registration' | 'tiebreakers' | 'info'
 const TB_OPTS = [
   { v:'record', l:'Record' }, { v:'win_pct', l:'Winning Percentage' },
   { v:'head_to_head', l:'Head to Head' }, { v:'h2h_two', l:'Head to Head Two Teams Only' },
@@ -113,6 +115,8 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
   const [newPosition, setNewPosition] = useState('')
   const [newSize, setNewSize] = useState('')
   const [open, setOpen] = useState<Section>('general')
+  const [infoSections, setInfoSections] = useState<{ icon: string; title: string; body: string }[]>([])
+  const [savingInfo, setSavingInfo] = useState(false)
 
   const toggle = (s: Section) => setOpen(o => o === s ? ('' as any) : s)
 
@@ -178,7 +182,19 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
         if (data.defaultAvailability) setDefaultAvailability(data.defaultAvailability)
       }
     }).catch(() => {})
+    fetch(`/api/tournaments/${params.id}/info`).then(r => r.ok ? r.json() : null).then(d => { if (d && Array.isArray(d.sections)) setInfoSections(d.sections) }).catch(() => {})
   }, [params.id])
+
+  async function saveInfo() {
+    setSavingInfo(true)
+    try {
+      const res = await fetch(`/api/tournaments/${params.id}/info`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sections: infoSections.filter(s => s.title || s.body) }),
+      })
+      if (res.ok) toast.success('Tournament info saved!'); else toast.error('Failed to save info')
+    } catch { toast.error('Failed to save info') } finally { setSavingInfo(false) }
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault(); setSaving(true)
@@ -656,6 +672,36 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
             </div>
             <button type="button" onClick={() => setDivisions(DEFAULT_DIVISIONS)}
               className="text-xs text-slate-400 hover:text-slate-600 underline mt-3 block">Reset to defaults</button>
+          </SectionCard>
+
+          <SectionCard title="Tournament Info" description="Public info for parents & coaches (medical, parking, lost & found, etc.) — shown under the Info button on the public page" icon={Info}
+            open={open === 'info'} onToggle={() => toggle('info')} badge={`${infoSections.length} sections`}>
+            <div className="space-y-3">
+              {infoSections.map((s, i) => (
+                <div key={i} className="border border-slate-200 rounded-xl p-3 bg-slate-50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <select value={s.icon} onChange={e => setInfoSections(arr => arr.map((x, xi) => xi === i ? { ...x, icon: e.target.value } : x))}
+                      className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-400">
+                      {INFO_ICON_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                    <input value={s.title} onChange={e => setInfoSections(arr => arr.map((x, xi) => xi === i ? { ...x, title: e.target.value } : x))}
+                      placeholder="Section title" className="flex-1 min-w-0 border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                    <button type="button" onClick={() => setInfoSections(arr => arr.filter((_, xi) => xi !== i))}
+                      className="text-red-400 hover:text-red-600 flex-shrink-0"><X size={15} /></button>
+                  </div>
+                  <textarea value={s.body} onChange={e => setInfoSections(arr => arr.map((x, xi) => xi === i ? { ...x, body: e.target.value } : x))}
+                    rows={2} placeholder="Details…" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                </div>
+              ))}
+              {infoSections.length === 0 && <p className="text-sm text-slate-400">No info sections yet. Add one below — until you save any, the public page shows sensible defaults.</p>}
+            </div>
+            <div className="flex items-center gap-2 mt-3">
+              <button type="button" onClick={() => setInfoSections(arr => [...arr, { icon: 'info', title: '', body: '' }])}
+                className="border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-lg text-sm font-medium">+ Add section</button>
+              <button type="button" onClick={saveInfo} disabled={savingInfo}
+                className="bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-semibold">{savingInfo ? 'Saving…' : 'Save info'}</button>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-2">This content appears on the public page under the “Info” button. The icon dropdown matches the public display.</p>
           </SectionCard>
 
           <SectionCard title="Standings tiebreakers" description="How teams level on points are ranked" icon={ClipboardList}
