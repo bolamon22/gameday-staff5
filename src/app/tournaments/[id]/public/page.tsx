@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation'
 
 const LogosContext = createContext<Record<string, string>>({})
 import Link from 'next/link'
-import { Users, Calendar, LayoutGrid, Trophy, Clock, ChevronDown, Star, CalendarPlus, Medal } from 'lucide-react'
+import { Users, Calendar, LayoutGrid, Trophy, Clock, ChevronDown, ChevronUp, Star, CalendarPlus, Medal, Sun, Moon, MapPin, ClipboardList, Bell, Share2, X } from 'lucide-react'
 
 interface Tournament { id:string; name:string; startDate:string; endDate:string; location:string; logoUrl:string; sport:string }
 interface Game { id:string; gameNumber:string; date:string; startTime:string; division:string; pool:string|null; location:string; team1:string; team2:string; score1:number|null; score2:number|null; isCanceled:boolean; isChampionship:boolean }
@@ -303,7 +303,7 @@ function BracketView({bracketList,scheduledGames}:{bracketList:BkBracket[];sched
 
   if(bracketList.length===0)return(
     <div className="text-center py-12 text-gray-400 bg-white rounded-xl border border-gray-200">
-      <div className="text-3xl mb-2">🏆</div>
+      <div className="flex justify-center mb-2"><Trophy size={30} className="text-slate-300"/></div>
       <p className="font-medium">Bracket games will appear here once pool play concludes.</p>
     </div>
   )
@@ -480,7 +480,7 @@ function BracketView({bracketList,scheduledGames}:{bracketList:BkBracket[];sched
               <div className="mt-3">
                 <button onClick={()=>setShowCons(v=>!v)} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors mb-2">
                   <span className="font-semibold uppercase tracking-wide">3rd place / consolation</span>
-                  <span>{showCons?'▲':'▼'}</span>
+                  <span>{showCons?<ChevronUp size={13}/>:<ChevronDown size={13}/>}</span>
                 </button>
                 {showCons&&(
                   <div className="flex flex-wrap gap-3">
@@ -812,16 +812,16 @@ export default function PublicTournamentPage() {
               <>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-800">🔔 Get Notified</h3>
+                    <h3 className="text-lg font-bold text-gray-800 inline-flex items-center gap-1.5"><Bell size={16}/> Get Notified</h3>
                     <p className="text-xs text-gray-500 mt-0.5">Get score updates for your followed teams</p>
                   </div>
-                  <button onClick={()=>setShowNotifyModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                  <button onClick={()=>setShowNotifyModal(false)} className="text-gray-400 hover:text-gray-600 text-xl"><X size={16}/></button>
                 </div>
                 {followedTeams.length > 0 && (
                   <div className="mb-4 bg-yellow-50 rounded-xl p-3">
                     <p className="text-xs font-semibold text-gray-500 mb-2">Following {followedTeams.length} team{followedTeams.length!==1?'s':''}:</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {followedTeams.map(t=><span key={t} className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-medium">⭐ {t}</span>)}
+                      {followedTeams.map(t=><span key={t} className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1"><Star size={11} fill="currentColor"/>{t}</span>)}
                     </div>
                   </div>
                 )}
@@ -848,7 +848,7 @@ export default function PublicTournamentPage() {
         <span className="text-sm">{sportIcon}</span>
         <span className="text-xs font-bold uppercase tracking-widest text-gray-300">{tournament?.sport||'Flag Football'}</span>
         <button onClick={()=>setDark(d=>!d)} title="Toggle light / dark" aria-label="Toggle light or dark mode"
-          className="ml-auto text-base leading-none hover:opacity-80 transition-opacity">{dark?'☀️':'🌙'}</button>
+          className="ml-auto hover:opacity-80 transition-opacity">{dark?<Sun size={16}/>:<Moon size={16}/>}</button>
       </div>
 
       {/* Tournament card */}
@@ -868,20 +868,20 @@ export default function PublicTournamentPage() {
               {tournament?.location ? (
                 <a href={`https://maps.google.com/?q=${encodeURIComponent(tournament.location)}`} target="_blank" rel="noopener noreferrer"
                   className="text-gray-500 hover:text-blue-600 hover:underline transition-colors inline-flex items-center gap-1">
-                  📍 {tournament.location}
+                  <MapPin size={13}/> {tournament.location}
                 </a>
               ) : null}
             </p>
             <div className="flex flex-wrap gap-2 mt-3">
               <Link href={`/tournaments/${id}/player-register`} target="_blank"
                 className="flex items-center gap-1.5 bg-teal-500 hover:bg-teal-400 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors">
-                📋 Register
+                <ClipboardList size={14}/> Register
               </Link>
               <button className="flex items-center gap-1.5 bg-green-100 text-green-800 text-xs font-bold px-3 py-2 rounded hover:bg-green-200 transition-colors">
-                🔔 Get Notified
+                <Bell size={14}/> Get Notified
               </button>
               <button className="flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-bold px-3 py-2 rounded hover:bg-gray-200 transition-colors">
-                📤 Share
+                <Share2 size={14}/> Share
               </button>
             </div>
           </div>
@@ -916,7 +916,7 @@ export default function PublicTournamentPage() {
                 placeholder="Search for a team…"
                 className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
               />
-              {teamSearch && <button onClick={()=>setTeamSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">✕</button>}
+              {teamSearch && <button onClick={()=>setTeamSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={16}/></button>}
             </div>
 
             {/* Search results */}
@@ -934,7 +934,7 @@ export default function PublicTournamentPage() {
                       </div>
                       <button onClick={()=>toggleFollow(t.name)}
                         className={`flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${followedTeams.includes(t.name) ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-700'}`}>
-                        {followedTeams.includes(t.name) ? '⭐ Following' : '☆ Follow'}
+                        {followedTeams.includes(t.name) ? <span className="inline-flex items-center gap-1"><Star size={12} fill="currentColor"/> Following</span> : <span className="inline-flex items-center gap-1"><Star size={12}/> Follow</span>}
                       </button>
                     </div>
                   ))
@@ -946,10 +946,10 @@ export default function PublicTournamentPage() {
             {followedTeams.length > 0 && !teamSearch && (
               <div className="mb-5">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">⭐ My Teams</h2>
+                  <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide inline-flex items-center gap-1.5"><Star size={14} fill="currentColor"/> My Teams</h2>
                   <button onClick={()=>setShowNotifyModal(true)}
                     className="text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1">
-                    🔔 Get Notified
+                    <Bell size={13}/> Get Notified
                   </button>
                 </div>
                 <div className="space-y-2">
@@ -967,7 +967,7 @@ export default function PublicTournamentPage() {
                             </div>
                           ) : <div className="text-xs text-gray-400">No upcoming games</div>}
                         </div>
-                        <button onClick={()=>toggleFollow(team)} className="text-gray-300 hover:text-red-400 text-lg transition-colors" title="Unfollow">✕</button>
+                        <button onClick={()=>toggleFollow(team)} className="text-gray-300 hover:text-red-400 text-lg transition-colors" title="Unfollow"><X size={16}/></button>
                       </div>
                     )
                   })}
@@ -975,7 +975,7 @@ export default function PublicTournamentPage() {
               </div>
             )}
 
-            {divisions.length===0 && <div className="text-center py-16 text-gray-400"><div className="text-4xl mb-3">📅</div><p>No games scheduled yet.</p></div>}
+            {divisions.length===0 && <div className="text-center py-16 text-gray-400"><div className="flex justify-center mb-3"><Calendar size={36} className="text-slate-300"/></div><p>No games scheduled yet.</p></div>}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {divisions.map(div=>{
                 const m=divMeta[div]
@@ -1033,6 +1033,10 @@ export default function PublicTournamentPage() {
           </div>
         )}
       </div>
+      <footer className="border-t border-slate-200 mt-6 py-6 text-center">
+        <p className="text-xs text-slate-400">{tournament?.name ? `${tournament.name} · ` : ''}Sunshine Events Group</p>
+        <p className="text-xs text-slate-400 mt-1">Powered by <span className="font-semibold text-slate-500">Gameday Blueprint</span></p>
+      </footer>
     </div>
     </LogosContext.Provider>
   )
