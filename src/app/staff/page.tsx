@@ -171,9 +171,11 @@ export default function StaffPage() {
     toast.success('Photo removed'); load()
   }
 
+  function previewOrgId(){const m=document.cookie.match(/(?:^|; )preview-org=([^;]*)/);return m?decodeURIComponent(m[1]):null}
+
   async function addNew(e:React.FormEvent){
     e.preventDefault();setSaving(true)
-    const payload={...editForm,name:String(editForm.name).trim(),email:editForm.email||null,phone:editForm.phone||null,payRateOverride:editForm.payRateOverride!==''?Number(editForm.payRateOverride):null,hourlyRate:editForm.hourlyRate!==''?Number(editForm.hourlyRate):null,payHandle:editForm.payHandle||null,notes:editForm.notes||null,roles:editForm.roles}
+    const payload={...editForm,name:String(editForm.name).trim(),email:editForm.email||null,phone:editForm.phone||null,payRateOverride:editForm.payRateOverride!==''?Number(editForm.payRateOverride):null,hourlyRate:editForm.hourlyRate!==''?Number(editForm.hourlyRate):null,payHandle:editForm.payHandle||null,notes:editForm.notes||null,roles:editForm.roles,orgId:previewOrgId()}
     const res=await fetch('/api/workers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     if(res.ok){toast.success('Added');setExpandedId(null);setEditForm(EMPTY_FORM);load()}else toast.error('Failed')
     setSaving(false)
@@ -236,7 +238,7 @@ export default function StaffPage() {
 
   async function confirmImport(){
     const preview=buildPreview();if(!preview.length)return;setSaving(true)
-    const res=await fetch('/api/workers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bulk:preview})});const data=await res.json()
+    const res=await fetch('/api/workers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bulk:preview,orgId:previewOrgId()})});const data=await res.json()
     if(res.ok){toast.success(`Imported ${data.created} staff`);setImportData(null);setMapping({});load();setTab('roster')}else toast.error('Import failed')
     setSaving(false)
   }
@@ -372,7 +374,7 @@ export default function StaffPage() {
                   <>
                     <tr key={w.id} className={`border-b border-slate-100 ${selected.has(w.id)?'bg-sky-50':isExpanded?'bg-slate-50 border-b-0':'hover:bg-slate-50'}`}>
                       <td className="px-4 py-3"><input type="checkbox" checked={selected.has(w.id)} onChange={()=>toggleSelect(w.id)}/></td>
-                      <td className="px-4 py-3 font-semibold text-slate-900 cursor-pointer hover:text-sky-600 transition-colors" onClick={()=>expand(w,'profile')}>{w.name}{w.isAssigner&&<span className="ml-2 badge bg-amber-100 text-amber-700">Assigner</span>}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-900 cursor-pointer hover:text-sky-600 transition-colors" onClick={()=>expand(w,'profile')}>{w.name}{!!w.isAssigner&&<span className="ml-2 badge bg-amber-100 text-amber-700">Assigner</span>}</td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {wRoles.map(r=><span key={r} className="badge bg-slate-100 text-slate-600">{rLabel(r)}</span>)}
@@ -411,7 +413,7 @@ export default function StaffPage() {
                                       {wRoles.map(r=>(
                                         <span key={r} className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${r==='ref'?'bg-sky-500/30 text-sky-200':r==='scorekeeper'?'bg-emerald-500/30 text-emerald-200':'bg-slate-500/40 text-slate-300'}`}>{rLabel(r)}</span>
                                       ))}
-                                      {w.isAssigner&&<span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/30 text-amber-200">Assigner</span>}
+                                      {!!w.isAssigner&&<span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/30 text-amber-200">Assigner</span>}
                                     </div>
                                   </div>
                                   <button onClick={()=>expand(w,'edit')} className="text-xs text-sky-300 hover:text-white border border-sky-400/40 hover:border-sky-300 px-3 py-1.5 rounded-lg transition-colors shrink-0">Edit →</button>

@@ -72,13 +72,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ created: count }, { status: 201 })
   }
 
-  const { name, email, phone, certLevel, defaultRole, roles, isAssigner, gender, payRateOverride, hourlyRate, payMethod, payHandle, notes } = body
+  const { name, email, phone, certLevel, defaultRole, roles, isAssigner, gender, payRateOverride, hourlyRate, payMethod, payHandle, notes, association } = body
   const id = crypto.randomUUID()
 
   await client.execute({
-    sql: `INSERT INTO "Worker" (id, name, email, phone, certLevel, defaultRole, roles, isAssigner, gender, payRateOverride, hourlyRate, payMethod, payHandle, notes, orgId, createdAt, updatedAt)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
-    args: [id, name, email ?? null, phone ?? null, certLevel ?? 'youth', defaultRole ?? 'ref', JSON.stringify(roles ?? [defaultRole ?? 'ref']), isAssigner ? 1 : 0, gender ?? 'both', payRateOverride ?? null, hourlyRate ?? null, payMethod ?? 'check', payHandle ?? null, notes ?? null, orgId],
+    sql: `INSERT INTO "Worker" (id, name, email, phone, certLevel, defaultRole, roles, isAssigner, gender, payRateOverride, hourlyRate, payMethod, payHandle, notes, association, orgId, createdAt, updatedAt)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+    args: [id, name, email ?? null, phone ?? null, certLevel ?? 'youth', defaultRole ?? 'ref', JSON.stringify(roles ?? [defaultRole ?? 'ref']), isAssigner ? 1 : 0, gender ?? 'both', payRateOverride ?? null, hourlyRate ?? null, payMethod ?? 'check', payHandle ?? null, notes ?? null, association ?? null, orgId],
   })
 
   const created = await client.execute({ sql: `SELECT * FROM "Worker" WHERE id = ?`, args: [id] })
