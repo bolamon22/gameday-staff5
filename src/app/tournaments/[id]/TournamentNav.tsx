@@ -1,8 +1,8 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { ClipboardList, Globe, MapPin } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ClipboardList, Globe, MapPin, ChevronDown } from 'lucide-react'
 
 interface Props {
   id: string
@@ -20,6 +20,9 @@ interface TournamentMeta {
   logoUrl: string
 }
 
+type NavItem = { href: string; label: string }
+type NavGroup = { label: string; href?: string; items?: NavItem[] }
+
 function fmtDate(d: string) {
   if (!d) return ''
   const [y, m, day] = d.split('-')
@@ -30,6 +33,8 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
   const pathname = usePathname()
   const base = `/tournaments/${id}`
   const [meta, setMeta] = useState<TournamentMeta | null>(null)
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const navRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetch(`/api/tournaments/${id}`)
@@ -38,18 +43,46 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
       .catch(() => {})
   }, [id])
 
-  const tabs: { href: string; label: string; dropdown?: { href: string; label: string }[] }[] = [
-    { href: `${base}/dashboard`,     label: 'Dashboard'     },
-    { href: `${base}/roster`,        label: 'Staff'         },
-    { href: `${base}/registrations`, label: 'Registrations' },
-    { href: `${base}/settings`,      label: 'Settings'      },
-    { href: `${base}/scheduler`,     label: 'Scheduler',    dropdown: [
-      { href: `${base}/scheduler`,   label: 'Schedule'      },
-      { href: `${base}`,             label: 'Assigner'      },
-      { href: `${base}/divisions`,   label: 'Divisions'     },
+  // Close any open menu on route change or outside click.
+  useEffect(() => { setOpenMenu(null) }, [pathname])
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpenMenu(null)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [])
+
+  const groups: NavGroup[] = [
+    { label: 'Dashboard', href: `${base}/dashboard` },
+    { label: 'Setup', items: [
+      { href: `${base}/builder`,    label: 'Tournament setup' },
+      { href: `${base}/divisions`,  label: 'Divisions & teams' },
+      { href: `${base}/scheduler`,  label: 'Scheduler' },
+      { href: `${base}`,            label: 'Assigner' },
     ]},
-    { href: `${base}/financials`,    label: 'Financials'    },
+    { label: 'People', items: [
+      { href: `${base}/registrations`,        label: 'Team registrations' },
+      { href: `${base}/player-registrations`, label: 'Player rosters' },
+      { href: `${base}/roster`,               label: 'Staff roster' },
+      { href: `${base}/pay-summary`,          label: 'Payroll' },
+    ]},
+    { label: 'Game Day', items: [
+      { href: `${base}/scores`,      label: 'Post scores' },
+      { href: `${base}/assignments`, label: 'Assignments' },
+      { href: `${base}/ops`,         label: 'Ops board' },
+      { href: `${base}/incidents`,   label: 'Incidents' },
+      { href: `${base}/checklist`,   label: 'Setup checklist' },
+      { href: `${base}/directory`,   label: 'Staff contacts' },
+      { href: `${base}/staff-view`,  label: 'Staff view' },
+      { href: `${base}/broadcast`,   label: 'Broadcast' },
+    ]},
+    { label: 'Financials', href: `${base}/financials` },
+    { label: 'Settings',   href: `${base}/settings` },
   ]
+
+  const hrefActive = (href: string) => href === base ? pathname === base : pathname.startsWith(href)
+  const groupActive = (g: NavGroup) => g.href ? hrefActive(g.href) : !!g.items?.some(i => hrefActive(i.href))
 
   // Countdown
   const countdown = (() => {
@@ -66,11 +99,6 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
     return { label: `${Math.abs(diff)} days ago`,      color: 'bg-slate-500/20 text-slate-400' }
   })()
 
-  const isActive = (href: string, exact?: boolean) => {
-    if (exact) return pathname === href
-    return pathname.startsWith(href)
-  }
-
   const logo    = meta?.logoUrl || logoUrl
   const dateStr = meta?.startDate
     ? (meta.endDate && meta.endDate !== meta.startDate
@@ -78,8 +106,12 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
         : fmtDate(meta.startDate))
     : (() => { try { return JSON.parse(meta?.dates || '[]').map(fmtDate).join(' · ') } catch { return '' } })()
 
+  const tabBase = 'px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-1'
+  const tabOn = 'border-teal-400 text-teal-300'
+  const tabOff = 'border-transparent text-slate-400 hover:text-white hover:border-white/20'
+
   return (
-    <div className="bg-[#0f1f3d] mb-6 rounded-xl">
+    <div className="bg-[#0f1f3d] mb-6 rounded-xl" ref={navRef}>
       <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-0">
 
         {/* Header row */}
@@ -136,41 +168,33 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
         </div>
 
         {/* Tab bar */}
-        <div className="flex gap-0">
-          {tabs.map(tab =>
-            tab.dropdown ? (
-              <div key={tab.href} className="relative group">
-                <button className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-1 ${
-                  isActive(tab.href)
-                    ? 'border-teal-400 text-teal-300'
-                    : 'border-transparent text-slate-400 hover:text-white hover:border-white/20'
-                }`}>
-                  {tab.label}
-                  <svg className="w-3 h-3 opacity-60 mt-px" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+        <div className="flex gap-0 overflow-x-auto">
+          {groups.map(g =>
+            g.items ? (
+              <div key={g.label} className="relative">
+                <button
+                  onClick={() => setOpenMenu(m => m === g.label ? null : g.label)}
+                  className={`${tabBase} ${groupActive(g) ? tabOn : tabOff}`}>
+                  {g.label}
+                  <ChevronDown size={13} className={`opacity-60 transition-transform ${openMenu === g.label ? 'rotate-180' : ''}`} />
                 </button>
-                <div className="absolute top-full left-0 hidden group-hover:block z-50 py-1 bg-[#162844] border border-white/10 rounded-b-lg shadow-xl min-w-[140px]">
-                  {tab.dropdown.map(item => (
-                    <Link key={item.href} href={item.href}
-                      className={`block px-4 py-2 text-xs font-medium transition-colors ${
-                        pathname.startsWith(item.href)
-                          ? 'text-teal-300 bg-white/10'
-                          : 'text-slate-300 hover:text-white hover:bg-white/5'
-                      }`}>
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
+                {openMenu === g.label && (
+                  <div className="absolute top-full left-0 z-50 py-1 bg-[#162844] border border-white/10 rounded-b-lg shadow-xl min-w-[180px]">
+                    {g.items.map(item => (
+                      <Link key={item.href} href={item.href}
+                        className={`block px-4 py-2 text-xs font-medium transition-colors ${
+                          hrefActive(item.href) ? 'text-teal-300 bg-white/10' : 'text-slate-300 hover:text-white hover:bg-white/5'
+                        }`}>
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
-              <Link key={tab.href} href={tab.href}
-                className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                  isActive(tab.href)
-                    ? 'border-teal-400 text-teal-300'
-                    : 'border-transparent text-slate-400 hover:text-white hover:border-white/20'
-                }`}>
-                {tab.label}
+              <Link key={g.label} href={g.href!}
+                className={`${tabBase} ${groupActive(g) ? tabOn : tabOff}`}>
+                {g.label}
               </Link>
             )
           )}
