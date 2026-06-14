@@ -198,6 +198,28 @@
       "tournament_scores": true,
       "game_scorekeeper": true
     },
+    "scheduler": {
+      "tournaments_list": true,
+      "tournament_dashboard": true,
+      "tournament_schedule": true,
+      "tournament_roster": true,
+      "tournament_availability": true,
+      "tournament_assignments": true,
+      "tournament_time_entries": false,
+      "tournament_pay_summary": false,
+      "tournament_financials": false,
+      "tournament_registrations": true,
+      "tournament_player_regs": true,
+      "tournament_settings": true,
+      "staff_pool": true,
+      "admin_users": false,
+      "cd_overview": false,
+      "cd_players": false,
+      "cd_schedule": false,
+      "cd_billing": false,
+      "tournament_scores": true,
+      "game_scorekeeper": true
+    },
     "coach": {
       "tournaments_list": false,
       "tournament_dashboard": false,
