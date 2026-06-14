@@ -218,4 +218,11 @@ export default function NavBar() {
           ) : (
             <>
               <Link href="/login" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors">Sign in</Link>
-              <Link href="/register" className="text-sm font-medium bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg t
+              <Link href="/register" className="text-sm font-medium bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg transition-colors">Register</Link>
+            </>
+          )}
+        </div>
+      </nav>
+    </div>
+  )
+}
