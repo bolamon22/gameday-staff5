@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation'
 import {
   Target, ClipboardList, Eye, Wrench, Users, Flag, SlidersHorizontal,
   Settings, Medal, Calendar, FileText, MapPin, Banknote, BarChart3,
-  Wallet, Trophy, ChevronDown, Contact, Radio, Megaphone, type LucideIcon,
+  Wallet, Trophy, ChevronDown, Contact, Radio, Megaphone, TriangleAlert, ClipboardCheck, type LucideIcon,
 } from 'lucide-react'
 import ChatWidget from '../ChatWidget'
 import TournamentNav from '../TournamentNav'
@@ -185,6 +185,11 @@ export default function DashboardPage() {
               <HubItem href={`/tournaments/${id}/ops`}       icon={Radio}     label="Ops board" />
               <HubItem href={`/tournaments/${id}/broadcast`} icon={Megaphone} label="Broadcast" />
               <HubItem href={`/tournaments/${id}/directory`} icon={Contact}   label="Staff contacts" />
+            </Hub>
+
+            <Hub icon={TriangleAlert} label="Field Ops" count={2}>
+              <HubItem href={`/tournaments/${id}/incidents`} icon={TriangleAlert}  label="Incidents" />
+              <HubItem href={`/tournaments/${id}/checklist`} icon={ClipboardCheck} label="Field checklist" />
             </Hub>
 
           </div>

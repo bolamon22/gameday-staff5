@@ -5,6 +5,7 @@ import NavBar from './NavBar'
 import DynamicTitle from './DynamicTitle'
 import Providers from './providers'
 import ThemeShell from './ThemeShell'
+import EnvBadge from './EnvBadge'
 
 export const metadata: Metadata = {
   title: 'Gameday Blueprint',
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen">
         <Providers>
           <ThemeShell />
+          <EnvBadge />
           <NavBar />
           <DynamicTitle />
           <main className="p-6 max-w-screen-2xl mx-auto">{children}</main>
