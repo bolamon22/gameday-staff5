@@ -181,9 +181,10 @@ export default function DashboardPage() {
               <HubItem href={`/tournaments/${id}/settings`}   icon={Settings}  label="Tournament settings" />
             </Hub>
 
-            <Hub icon={Radio} label="Communications" count={2}>
+            <Hub icon={Radio} label="Communications" count={3}>
               <HubItem href={`/tournaments/${id}/ops`}       icon={Radio}     label="Ops board" />
               <HubItem href={`/tournaments/${id}/broadcast`} icon={Megaphone} label="Broadcast" />
+              <HubItem href={`/tournaments/${id}/directory`} icon={Contact}   label="Staff contacts" />
             </Hub>
 
           </div>
