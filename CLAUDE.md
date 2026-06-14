@@ -62,6 +62,36 @@ rebuild, and commit through GitHub Desktop itself for multi-file/dir changes. A 
 Core flow: tournaments → divisions → pools → pool games → brackets → scheduler → assigner →
 scores → public. Highlights shipped to live:
 
+- **Dashboard redesign (LIVE, Jun 14 — tag `stable-2026-06-14-dashboard-scheduler`)**: the tournament
+  dashboard + header were de-cluttered. `TournamentNav` now groups everything into click-open
+  dropdowns (mobile-friendly, close on outside-click/route change): **Dashboard · Setup
+  (tournament setup/divisions/scheduler/assigner) · People (team regs/player rosters/staff
+  roster/payroll) · Game Day (scores/assignments/ops/incidents/checklist/staff contacts/staff
+  view/broadcast) · Financials · Settings** + persistent Register/Public buttons. The dashboard
+  **body** (`dashboard/page.tsx`) was slimmed to: an **At a glance** KPI row (teams/games/assigned
+  %/collected %), a **Game Day console** (live-tool cards, "Live now" badge when event date is
+  today), an expandable **Registered teams** section (tap a division → lists its teams, fetched from
+  `/api/registrations?tournamentId=`), and ONE compact **Money** snapshot linking to full
+  Financials. The old 6-hub Admin grid + duplicated P&L/registration-financials sections were
+  removed (nav covers them). Gotcha fixed: the tab bar must NOT use `overflow-x-auto` (clips the
+  dropdowns) — use `flex-wrap`.
+- **Scheduler role (LIVE, same tag)**: a schedule-builder role, peer to Assigner. In
+  `role-permissions.json` it has broad access (dashboard, schedule, divisions, roster, availability,
+  assignments, registrations, player rosters, settings, scores, staff pool) with **pay summary,
+  financials, and time entries OFF**. Wired everywhere a role is referenced: middleware `ROLE_HOME`,
+  login redirect, admin **Users** dropdown, admin **Permissions** matrix column, NavBar
+  labels/colors + "View as" preview list, and a new role-home at `/dashboard/scheduler`
+  (Schedule/Divisions/Manage/Ops cards). Role is a plain string (no enum/migration) — assign via
+  admin Users. Fine-tune the rest on the Perms page.
+- **On-field workers = the Staff role (convention)**: refs, field ops, scorekeepers, and trainers
+  all log in as **Staff**; their specific job comes from Assigner assignments + per-game permissions
+  (the **`game_scorekeeper`** "Scorekeeper (Live Game)" feature opens `/tournaments/[id]/games/[gameId]/scorekeeper`).
+  There is deliberately NO separate Scorekeeper/Ref/Trainer account role or Perms column. Legacy
+  `ref`/`scorekeeper`/`viewer` role values are remapped to `staff` in middleware.
+- **Dark-mode polish**: zebra-striped tables using translucent `bg-*-50/50` rows were missed by the
+  `gd-dark` overrides (only the un-suffixed `bg-*-50` was handled), leaving a muddy light band. Added
+  `body.gd-dark [class*="bg-gray-50/"], [class*="bg-slate-50/"] { background:rgba(255,255,255,0.03) }`.
+
 - **Divisions page** — tabs are **Teams & Pools / Games / Bracket**. Pools are merged into the
   Teams tab (inline pools bar: chips w/ live counts, add, delete, unassigned badge). A **List
   view / Assign Pools** toggle: "Assign Pools" opens a clean side-by-side **pool-column** view
