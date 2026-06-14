@@ -18,6 +18,7 @@ const ROLE_COLORS: Record<string, string> = {
   director:       'bg-purple-100 text-purple-700',
   club_director:  'bg-violet-100 text-violet-700',
   assigner:       'bg-indigo-100 text-indigo-700',
+  scheduler:      'bg-cyan-100 text-cyan-700',
   coach:          'bg-blue-100 text-blue-700',
   staff:          'bg-teal-100 text-teal-700',
   parent:         'bg-pink-100 text-pink-700',
@@ -28,6 +29,7 @@ const ROLE_LABELS: Record<string, string> = {
   director:       'Tournament Director',
   club_director:  'Club Director',
   assigner:       'Assigner',
+  scheduler:      'Scheduler',
   coach:          'Coach',
   staff:          'Staff',
   parent:         'Parent',
@@ -145,7 +147,7 @@ export default function NavBar() {
           </>
         )}
 
-        {(role === 'admin' || role === 'director' || role === 'assigner') && (
+        {(role === 'admin' || role === 'director' || role === 'assigner' || role === 'scheduler') && (
           <a href="/staff" className="text-sm font-medium text-slate-600 hover:text-sky-600 transition-colors flex-shrink-0">Staff</a>
         )}
 
@@ -186,7 +188,7 @@ export default function NavBar() {
                     className={`text-xs font-semibold px-2 py-1 rounded-full border cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400 ${isPreview ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-slate-100 text-slate-600 border-slate-200'}`}
                   >
                     <option value="">Admin (you)</option>
-                    {['director','club_director','assigner','coach','staff','parent'].map(r => (
+                    {['director','club_director','assigner','scheduler','coach','staff','parent'].map(r => (
                       <option key={r} value={r}>{ROLE_LABELS[r] ?? r}</option>
                     ))}
                   </select>

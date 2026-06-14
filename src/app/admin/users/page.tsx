@@ -12,13 +12,14 @@ interface ClubLink { id: string; tournamentId: string; clubName: string }
 interface Tournament { id: string; name: string }
 interface Registration { clubName: string; tournamentId: string }
 
-const ROLES = ['admin','director','club_director','assigner','coach','staff','parent']
+const ROLES = ['admin','director','club_director','assigner','scheduler','coach','staff','parent']
 
 const ROLE_LABELS: Record<string, string> = {
   admin:         'Admin',
   director:      'Tournament Director',
   club_director: 'Club Director',
   assigner:      'Assigner',
+  scheduler:     'Scheduler',
   coach:         'Coach',
   staff:         'Staff',
   parent:        'Parent',
@@ -29,6 +30,7 @@ const ROLE_COLORS: Record<string, string> = {
   director:      'bg-purple-100 text-purple-700',
   club_director: 'bg-violet-100 text-violet-700',
   assigner:      'bg-indigo-100 text-indigo-700',
+  scheduler:     'bg-cyan-100 text-cyan-700',
   coach:         'bg-blue-100 text-blue-700',
   staff:         'bg-teal-100 text-teal-700',
   parent:        'bg-pink-100 text-pink-700',

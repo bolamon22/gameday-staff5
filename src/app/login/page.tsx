@@ -30,6 +30,7 @@ export default function LoginPage() {
         director:       '/dashboard/director',
         club_director:  '/dashboard/club-director',
         assigner:       '/dashboard/assigner',
+        scheduler:      '/dashboard/scheduler',
         coach:          '/dashboard/coach',
         ref:            '/dashboard/ref',
         scorekeeper:    '/dashboard/scorekeeper',

@@ -31,6 +31,9 @@
 body.gd-dark { background:#0b0f17 !important; color:#e5e7eb; }
 body.gd-dark .card, body.gd-dark .bg-white { background:#111827 !important; }
 body.gd-dark .bg-slate-50, body.gd-dark .bg-gray-50 { background:#0b0f17 !important; }
+/* Translucent zebra-stripe variants (e.g. bg-gray-50/50) — the un-suffixed rule above misses these,
+   leaving a muddy light band in dark mode. Keep the striping a subtle dark overlay instead. */
+body.gd-dark [class*="bg-gray-50/"], body.gd-dark [class*="bg-slate-50/"] { background:rgba(255,255,255,0.03) !important; }
 body.gd-dark .bg-slate-100, body.gd-dark .bg-gray-100, body.gd-dark .bg-slate-200, body.gd-dark .bg-gray-200, body.gd-dark .bg-yellow-50, body.gd-dark .bg-purple-100 { background:#1f2937 !important; }
 /* Light accent tints (selected/active rows) need a dark fill in dark mode, else the lightened text becomes invisible on them. */
 body.gd-dark .bg-teal-50, body.gd-dark .bg-teal-100, body.gd-dark .bg-green-50, body.gd-dark .bg-green-100, body.gd-dark .bg-emerald-50, body.gd-dark .bg-emerald-100 { background:rgba(20,184,166,0.15) !important; }

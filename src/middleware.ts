@@ -14,6 +14,7 @@ const ROLE_HOME: Record<string, string> = {
   director:      '/dashboard/director',
   club_director: '/dashboard/club-director',
   assigner:      '/dashboard/assigner',
+  scheduler:     '/dashboard/scheduler',
   coach:         '/dashboard/coach',
   staff:         '/dashboard/staff',
   parent:        '/dashboard/parent',
