@@ -189,7 +189,7 @@ export default function DashboardPage() {
 
             <Hub icon={TriangleAlert} label="Field Ops" count={2}>
               <HubItem href={`/tournaments/${id}/incidents`} icon={TriangleAlert}  label="Incidents" />
-              <HubItem href={`/tournaments/${id}/checklist`} icon={ClipboardCheck} label="Field checklist" />
+              <HubItem href={`/tournaments/${id}/checklist`} icon={ClipboardCheck} label="Setup checklist" />
             </Hub>
 
           </div>

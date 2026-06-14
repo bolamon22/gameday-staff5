@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 
-// Field-readiness checklist submissions. Stored as JSON in AppSetting key
+// Shared tournament-setup checklist. One list per tournament that any staff
+// member can check off and add to. Stored as JSON in AppSetting key
 // `checklists:<id>` (no schema migration). Staff-only.
 
 async function ensureTable() {
@@ -16,12 +17,27 @@ const key = (id: string) => `checklists:${id}`
 const EXTERNAL_ROLES = ['coach', 'parent', 'club_director']
 const isStaff = (role?: string) => !!role && !EXTERNAL_ROLES.includes(role)
 
-async function readList(id: string) {
+type Item = { id: string; text: string; done: boolean; doneBy?: string; doneAt?: string }
+
+const DEFAULT_ITEMS: Item[] = [
+  { id: 'd1', text: 'Fields lined & marked', done: false },
+  { id: 'd2', text: 'Goals & nets secured', done: false },
+  { id: 'd3', text: 'Team tents / benches placed', done: false },
+  { id: 'd4', text: 'Registration & check-in table set', done: false },
+  { id: 'd5', text: 'Signage & directions posted', done: false },
+  { id: 'd6', text: 'Scoreboards / clocks working', done: false },
+  { id: 'd7', text: 'Water stations stocked', done: false },
+  { id: 'd8', text: 'First-aid / medical station ready', done: false },
+  { id: 'd9', text: 'Trash & recycling bins out', done: false },
+  { id: 'd10', text: 'Parking & traffic plan set', done: false },
+]
+
+async function readRaw(id: string): Promise<Item[] | null> {
   const row = await prisma.appSetting.findUnique({ where: { key: key(id) } })
-  if (!row) return []
-  try { const v = JSON.parse(row.value || '[]'); return Array.isArray(v) ? v : [] } catch { return [] }
+  if (!row) return null
+  try { const v = JSON.parse(row.value || '[]'); return Array.isArray(v) ? v : null } catch { return null }
 }
-async function writeList(id: string, list: any[]) {
+async function writeList(id: string, list: Item[]) {
   await prisma.appSetting.upsert({
     where: { key: key(id) },
     update: { value: JSON.stringify(list) },
@@ -32,13 +48,15 @@ async function writeList(id: string, list: any[]) {
 export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session || !isStaff((session.user as any)?.role)) return NextResponse.json({ submissions: [] }, { status: session ? 403 : 401 })
+    if (!session || !isStaff((session.user as any)?.role)) return NextResponse.json({ items: [] }, { status: session ? 403 : 401 })
     await ensureTable()
-    return NextResponse.json({ submissions: await readList(params.id) })
-  } catch { return NextResponse.json({ submissions: [] }) }
+    const stored = await readRaw(params.id)
+    return NextResponse.json({ items: stored && stored.length ? stored : DEFAULT_ITEMS })
+  } catch { return NextResponse.json({ items: DEFAULT_ITEMS }) }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+// Replace the whole list. Stamps done-by / done-at for items that just flipped done.
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     const role = (session?.user as any)?.role as string | undefined
@@ -46,38 +64,30 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!isStaff(role)) return NextResponse.json({ error: 'Staff only' }, { status: 403 })
     await ensureTable()
     const b = await req.json()
-    const field = String(b.field || '').trim()
-    if (!field) return NextResponse.json({ error: 'Field is required' }, { status: 400 })
-    const items = (b.items && typeof b.items === 'object') ? b.items : {}
-    const checked = Object.values(items).filter(Boolean).length
-    const totalItems = Object.keys(items).length
-    const entry = {
-      id: Math.random().toString(36).slice(2, 10),
-      field,
-      items,
-      checked,
-      total: totalItems,
-      note: String(b.note || '').trim(),
-      by: session.user?.name || session.user?.email || 'Staff',
-      createdAt: new Date().toISOString(),
-    }
-    const list = await readList(params.id)
-    await writeList(params.id, [entry, ...list].slice(0, 200))
-    return NextResponse.json({ ok: true, submission: entry })
-  } catch (e: any) { return NextResponse.json({ error: e?.message || 'Failed' }, { status: 500 }) }
-}
+    const incoming = Array.isArray(b.items) ? b.items : []
+    const me = session.user?.name || session.user?.email || 'Staff'
+    const now = new Date().toISOString()
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const session = await getServerSession(authOptions)
-    const role = (session?.user as any)?.role as string | undefined
-    if (!session || !isStaff(role)) return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
-    await ensureTable()
-    const delId = req.nextUrl.searchParams.get('id')
-    const me = session.user?.name || session.user?.email || ''
-    const list = await readList(params.id)
-    const next = list.filter((s: any) => s.id !== delId || (role !== 'director' && s.by !== me))
-    await writeList(params.id, next)
-    return NextResponse.json({ ok: true })
+    const prev = (await readRaw(params.id)) || []
+    const prevById = new Map(prev.map((p: Item) => [p.id, p]))
+
+    const cleaned: Item[] = incoming
+      .map((raw: any) => {
+        const id = String(raw.id || Math.random().toString(36).slice(2, 10))
+        const text = String(raw.text || '').trim()
+        if (!text) return null
+        const done = !!raw.done
+        const before = prevById.get(id)
+        let doneBy = before?.doneBy
+        let doneAt = before?.doneAt
+        if (done && (!before || !before.done)) { doneBy = me; doneAt = now }
+        if (!done) { doneBy = undefined; doneAt = undefined }
+        return { id, text: text.slice(0, 120), done, doneBy, doneAt } as Item
+      })
+      .filter(Boolean)
+      .slice(0, 100) as Item[]
+
+    await writeList(params.id, cleaned)
+    return NextResponse.json({ ok: true, items: cleaned })
   } catch (e: any) { return NextResponse.json({ error: e?.message || 'Failed' }, { status: 500 }) }
 }
