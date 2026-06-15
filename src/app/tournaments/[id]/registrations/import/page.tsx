@@ -148,6 +148,7 @@ export default function TourneyMachineImportPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             tournamentId: params.id,
+            source: 'import',
             clubName: g.clubName,
             clubContact: g.contactName || g.clubName,
             contactEmail: g.contactEmail || '',

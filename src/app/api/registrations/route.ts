@@ -27,10 +27,14 @@ export async function POST(req: NextRequest) {
   const {
     tournamentId, clubName, clubContact, contactEmail, contactPhone,
     clubBasedIn, clubWebsite, numTeams, needsHotel, paymentMethod, notes, teams,
-    invoiceAmount, discountAmount, discountNote, clubLogoUrl,
+    invoiceAmount, discountAmount, discountNote, clubLogoUrl, source,
   } = body
 
-  if (!tournamentId || !clubContact || !contactEmail || !contactPhone) {
+  // Bulk imports only need a club/team name — contact email/phone are optional
+  // (a TourneyMachine/CSV export usually has none). The public registration form
+  // still requires them (source !== 'import').
+  const isImport = source === 'import'
+  if (!tournamentId || !clubContact || (!isImport && (!contactEmail || !contactPhone))) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
