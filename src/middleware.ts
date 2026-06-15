@@ -46,6 +46,8 @@ export async function middleware(req: NextRequest) {
   if (PUBLIC_ROUTES.some(r => pathname.startsWith(r))) return NextResponse.next()
   if (pathname.startsWith('/api/')) return NextResponse.next()
   if (pathname.startsWith('/_next') || pathname.startsWith('/favicon')) return NextResponse.next()
+  // Static assets in /public (logos, images, fonts, etc.) — never require auth
+  if (/\.(png|jpe?g|gif|svg|webp|ico|css|js|woff2?|ttf|map)$/i.test(pathname)) return NextResponse.next()
   // Public tournament pages (divisions, schedule, standings, bracket, rules) — no login required
   if (/^\/tournaments\/[^/]+\/public(\/|$)/.test(pathname)) return NextResponse.next()
 
