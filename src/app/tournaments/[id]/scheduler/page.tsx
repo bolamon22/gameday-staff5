@@ -53,11 +53,14 @@ function divColor(div: string, divs: string[], colorMap: Record<string, string> 
 }
 
 function makeSlots(startH: number, endH: number, inc: number) {
+  // Step continuously by `inc` minutes across the whole window so rows are evenly
+  // spaced. (Resetting minutes each hour produced overlapping rows like 8:50 / 9:00
+  // for increments that don't divide 60.)
   const slots: string[] = []
-  for (let h = startH; h < endH; h++) {
-    for (let m = 0; m < 60; m += inc) {
-      slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
-    }
+  const step = inc > 0 ? inc : 30
+  for (let t = startH * 60; t < endH * 60; t += step) {
+    const h = Math.floor(t / 60), m = t % 60
+    slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
   }
   return slots
 }
