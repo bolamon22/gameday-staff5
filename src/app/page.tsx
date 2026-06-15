@@ -24,7 +24,7 @@ const DEFAULT_DIVISIONS = [
   'Girls Lower School A (7v7)', 'Girls Lower School B (7v7 - No 2033s)',
 ]
 
-const EMPTY_FORM = { name:'', sport:'Lacrosse', startDate:'', endDate:'', location:'', scheduleIncrement:'50', numFields:'', dayStart:'08:00', dayEnd:'18:00', teamFee:'1495' }
+const EMPTY_FORM = { name:'', sport:'Lacrosse', startDate:'', endDate:'', location:'', scheduleIncrement:'50', numFields:'', dayStart:'08:00', dayEnd:'18:00', regMode:'builtin', teamFee:'1495' }
 
 const ADMIN_LINKS = [
   { label: '👥 User Management',    href: '/admin/users',              desc: 'Add, edit, delete users and assign roles' },
@@ -138,7 +138,7 @@ export default function HomePage() {
         const fee = parseInt(form.teamFee)
         const patch: any = {}
         if (createLogoUrl) patch.logoUrl = createLogoUrl
-        if (fee > 0) patch.registrationPricing = JSON.stringify({ tier1: fee, tier1Max: 3, tier2: fee, tier2Max: 6, tier3: fee, sevenVSeven: fee })
+        if (form.regMode === 'builtin' && fee > 0) patch.registrationPricing = JSON.stringify({ tier1: fee, tier1Max: 3, tier2: fee, tier2Max: 6, tier3: fee, sevenVSeven: fee })
         if (Object.keys(patch).length) {
           try { await fetch(`/api/tournaments/${created.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) }) } catch { /* non-fatal */ }
         }
@@ -162,6 +162,10 @@ export default function HomePage() {
         }
       }
       toast.success('Tournament created')
+      if (form.regMode === 'import' && created?.id) {
+        window.location.href = `/tournaments/${created.id}/registrations/import`
+        return
+      }
       setForm(EMPTY_FORM)
       setCreateLogoUrl('')
       setDivisions([...DEFAULT_DIVISIONS])
@@ -332,10 +336,20 @@ export default function HomePage() {
                 <input className="input" type="time" value={form.dayEnd} onChange={e=>setF('dayEnd',e.target.value)}/>
               </div>
               <div>
-                <label className="label">Team registration fee ($)</label>
-                <input className="input" type="number" min="0" step="any" value={form.teamFee} onChange={e=>setF('teamFee',e.target.value)} placeholder="1495"/>
-                <p className="text-[11px] text-gray-400 mt-1">Suggested base fee. Add volume discounts &amp; 7v7 pricing later in Settings.</p>
+                <label className="label">Team registration</label>
+                <select className="input" value={form.regMode} onChange={e=>setF('regMode',e.target.value)}>
+                  <option value="builtin">Use built-in registration</option>
+                  <option value="import">Import from another platform (CSV)</option>
+                </select>
+                <p className="text-[11px] text-gray-400 mt-1">{form.regMode === 'import' ? "You'll upload your CSV right after creating." : 'Teams register & pay through Whistle Ready.'}</p>
               </div>
+              {form.regMode === 'builtin' && (
+                <div>
+                  <label className="label">Team registration fee ($)</label>
+                  <input className="input" type="number" min="0" step="any" value={form.teamFee} onChange={e=>setF('teamFee',e.target.value)} placeholder="1495"/>
+                  <p className="text-[11px] text-gray-400 mt-1">Suggested base fee. Add volume discounts &amp; 7v7 pricing later in Settings.</p>
+                </div>
+              )}
               <div className="sm:col-span-2 lg:col-span-3 flex items-center gap-3 flex-wrap">
                 {createLogoUrl
                   ? <img src={createLogoUrl} alt="logo" className="w-12 h-12 rounded-lg object-contain border border-gray-300 bg-white" />
