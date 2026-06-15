@@ -27,7 +27,8 @@ const TEMPLATES: { label: string; make: (f: string) => string; group: string }[]
 ]
 
 const URGENCIES = ['Low', 'Medium', 'High']
-const urgClass = (u: string) => u === 'High' ? 'bg-red-100 text-red-700' : u === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
+// Solid colors so the urgency badge stays legible in both light and dark mode.
+const urgClass = (u: string) => u === 'High' ? 'bg-red-500 text-white' : u === 'Medium' ? 'bg-amber-500 text-slate-900' : 'bg-slate-500 text-white'
 
 export default function OpsBoardPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { id } = useParams()
@@ -154,17 +155,19 @@ export default function OpsBoardPage({ embedded = false }: { embedded?: boolean 
                   <span className="text-[11px] text-slate-400">{m.from} · {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
                 </div>
                 <p className="text-sm text-slate-800">{m.text}</p>
-                {acks.length > 0 && (
+                {acks.length > 0 ? (
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {acks.map((a, i) => (
                       <span key={i} className="inline-flex items-center gap-1 text-[11px] font-medium text-teal-700 bg-teal-50 rounded-full px-2 py-0.5"><Check size={11} />{a.by} on the way</span>
                     ))}
                   </div>
+                ) : (
+                  <p className="mt-1.5 text-[11px] text-slate-400 italic">No one has responded yet</p>
                 )}
                 <div className="mt-2">
                   <button type="button" onClick={() => ack(m.id)}
-                    className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg ${ackedByMe ? 'bg-teal-600 text-white hover:bg-teal-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                    <Check size={13} />{ackedByMe ? 'On my way ✓' : "I'm on my way"}
+                    className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border ${ackedByMe ? 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200' : 'bg-teal-600 border-teal-600 text-white hover:bg-teal-700'}`}>
+                    <Check size={13} />{ackedByMe ? 'On my way ✓ · tap to undo' : 'Respond'}
                   </button>
                 </div>
               </div>
