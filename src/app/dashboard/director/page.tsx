@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Target, Radio, Megaphone, LayoutDashboard, Globe } from 'lucide-react'
+import { Target, Radio, Megaphone, LayoutDashboard, Globe, Users } from 'lucide-react'
 
 interface Tournament {
   id: string; name: string; startDate: string; endDate: string
@@ -30,8 +30,13 @@ export default function DirectorDashboard() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <p className="text-sm text-slate-400">Director</p>
-      <h1 className="text-2xl font-bold text-slate-800 mb-5">Hi, {session?.user?.name?.split(' ')[0] || 'there'}</h1>
+      <div className="flex items-center justify-between gap-3 mb-5">
+        <div>
+          <p className="text-sm text-slate-400">Director</p>
+          <h1 className="text-2xl font-bold text-slate-800">Hi, {session?.user?.name?.split(' ')[0] || 'there'}</h1>
+        </div>
+        <Link href="/dashboard/org" className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-3 py-2 rounded-lg whitespace-nowrap"><Users size={15} /> Your team</Link>
+      </div>
 
       {tournaments.length === 0 ? (
         <div className="text-center py-20 text-slate-400">No tournaments yet.</div>
