@@ -150,7 +150,7 @@ export default function HomePage() {
         // Fields + per-day time window -> venues (so the schedule grid is ready)
         const n = parseInt(form.numFields)
         const venueName = (form.location.split(',')[0] || '').trim() || 'Main Site'
-        const fields = n > 0 ? Array.from({ length: Math.min(n, 30) }, (_, i) => `Field ${i + 1}`) : []
+        const fields = n > 0 ? Array.from({ length: Math.min(n, 30) }, (_, i) => ({ id: Math.random().toString(36).slice(2, 10), name: `Field ${i + 1}`, abbr: `F${i + 1}` })) : []
         const days: string[] = []
         if (form.startDate) {
           const sd = new Date(form.startDate + 'T12:00:00'); const ed = new Date((form.endDate || form.startDate) + 'T12:00:00')
