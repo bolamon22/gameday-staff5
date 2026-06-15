@@ -18,11 +18,11 @@ const GROUPS: { key: string; label: string; Icon: any }[] = [
 const groupLabel = (k: string) => GROUPS.find(g => g.key === k)?.label || 'All staff'
 
 const TEMPLATES: { label: string; make: (f: string) => string; group: string }[] = [
+  { label: 'Trainer needed', make: f => `Trainer needed on Field ${f || '?'}`, group: 'medical' },
   { label: 'Balls — yellow', make: f => `Yellow balls needed on Field ${f || '?'}`, group: 'fieldops' },
   { label: 'Balls — white',  make: f => `White balls needed on Field ${f || '?'}`, group: 'fieldops' },
   { label: 'Water needed',   make: f => `Water needed on Field ${f || '?'}`, group: 'fieldops' },
   { label: 'Ref needed',     make: f => `Referee needed on Field ${f || '?'}`, group: 'refs' },
-  { label: 'Trainer needed', make: f => `Trainer needed on Field ${f || '?'}`, group: 'medical' },
   { label: 'No team at field', make: f => `No team at Field ${f || '?'}`, group: 'all' },
 ]
 
@@ -113,7 +113,7 @@ export default function OpsBoardPage({ embedded = false }: { embedded?: boolean 
         {isMedical && (
           <div className="bg-rose-50 border border-rose-100 rounded-xl p-3 mb-3">
             <p className="text-[11px] font-semibold text-rose-700 mb-2">Medical request — describe the injury below and set urgency. For emergencies, call 911 first.</p>
-            <label className="block text-[11px] font-medium text-slate-500 mb-1">Urgency</label>
+            <label className="block text-xs font-bold text-rose-700 mb-1">Urgency</label>
             <div className="flex gap-1.5">
               {URGENCIES.map(u => (
                 <button key={u} type="button" onClick={() => setUrgency(u)}
@@ -123,8 +123,9 @@ export default function OpsBoardPage({ embedded = false }: { embedded?: boolean 
           </div>
         )}
 
+        {isMedical && <label className="block text-sm font-bold text-rose-600 mb-1">Describe the injury</label>}
         <div className="flex gap-2">
-          <input value={text} onChange={e => setText(e.target.value)} placeholder={isMedical ? 'Describe the injury…' : 'Type a request…'}
+          <input value={text} onChange={e => setText(e.target.value)} placeholder={isMedical ? 'e.g. ankle injury, player #12, can walk but limping…' : 'Type a request…'}
             onKeyDown={e => { if (e.key === 'Enter') send() }}
             className="flex-1 border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
           <button type="button" onClick={send} disabled={!text.trim() || sending}
