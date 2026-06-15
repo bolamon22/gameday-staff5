@@ -81,6 +81,9 @@ export default function ScorekeeperPage({ params }: { params: { id: string; game
   const [showRules, setShowRules] = useState(false)
   const [rulesText, setRulesText] = useState('')
   const [noTies, setNoTies] = useState(false)
+  const [periodFormat, setPeriodFormat] = useState('halves')
+  const [officialTimeOnField, setOfficialTimeOnField] = useState(true)
+  const [currentPeriod, setCurrentPeriod] = useState(1)
   const [savingCfg, setSavingCfg] = useState(false)
 
   // settings + goal-scorer
@@ -105,12 +108,37 @@ export default function ScorekeeperPage({ params }: { params: { id: string; game
     return () => { if (clockRef.current) clearInterval(clockRef.current) }
   }, [params.gameId])
 
-  // shared scoring config (rules text + no-ties flag), tournament-wide
+  // shared scoring config (rules text, no-ties, period format, official-time), tournament-wide
   useEffect(() => {
     fetch(`/api/tournaments/${tid}/rules`).then(r => r.ok ? r.json() : null).then(d => {
-      if (d) { setRulesText(d.rules || ''); setNoTies(!!d.noTies) }
+      if (d) {
+        setRulesText(d.rules || ''); setNoTies(!!d.noTies)
+        if (d.periodFormat) setPeriodFormat(d.periodFormat)
+        setOfficialTimeOnField(d.officialTimeOnField !== false)
+      }
     }).catch(() => {})
   }, [tid])
+
+  // period label for the current format ("Half 1", "Qtr 2", "Period 3")
+  const PERIOD_NOUN: Record<string, string> = { halves: 'Half', quarters: 'Qtr', periods: 'Period', running: 'Running' }
+  function periodLabelFor(n: number) {
+    if (periodFormat === 'running') return 'Running clock'
+    return `${PERIOD_NOUN[periodFormat] || 'Period'} ${n}`
+  }
+
+  // push the live state so parents can follow on the public page
+  function pushLive(opts: { score1?: number; score2?: number; period?: number; live: boolean } = { live: true }) {
+    const s1 = opts.score1 ?? score1, s2 = opts.score2 ?? score2, per = opts.period ?? currentPeriod
+    fetch(`/api/tournaments/${tid}/live-scores`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: params.gameId, score1: s1, score2: s2, period: per, periodLabel: periodLabelFor(per), live: opts.live }),
+    }).catch(() => {})
+  }
+  function changePeriod(delta: number) {
+    const next = Math.max(1, Math.min(9, currentPeriod + delta))
+    setCurrentPeriod(next)
+    pushLive({ period: next, live: true })
+  }
 
   // tick: clock + penalties count down (skip paused)
   useEffect(() => {
@@ -131,8 +159,10 @@ export default function ScorekeeperPage({ params }: { params: { id: string; game
   }, [clockMs, clockRunning])
 
   function toggleClock() {
-    if (!clockRunning && clockMs <= 0) setClockMs(periodSecs * 1000)
+    const starting = !clockRunning
+    if (starting && clockMs <= 0) setClockMs(periodSecs * 1000)
     setClockRunning(r => !r)
+    if (starting) pushLive({ live: true })
   }
   function resetClock() { setClockRunning(false); setClockMs(periodSecs * 1000) }
 
@@ -175,20 +205,20 @@ export default function ScorekeeperPage({ params }: { params: { id: string; game
     setDefaults(saveDefaults(game.tournamentId ?? tid, { askScorer: val }))
   }
   function addGoal(team: 1 | 2) {
-    if (defaults.askScorer) { setGoalTeam(team); setGoalPlayer('') }
-    else if (team === 1) setScore1(s => s + 1)
-    else setScore2(s => s + 1)
+    if (defaults.askScorer) { setGoalTeam(team); setGoalPlayer(''); return }
+    if (team === 1) { const ns = score1 + 1; setScore1(ns); pushLive({ score1: ns, live: true }) }
+    else { const ns = score2 + 1; setScore2(ns); pushLive({ score2: ns, live: true }) }
   }
   function confirmGoal() {
     const num = goalPlayer.trim()
-    if (goalTeam === 1) { setScore1(s => s + 1); setScorers1(a => [...a, num]) }
-    else if (goalTeam === 2) { setScore2(s => s + 1); setScorers2(a => [...a, num]) }
+    if (goalTeam === 1) { const ns = score1 + 1; setScore1(ns); setScorers1(a => [...a, num]); pushLive({ score1: ns, live: true }) }
+    else if (goalTeam === 2) { const ns = score2 + 1; setScore2(ns); setScorers2(a => [...a, num]); pushLive({ score2: ns, live: true }) }
     toast.success(num ? `Goal · #${num}` : 'Goal recorded')
     setGoalTeam(null); setGoalPlayer('')
   }
   function removeGoal(team: 1 | 2) {
-    if (team === 1) { setScore1(s => Math.max(0, s - 1)); setScorers1(a => a.slice(0, -1)) }
-    else { setScore2(s => Math.max(0, s - 1)); setScorers2(a => a.slice(0, -1)) }
+    if (team === 1) { const ns = Math.max(0, score1 - 1); setScore1(ns); setScorers1(a => a.slice(0, -1)); pushLive({ score1: ns, live: true }) }
+    else { const ns = Math.max(0, score2 - 1); setScore2(ns); setScorers2(a => a.slice(0, -1)); pushLive({ score2: ns, live: true }) }
   }
 
   function chosenSecs() { return useCustom ? Number(customMin) * 60 + Number(customSec) : penSecs }
@@ -302,6 +332,13 @@ export default function ScorekeeperPage({ params }: { params: { id: string; game
 
       {/* Clock (counts down from period length) */}
       <div className="flex flex-col items-center py-5 border-b border-gray-800">
+        {periodFormat !== 'running' && (
+          <div className="flex items-center gap-3 mb-2">
+            <button onClick={() => changePeriod(-1)} className="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-lg font-bold">−</button>
+            <span className="text-sm font-bold text-emerald-400 uppercase tracking-wide min-w-[90px] text-center">{periodLabelFor(currentPeriod)}</span>
+            <button onClick={() => changePeriod(1)} className="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-lg font-bold">+</button>
+          </div>
+        )}
         <div className={`text-6xl font-mono font-bold tracking-wider mb-1 ${low ? 'text-red-400' : 'text-white'}`}>{clockStr}</div>
         <button onClick={() => { setSetupMin(Math.floor(periodSecs / 60)); setSetupSec(periodSecs % 60); setSaveClockDefault(true); setShowClockSetup(true) }}
           className="text-xs text-gray-400 hover:text-gray-200 mb-4">Period {fmt(periodSecs)} · ✎ Set time</button>
@@ -312,6 +349,9 @@ export default function ScorekeeperPage({ params }: { params: { id: string; game
           </button>
           <button onClick={resetClock} className="px-5 py-3 rounded-2xl text-base font-bold bg-gray-800 hover:bg-gray-700 text-gray-300">Reset</button>
         </div>
+        {officialTimeOnField && (
+          <p className="text-[11px] text-gray-500 mt-3 text-center max-w-[280px]">Official game time is kept on the field by the referees — this clock is for reference.</p>
+        )}
       </div>
 
       {/* Scoreboard */}
@@ -357,7 +397,7 @@ export default function ScorekeeperPage({ params }: { params: { id: string; game
       <div className="px-4 pb-6 pt-3 border-t border-gray-800">
         <button onClick={() => {
             if (noTies && score1 === score2) toast('Ties aren’t allowed — please enter a winner', { icon: '⚠️', duration: 4000 })
-            saveScore(); setGameEnded(true); setClockRunning(false)
+            saveScore(); setGameEnded(true); setClockRunning(false); pushLive({ live: false })
           }}
           className="w-full py-4 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-base active:scale-[.98] transition-all">End Game &amp; Save Score</button>
         {gameEnded && (<p className="text-center text-xs text-emerald-400 mt-2">Final: {game.team1} {score1} – {score2} {game.team2}</p>)}
@@ -398,6 +438,21 @@ export default function ScorekeeperPage({ params }: { params: { id: string; game
               <span className="text-sm text-gray-200">No ties — warn at final if the score is tied</span>
               <input type="checkbox" checked={noTies} onChange={e => { setNoTies(e.target.checked); saveConfig({ noTies: e.target.checked }) }} className="accent-emerald-600 w-5 h-5" />
             </label>
+            <label className="flex items-center justify-between gap-3 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 cursor-pointer mt-3">
+              <span className="text-sm text-gray-200">Official game time kept on field by refs</span>
+              <input type="checkbox" checked={officialTimeOnField} onChange={e => { setOfficialTimeOnField(e.target.checked); saveConfig({ officialTimeOnField: e.target.checked }) }} className="accent-emerald-600 w-5 h-5" />
+            </label>
+            <div className="mt-3 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
+              <label className="block text-sm text-gray-200 mb-1.5">Game format</label>
+              <select value={periodFormat} onChange={e => { setPeriodFormat(e.target.value); saveConfig({ periodFormat: e.target.value }) }}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="halves">Halves</option>
+                <option value="quarters">Quarters</option>
+                <option value="periods">Periods</option>
+                <option value="running">Running clock (no periods)</option>
+              </select>
+              <p className="text-[11px] text-gray-500 mt-1">Sets how the period is labeled in the scorer (Half / Qtr / Period).</p>
+            </div>
             <div className="mt-4">
               <label className="block text-xs text-gray-400 mb-1">Tournament rules (shown in the 📖 Rules reference)</label>
               <textarea value={rulesText} onChange={e => setRulesText(e.target.value)} rows={6} placeholder="Paste or type the playing rules here…"
