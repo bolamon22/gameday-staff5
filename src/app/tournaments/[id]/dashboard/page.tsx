@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import {
-  Target, ClipboardList, Eye, Radio, TriangleAlert, ClipboardCheck, Contact,
+  Target, ClipboardList, Radio, TriangleAlert, ClipboardCheck, Contact,
   Megaphone, Wallet, ArrowRight, Trophy, ChevronDown, type LucideIcon,
 } from 'lucide-react'
 import ChatWidget from '../ChatWidget'
@@ -145,7 +145,6 @@ export default function DashboardPage() {
             <GameDayCard href={`/tournaments/${id}/checklist`}   icon={ClipboardCheck} label="Setup checklist" hint="Shared list" />
             <GameDayCard href={`/tournaments/${id}/assignments`} icon={ClipboardList}  label="Assignments"     hint={`~${assignPct}% filled`} />
             <GameDayCard href={`/tournaments/${id}/directory`}   icon={Contact}        label="Staff contacts"  hint="Call / text" />
-            <GameDayCard href={`/tournaments/${id}/staff-view`}  icon={Eye}            label="Staff view"      hint="What staff sees" />
             <GameDayCard href={`/tournaments/${id}/broadcast`}   icon={Megaphone}      label="Broadcast"       hint="Announcements" />
           </div>
         </section>

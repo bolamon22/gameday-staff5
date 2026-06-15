@@ -74,7 +74,6 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
       { href: `${base}/incidents`,   label: 'Incidents' },
       { href: `${base}/checklist`,   label: 'Setup checklist' },
       { href: `${base}/directory`,   label: 'Staff contacts' },
-      { href: `${base}/staff-view`,  label: 'Staff view' },
       { href: `${base}/broadcast`,   label: 'Broadcast' },
     ]},
     { label: 'Financials', href: `${base}/financials` },

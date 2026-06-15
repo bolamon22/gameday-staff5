@@ -24,10 +24,10 @@ async function readJson(key: string, fallback: any) {
   try { const v = JSON.parse(row.value || 'null'); return v ?? fallback } catch { return fallback }
 }
 
-// Director is always allowed; otherwise the role must be in the configured list.
+// Admin and director are always allowed; otherwise the role must be in the configured list.
 async function canBroadcast(id: string, role: string | undefined) {
   if (!role) return false
-  if (role === 'director') return true
+  if (role === 'admin' || role === 'director') return true
   const allowed = await readJson(rolesKey(id), DEFAULT_BROADCAST_ROLES)
   return Array.isArray(allowed) && allowed.includes(role)
 }

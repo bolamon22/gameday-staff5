@@ -37,7 +37,7 @@ export default function BroadcastPage() {
   const [msg, setMsg] = useState('')
   const [sending, setSending] = useState(false)
 
-  const canBroadcast = role === 'director' || (role ? allowedRoles.includes(role) : false)
+  const canBroadcast = role === 'admin' || role === 'director' || (role ? allowedRoles.includes(role) : false)
 
   function loadAnnouncements() {
     fetch(`/api/tournaments/${id}/announcements`).then(r => r.ok ? r.json() : null).then(d => { if (d && Array.isArray(d.announcements)) setAnnouncements(d.announcements) }).catch(() => {})
