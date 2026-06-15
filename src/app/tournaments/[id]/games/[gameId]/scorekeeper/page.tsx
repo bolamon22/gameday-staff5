@@ -85,6 +85,7 @@ export default function ScorekeeperPage({ params }: { params: { id: string; game
   const [officialTimeOnField, setOfficialTimeOnField] = useState(true)
   const [currentPeriod, setCurrentPeriod] = useState(1)
   const [savingCfg, setSavingCfg] = useState(false)
+  const [teamLogos, setTeamLogos] = useState<Record<string, string>>({})
 
   // settings + goal-scorer
   const [showSettings, setShowSettings] = useState(false)
@@ -117,6 +118,11 @@ export default function ScorekeeperPage({ params }: { params: { id: string; game
         setOfficialTimeOnField(d.officialTimeOnField !== false)
       }
     }).catch(() => {})
+  }, [tid])
+
+  // team crests (teamName -> logoUrl) for this tournament
+  useEffect(() => {
+    fetch(`/api/tournaments/${tid}/team-logos`).then(r => r.ok ? r.json() : {}).then(m => setTeamLogos(m || {})).catch(() => {})
   }, [tid])
 
   // period label for the current format ("Half 1", "Qtr 2", "Period 3")
@@ -282,6 +288,13 @@ export default function ScorekeeperPage({ params }: { params: { id: string; game
     )
   }
 
+  function TeamCrest({ name }: { name: string }) {
+    const url = teamLogos[name]
+    return url
+      ? <img src={url} alt="" className="w-14 h-14 rounded-full object-contain bg-white/5 border border-gray-700 mb-2" />
+      : <div className="w-14 h-14 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-400 text-xl font-bold mb-2">{name?.[0]?.toUpperCase() || '?'}</div>
+  }
+
   function Stepper({ label, value, set, max }: { label: string; value: number; set: (n: number) => void; max: number }) {
     return (
       <div className="flex-1">
@@ -358,6 +371,7 @@ export default function ScorekeeperPage({ params }: { params: { id: string; game
       <div className="flex flex-1 divide-x divide-gray-800">
         {/* Team 1 */}
         <div className="flex-1 flex flex-col items-center px-3 py-5">
+          <TeamCrest name={game.team1} />
           <p className="text-base font-semibold text-gray-300 text-center mb-3 leading-tight">{game.team1}</p>
           <div className="text-8xl font-bold text-white mb-5 tabular-nums">{score1}</div>
           <div className="flex gap-3 mb-3">
@@ -376,6 +390,7 @@ export default function ScorekeeperPage({ params }: { params: { id: string; game
 
         {/* Team 2 */}
         <div className="flex-1 flex flex-col items-center px-3 py-5">
+          <TeamCrest name={game.team2} />
           <p className="text-base font-semibold text-gray-300 text-center mb-3 leading-tight">{game.team2}</p>
           <div className="text-8xl font-bold text-white mb-5 tabular-nums">{score2}</div>
           <div className="flex gap-3 mb-3">
