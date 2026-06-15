@@ -25,7 +25,7 @@ const TEMPLATES: { label: string; make: (f: string) => string; group: string }[]
   { label: 'Field ready', make: f => `Field ${f || '?'} is ready to start`, group: 'all' },
 ]
 
-export default function OpsBoardPage() {
+export default function OpsBoardPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { id } = useParams()
   const { data: session, status } = useSession()
   const [group, setGroup] = useState('all')
@@ -66,9 +66,11 @@ export default function OpsBoardPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <Toaster position="top-right" />
-      <Link href={`/tournaments/${id}/dashboard`} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-teal-700 mb-3"><ChevronLeft size={15} /> Dashboard</Link>
-      <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2 mb-1"><Radio size={22} className="text-teal-600" /> Ops board</h1>
-      <p className="text-sm text-slate-500 mb-5">Quick game-day requests to staff — “need a ball on Field 5,” “trainer to Field 7.” Anyone on staff can post; it shows here for everyone.</p>
+      {!embedded && <>
+        <Link href={`/tournaments/${id}/dashboard`} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-teal-700 mb-3"><ChevronLeft size={15} /> Dashboard</Link>
+        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2 mb-1"><Radio size={22} className="text-teal-600" /> Ops board</h1>
+        <p className="text-sm text-slate-500 mb-5">Quick game-day requests to staff — “need a ball on Field 5,” “trainer to Field 7.” Anyone on staff can post; it shows here for everyone.</p>
+      </>}
 
       {/* composer */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm mb-6">

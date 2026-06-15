@@ -22,7 +22,7 @@ const TEMPLATES = [
   'Championship photos at the main tent after each final.',
 ]
 
-export default function BroadcastPage() {
+export default function BroadcastPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { id } = useParams()
   const { data: session, status } = useSession()
   const role = (session?.user as any)?.role as string | undefined
@@ -83,9 +83,11 @@ export default function BroadcastPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <Toaster position="top-right" />
-      <Link href={`/tournaments/${id}/dashboard`} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-teal-700 mb-3"><ChevronLeft size={15} /> Dashboard</Link>
-      <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2 mb-1"><Megaphone size={22} className="text-teal-600" /> Broadcast</h1>
-      <p className="text-sm text-slate-500 mb-5">Post an announcement to the public schedule page. Pick who it’s for, then write the message.</p>
+      {!embedded && <>
+        <Link href={`/tournaments/${id}/dashboard`} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-teal-700 mb-3"><ChevronLeft size={15} /> Dashboard</Link>
+        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2 mb-1"><Megaphone size={22} className="text-teal-600" /> Broadcast</h1>
+        <p className="text-sm text-slate-500 mb-5">Post an announcement to the public schedule page. Pick who it’s for, then write the message.</p>
+      </>}
 
       {!canBroadcast && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800 mb-5">

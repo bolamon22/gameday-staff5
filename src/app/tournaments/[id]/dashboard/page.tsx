@@ -139,13 +139,10 @@ export default function DashboardPage() {
             {isLive && <span className="text-[10px] font-bold uppercase tracking-wide bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Live now</span>}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
-            <GameDayCard href={`/tournaments/${id}/scores`}      icon={Target}         label="Post scores"     hint="Quick entry" accent />
-            <GameDayCard href={`/tournaments/${id}/ops`}         icon={Radio}          label="Ops board"       hint="Field requests" />
-            <GameDayCard href={`/tournaments/${id}/incidents`}   icon={TriangleAlert}  label="Incidents"       hint="Log & resolve" />
-            <GameDayCard href={`/tournaments/${id}/checklist`}   icon={ClipboardCheck} label="Setup checklist" hint="Shared list" />
-            <GameDayCard href={`/tournaments/${id}/assignments`} icon={ClipboardList}  label="Assignments"     hint={`~${assignPct}% filled`} />
-            <GameDayCard href={`/tournaments/${id}/directory`}   icon={Contact}        label="Staff contacts"  hint="Call / text" />
-            <GameDayCard href={`/tournaments/${id}/broadcast`}   icon={Megaphone}      label="Broadcast"       hint="Announcements" />
+            <GameDayCard href={`/tournaments/${id}/scores`}         icon={Target}         label="Post scores"     hint="Quick entry" accent />
+            <GameDayCard href={`/tournaments/${id}/assignments`}    icon={ClipboardList}  label="Assignments"     hint={`~${assignPct}% filled`} />
+            <GameDayCard href={`/tournaments/${id}/communications`} icon={Megaphone}      label="Communications"  hint="Broadcast · ops · incidents" />
+            <GameDayCard href={`/tournaments/${id}/checklist`}      icon={ClipboardCheck} label="Setup checklist" hint="Shared list" />
           </div>
         </section>
 
