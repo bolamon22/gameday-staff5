@@ -141,8 +141,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
             <GameDayCard href={`/tournaments/${id}/scores`}         icon={Target}         label="Post scores"     hint="Quick entry" accent />
             <GameDayCard href={`/tournaments/${id}/assignments`}    icon={ClipboardList}  label="Assignments"     hint={`~${assignPct}% filled`} />
-            <GameDayCard href={`/tournaments/${id}/communications`} icon={Megaphone}      label="Communications"  hint="Broadcast · ops · incidents" />
-            <GameDayCard href={`/tournaments/${id}/checklist`}      icon={ClipboardCheck} label="Setup checklist" hint="Shared list" />
+            <GameDayCard href={`/tournaments/${id}/communications`} icon={Megaphone}      label="Communications"  hint="Broadcast · ops · incidents · contacts" />
           </div>
         </section>
 

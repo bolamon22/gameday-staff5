@@ -15,7 +15,7 @@ const ROLE_LABELS: Record<string, string> = {
 const roleLabel = (r?: string) => ROLE_LABELS[r || ''] || (r ? r.charAt(0).toUpperCase() + r.slice(1).replace(/_/g, ' ') : 'Staff')
 const ROLE_ORDER = ['Assigners', 'Directors', 'Referees', 'Scorekeepers', 'Athletic Trainers', 'Field Ops', 'Staff']
 
-export default function DirectoryPage() {
+export default function DirectoryPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { id } = useParams()
   const [roster, setRoster] = useState<RosterEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,8 +48,10 @@ export default function DirectoryPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <Link href={`/tournaments/${id}/dashboard`} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-teal-700 mb-3"><ChevronLeft size={15} /> Dashboard</Link>
-      <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2 mb-1"><Users size={22} className="text-teal-600" /> Staff directory</h1>
+      {!embedded && <>
+        <Link href={`/tournaments/${id}/dashboard`} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-teal-700 mb-3"><ChevronLeft size={15} /> Dashboard</Link>
+        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2 mb-1"><Users size={22} className="text-teal-600" /> Staff directory</h1>
+      </>}
       <p className="text-sm text-slate-500 mb-4">{total} staff on this tournament’s roster. Tap to call or text.</p>
 
       <div className="relative mb-4">
