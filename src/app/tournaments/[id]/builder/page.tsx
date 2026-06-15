@@ -107,7 +107,7 @@ const SECTIONS = [
   { id: 'venues',       label: 'Venues & fields', icon: MapPin },
   { id: 'registration', label: 'Team fees',       icon: DollarSign },
   { id: 'staffpay',     label: 'Staff pay rates', icon: Banknote },
-  { id: 'schedule',     label: 'Schedule rules',  icon: Clock },
+  { id: 'schedule',     label: 'Game Timing & Format',  icon: Clock },
   { id: 'tiebreakers',  label: 'Standings tiebreakers', icon: ClipboardList },
 ]
 const TB_OPTS = [
