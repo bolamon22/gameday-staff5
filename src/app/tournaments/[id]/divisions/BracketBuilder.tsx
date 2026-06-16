@@ -284,6 +284,20 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
     }
   }
 
+  async function handleEditGame(gameNumber: number, t1Source: string, t2Source: string) {
+    try {
+      const r = await fetch(flightApi, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ editGame: { gameNumber, t1Source, t2Source } }),
+      })
+      if (!r.ok) throw new Error('Failed to edit matchup')
+      const updated = await r.json()
+      setBracket(updated)
+      setSeeds(updated.seeds || {})
+      setFlights(prev => prev.map(f => f.id === updated.id ? updated : f))
+    } catch (e: any) { setError(e.message) }
+  }
+
   async function handleLabelChange(gameNumber: number, label: string) {
     try {
       await fetch(flightApi, {
@@ -851,6 +865,7 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
           division={division}
           onLabelChange={handleLabelChange}
           onRemoveGame={handleRemoveGame}
+          onEditGame={handleEditGame}
           onRenameSeed={handleRenameSeed}
           onAddGame={() => setShowAddGame(v => !v)}
         />
@@ -1009,7 +1024,7 @@ function MirrorPreview({ template, seeds, division, numberOffset = 0, logos = {}
   )
 }
 
-function BracketPreview({ template, seeds, division, numberOffset = 0, logos = {}, schedule = {}, onLabelChange, onRemoveGame, onRenameSeed, onAddGame }: {
+function BracketPreview({ template, seeds, division, numberOffset = 0, logos = {}, schedule = {}, onLabelChange, onRemoveGame, onEditGame, onRenameSeed, onAddGame }: {
   template: GameTemplate[]
   seeds: Record<string, string>
   division?: string
@@ -1018,11 +1033,20 @@ function BracketPreview({ template, seeds, division, numberOffset = 0, logos = {
   schedule?: Record<number, { date: string; startTime: string; location: string }>
   onLabelChange?: (gameNumber: number, label: string) => void
   onRemoveGame?: (gameNumber: number) => void
+  onEditGame?: (gameNumber: number, t1: string, t2: string) => void
   onRenameSeed?: (seedNum: number, value: string) => void
   onAddGame?: () => void
 }) {
   const [editingLabel, setEditingLabel] = useState<{ gameNumber: number; value: string } | null>(null)
   const [editingSeat, setEditingSeat] = useState<{ gameNumber: number; slot: number; value: string } | null>(null)
+  const [editingFeeders, setEditingFeeders] = useState<{ gameNumber: number; t1: string; t2: string } | null>(null)
+  const allGameNums = template.map(g => g.gameNumber)
+  const maxSeedNum = Math.max(0, ...template.flatMap(g => [g.t1, g.t2]).filter(x => (x || '').startsWith('seed:')).map(x => parseInt(x.split(':')[1]) || 0))
+  const sourceOptions = [
+    ...Array.from({ length: maxSeedNum }, (_, i) => ({ v: `seed:${i + 1}`, l: `Seed ${i + 1}` })),
+    ...allGameNums.map(n => ({ v: `winner:${n}`, l: `W-B${numberOffset + n}` })),
+    ...allGameNums.map(n => ({ v: `loser:${n}`, l: `L-B${numberOffset + n}` })),
+  ]
 
   const schedText = (n: number, short: boolean) => {
     const sc = schedule[n]
@@ -1297,9 +1321,23 @@ function BracketPreview({ template, seeds, division, numberOffset = 0, logos = {
                       </button>
                     )
                   })()}
+                  {onEditGame && <button onClick={() => setEditingFeeders(editingFeeders?.gameNumber === game.gameNumber ? null : { gameNumber: game.gameNumber, t1: game.t1, t2: game.t2 })} title="Edit matchup" className="text-[11px] leading-none text-slate-500 hover:text-teal-300 ml-1">&#9998;</button>}
                   {onRemoveGame && <button onClick={() => onRemoveGame(game.gameNumber)} title="Remove game" className="text-[12px] leading-none text-slate-500 hover:text-red-400 ml-1">×</button>}
                 </div>
-                {[game.t1, game.t2].map((src, i) => (
+                {editingFeeders?.gameNumber === game.gameNumber ? (
+                  <div className="p-2 space-y-1">
+                    {(['t1', 't2'] as const).map(slot => (
+                      <select key={slot} value={editingFeeders[slot]} onChange={e => setEditingFeeders(ef => ef ? { ...ef, [slot]: e.target.value } : ef)}
+                        className="w-full text-[11px] bg-slate-900 border border-slate-600 rounded px-1 py-0.5 text-slate-200">
+                        {sourceOptions.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+                      </select>
+                    ))}
+                    <div className="flex gap-1 justify-end pt-0.5">
+                      <button onClick={() => setEditingFeeders(null)} className="text-[10px] text-slate-400 hover:text-slate-200 px-1">Cancel</button>
+                      <button onClick={() => { onEditGame?.(game.gameNumber, editingFeeders.t1, editingFeeders.t2); setEditingFeeders(null) }} className="text-[10px] font-semibold bg-teal-600 hover:bg-teal-700 text-white px-2 py-0.5 rounded">Save</button>
+                    </div>
+                  </div>
+                ) : [game.t1, game.t2].map((src, i) => (
                   <div key={i} className={`px-2 py-1 flex items-center ${i === 0 ? 'border-b border-slate-700' : ''}`}>
                     {renderSlot(game.gameNumber, src, i)}
                   </div>

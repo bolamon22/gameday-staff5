@@ -82,25 +82,36 @@ function generateOwes2(teamCount: number): Gen[] {
   let gn = games.length + 1
   const isSeed = (x: string) => x.startsWith('seed:')
   const seedNum = (x: string) => parseInt(x.split(':')[1])
-  const twoSeed = games.filter(g => isSeed(g.t1) && isSeed(g.t2))
-  const mixed = games.filter(g => isSeed(g.t1) !== isSeed(g.t2))
+  const winnerFeeders = (g: Gen) => [g.t1, g.t2].filter(s => s.startsWith('winner:')).map(s => parseInt(s.split(':')[1]))
+  // Two consolation entrants could replay their last game if one game's winner
+  // feeds the other (e.g. L-B3 vs L-B4 where B3's winner plays in B4). Avoid those.
+  const conflict = (a: Gen, b: Gen) => winnerFeeders(a).includes(b.gameNumber) || winnerFeeders(b).includes(a.gameNumber)
+  const strength = (g: Gen) => { const s = [g.t1, g.t2].filter(isSeed).map(seedNum); return s.length ? Math.min(...s) : 999 }
+  const both = (g: Gen) => isSeed(g.t1) && isSeed(g.t2)
+  // Candidate games are those whose loser is owed a 2nd game (round-1 games and
+  // the first game a bye seed plays). Pair them strongest-first, skipping rematches.
+  const candidates = games.filter(g => isSeed(g.t1) || isSeed(g.t2)).sort((a, b) => strength(a) - strength(b))
   const extra: Gen[] = []
-  const consTotal = Math.floor(twoSeed.length / 2)
+  const used = new Set<number>()
   let cn = 1
-  for (let i = 0; i + 1 < twoSeed.length; i += 2) {
-    extra.push({ gameNumber: gn++, round: 1, section: 'consolation', t1: `loser:${twoSeed[i].gameNumber}`, t2: `loser:${twoSeed[i + 1].gameNumber}`, label: consTotal > 1 ? `Consolation ${cn++}` : 'Consolation' })
+  const consTotal = Math.floor(candidates.length / 2)
+  for (let i = 0; i < candidates.length; i++) {
+    const a = candidates[i]
+    if (used.has(a.gameNumber)) continue
+    let partner: Gen | null = null
+    for (let j = i + 1; j < candidates.length; j++) { const b = candidates[j]; if (used.has(b.gameNumber)) continue; if (!conflict(a, b)) { partner = b; break } }
+    if (!partner) { for (let j = i + 1; j < candidates.length; j++) { const b = candidates[j]; if (!used.has(b.gameNumber)) { partner = b; break } } }
+    if (partner) {
+      used.add(a.gameNumber); used.add(partner.gameNumber)
+      const guaranteed = both(a) && both(partner)
+      extra.push({ gameNumber: gn++, round: 1, section: 'consolation', t1: `loser:${a.gameNumber}`, t2: `loser:${partner.gameNumber}`, label: guaranteed ? (consTotal > 1 ? `Consolation ${cn++}` : 'Consolation') : 'If needed' })
+    }
   }
-  const leftoverTwo = twoSeed.length % 2 === 1 ? twoSeed[twoSeed.length - 1] : null
-  const strongestTwo = [...twoSeed].sort((a, b) => Math.min(seedNum(a.t1), seedNum(a.t2)) - Math.min(seedNum(b.t1), seedNum(b.t2)))[0]
-  for (let j = 0; j + 1 < mixed.length; j += 2) {
-    extra.push({ gameNumber: gn++, round: 1, section: 'consolation', t1: `loser:${mixed[j].gameNumber}`, t2: `loser:${mixed[j + 1].gameNumber}`, label: 'If needed' })
-  }
-  const leftoverMixed = mixed.length % 2 === 1 ? mixed[mixed.length - 1] : null
-  if (leftoverTwo) {
-    const opp = leftoverMixed ?? strongestTwo
-    if (opp) extra.push({ gameNumber: gn++, round: 1, section: 'consolation', t1: `loser:${leftoverTwo.gameNumber}`, t2: `loser:${opp.gameNumber}`, label: 'Consolation' })
-  } else if (leftoverMixed && strongestTwo) {
-    extra.push({ gameNumber: gn++, round: 1, section: 'consolation', t1: `loser:${leftoverMixed.gameNumber}`, t2: `loser:${strongestTwo.gameNumber}`, label: 'If needed' })
+  // Odd leftover: a contingency game against a non-conflicting opponent.
+  const leftover = candidates.find(g => !used.has(g.gameNumber))
+  if (leftover) {
+    const opp = candidates.find(g => g.gameNumber !== leftover.gameNumber && !conflict(leftover, g)) || candidates.find(g => g.gameNumber !== leftover.gameNumber)
+    if (opp) extra.push({ gameNumber: gn++, round: 1, section: 'consolation', t1: `loser:${leftover.gameNumber}`, t2: `loser:${opp.gameNumber}`, label: 'If needed' })
   }
   return [...games, ...extra]
 }
@@ -304,6 +315,20 @@ export async function PATCH(
         where: { id: bracket.id },
         include: { games: { orderBy: { gameNumber: 'asc' } } },
       })
+      return NextResponse.json({ ...updated, seeds: JSON.parse(updated!.seeds || '{}') })
+    }
+
+    if (body.editGame) {
+      const { gameNumber, t1Source, t2Source } = body.editGame
+      const bdata: any = {}
+      if (t1Source !== undefined) bdata.team1Source = t1Source
+      if (t2Source !== undefined) bdata.team2Source = t2Source
+      if (Object.keys(bdata).length) await prisma.bracketGame.updateMany({ where: { bracketId: bracket.id, gameNumber }, data: bdata })
+      const gdata: any = {}
+      if (t1Source !== undefined) gdata.team1 = fmtSrc(t1Source)
+      if (t2Source !== undefined) gdata.team2 = fmtSrc(t2Source)
+      if (Object.keys(gdata).length) await prisma.game.updateMany({ where: { tournamentId: params.id, division, gameNumber: 'B' + (offset + gameNumber) }, data: gdata })
+      const updated = await prisma.bracket.findFirst({ where: { id: bracket.id }, include: { games: { orderBy: { gameNumber: 'asc' } } } })
       return NextResponse.json({ ...updated, seeds: JSON.parse(updated!.seeds || '{}') })
     }
 
