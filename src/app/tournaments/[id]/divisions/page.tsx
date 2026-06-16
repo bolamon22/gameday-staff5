@@ -794,7 +794,7 @@ if (loading) return (
                     <div className="px-5 py-4 border-b border-slate-100">
                       <h3 className="font-bold text-slate-800 flex items-center gap-1.5"><Sparkles size={15} className="text-teal-500" /> Smart defaults</h3>
                       <p className="text-xs text-slate-400 mt-0.5">Your preferred setup for a division by how many teams it has. Smart defaults applies games/team; pools, bracket, bracket size (Adv) and consolation are saved as your plan.</p>
-                      <div className="mt-2 flex items-center gap-2 text-xs text-slate-500"><span>Show team counts up to</span><input type="number" min="2" value={smartMax} onChange={e => setSmartMax(Math.max(2, Number(e.target.value) || 2))} className="w-16 border border-slate-200 rounded text-center py-0.5 focus:outline-none focus:ring-1 focus:ring-teal-400" /><span>teams</span></div>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-slate-500 flex-wrap"><span>Show team counts up to</span><input type="number" min="2" value={smartMax} onChange={e => setSmartMax(Math.max(2, Number(e.target.value) || 2))} className="w-16 border border-slate-200 rounded text-center py-0.5 focus:outline-none focus:ring-1 focus:ring-teal-400" /><span>teams</span><span className="text-slate-300">·</span><span>Game guarantee</span><input type="number" min="1" max="20" value={guarantee} onChange={e => setGuarantee(e.target.value)} className="w-16 border border-slate-200 rounded text-center py-0.5 focus:outline-none focus:ring-1 focus:ring-teal-400" /><span>games/team</span></div>
                     </div>
                     <div className="px-5 py-2 overflow-y-auto">
                       <table className="w-full text-xs">
