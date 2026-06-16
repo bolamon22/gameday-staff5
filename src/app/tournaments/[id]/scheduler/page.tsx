@@ -52,13 +52,15 @@ function divColor(div: string, divs: string[], colorMap: Record<string, string> 
   return PALETTE[i % PALETTE.length] ?? PALETTE[0]
 }
 
-function makeSlots(startH: number, endH: number, inc: number) {
-  // Step continuously by `inc` minutes across the whole window so rows are evenly
-  // spaced. (Resetting minutes each hour produced overlapping rows like 8:50 / 9:00
-  // for increments that don't divide 60.)
+function hmToMin(s: string): number { const p = String(s || '').split(':'); const h = parseInt(p[0]); const m = parseInt(p[1] || '0'); return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m) }
+function minToHM(t: number): string { const h = Math.floor(t / 60), m = t % 60; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}` }
+
+function makeSlots(startMin: number, endMin: number, inc: number) {
+  // Step continuously by `inc` minutes from the exact (minute-level) day start, so an
+  // 8:10 start shows an 8:10 first row — matching the saved field availability exactly.
   const slots: string[] = []
   const step = inc > 0 ? inc : 30
-  for (let t = startH * 60; t < endH * 60; t += step) {
+  for (let t = startMin; t < endMin; t += step) {
     const h = Math.floor(t / 60), m = t % 60
     slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
   }
@@ -111,8 +113,6 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   const [dates, setDates]               = useState<string[]>([])
   const [activeDate, setActiveDate]     = useState('')
   const [increment, setIncrement]       = useState(30)
-  const [startH, setStartH]             = useState(8)
-  const [endH, setEndH]                 = useState(19)
   const [storedVenuesRaw, setStoredVenuesRaw] = useState<any[]>([])
   const [dayAvail, setDayAvail] = useState<any[]>([])  // saved per-day field availability (source of truth = venue record)
   const [loading, setLoading]           = useState(true)
@@ -200,15 +200,6 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
       // Initialize the day window from saved daily availability (set at creation / in Setup)
       const avail: any[] = vData.defaultAvailability ?? []
       setDayAvail(avail)
-      let minS = 24, maxE = 0
-      avail.forEach((d: any) => (d.slots ?? []).forEach((sl: any) => {
-        const sh = parseInt(String(sl.start || '').split(':')[0])
-        const ep = String(sl.end || '').split(':'); const eh = parseInt(ep[0]); const emn = parseInt(ep[1] || '0')
-        if (!isNaN(sh)) minS = Math.min(minS, sh)
-        if (!isNaN(eh)) maxE = Math.max(maxE, emn > 0 ? eh + 1 : eh)
-      }))
-      if (minS <= 23) setStartH(minS)
-      if (maxE >= 1) setEndH(maxE)
 
       const gameDates = [...new Set(allGames.map(g => g.date).filter(Boolean))].sort() as string[]
       let allDates = gameDates
@@ -258,10 +249,10 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
 
   // Update ONLY the active day's window — never flatten or clobber the other days'
   // saved availability (which may carry per-day, minute-level hours set in Setup/Settings).
-  async function persistDayWindow(sH: number, eH: number) {
+  async function persistDayWindow(startStr: string, endStr: string) {
     const target = activeDate || dates[0] || ''
-    if (!target) return
-    const newSlot = { start: `${String(sH).padStart(2, '0')}:00`, end: `${String(eH).padStart(2, '0')}:00` }
+    if (!target || !startStr || !endStr) return
+    const newSlot = { start: startStr, end: endStr }
     const next = dayAvail.some((d: any) => d.date === target)
       ? dayAvail.map((d: any) => d.date === target ? { ...d, slots: [newSlot] } : d)
       : [...dayAvail, { date: target, slots: [newSlot] }]
@@ -577,7 +568,19 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   })
 
   const dayGames = games.filter(g => g.date === activeDate && g.startTime && g.location && !scratchPad.includes(g.id))
-  const allSlots = makeSlots(startH, endH, increment)
+  // Per-day grid window, minute-precise, derived from the saved field availability
+  // (so the Scheduler shows the exact same hours as Setup/Settings, e.g. 8:10).
+  function windowForDate(date: string) {
+    const pick = (slots: any[]) => {
+      let sMin = 24 * 60, eMin = 0
+      slots.forEach((sl: any) => { if (sl?.start) sMin = Math.min(sMin, hmToMin(sl.start)); if (sl?.end) eMin = Math.max(eMin, hmToMin(sl.end)) })
+      return sMin < eMin ? { s: sMin, e: eMin } : null
+    }
+    const d = dayAvail.find((x: any) => x.date === date)
+    return pick(d?.slots ?? []) || pick(dayAvail.flatMap((x: any) => x.slots ?? [])) || { s: 8 * 60, e: 19 * 60 }
+  }
+  const dayWin = windowForDate(activeDate)
+  const allSlots = makeSlots(dayWin.s, dayWin.e, increment)
   const slots = hideEmptySlots
     ? allSlots.filter(s => dayGames.some(g => g.startTime === s))
     : allSlots
@@ -858,19 +861,11 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
             {[10, 15, 20, 30, 45, 60].map(m => <option key={m} value={m}>{m} min</option>)}
           </select>
           <label className="text-slate-500 text-xs">Day start</label>
-          <select value={startH} onChange={e => { const v = Number(e.target.value); setStartH(v); persistDayWindow(v, endH) }}
-            className="border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white">
-            {Array.from({ length: 14 }, (_, i) => i + 5).map(h => (
-              <option key={h} value={h}>{fmtTime(`${String(h).padStart(2,'0')}:00`)}</option>
-            ))}
-          </select>
+          <input type="time" value={minToHM(dayWin.s)} onChange={e => { if (e.target.value) persistDayWindow(e.target.value, minToHM(dayWin.e)) }}
+            className="border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white" title="Applies to the selected day"/>
           <label className="text-slate-500 text-xs">Day end</label>
-          <select value={endH} onChange={e => { const v = Number(e.target.value); setEndH(v); persistDayWindow(startH, v) }}
-            className="border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white">
-            {Array.from({ length: 14 }, (_, i) => i + 12).map(h => (
-              <option key={h} value={h}>{fmtTime(`${String(h).padStart(2,'0')}:00`)}</option>
-            ))}
-          </select>
+          <input type="time" value={minToHM(dayWin.e)} onChange={e => { if (e.target.value) persistDayWindow(minToHM(dayWin.s), e.target.value) }}
+            className="border border-slate-200 rounded-lg px-2 py-1 text-sm bg-white" title="Applies to the selected day"/>
           {saving && <span className="text-teal-500 text-xs animate-pulse">Saving…</span>}
           <button onClick={renumberAll}
             className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 rounded-lg px-3 py-1 transition-colors whitespace-nowrap">
