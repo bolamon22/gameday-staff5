@@ -601,23 +601,26 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   const wxCutoff = wxFrom ? hmToMin(wxFrom) : -1
   const wxMovable = dayGames.filter(g => !gameDone(g) && hmToMin(g.startTime) >= wxCutoff)
   const wxOverflow = wxMovable.filter(g => hmToMin(g.startTime) + wxDelay + increment > dayWin.e)
-  const wxAnchor = wxFrom ? hmToMin(wxFrom) : (wxMovable.length ? Math.min(...wxMovable.map(g => hmToMin(g.startTime))) : 0)
   const wxShortenOver = (() => {
     const byField: Record<string, Game[]> = {}
     wxMovable.forEach(g => { (byField[g.location] = byField[g.location] || []).push(g) })
     let over = 0
-    Object.values(byField).forEach(list => list.slice().sort((a, b) => hmToMin(a.startTime) - hmToMin(b.startTime)).forEach((_, i) => { if (wxAnchor + i * wxSlot + wxSlot > dayWin.e) over++ }))
+    Object.values(byField).forEach(list => {
+      const sorted = list.slice().sort((a, b) => hmToMin(a.startTime) - hmToMin(b.startTime))
+      const anchor = sorted.length ? hmToMin(sorted[0].startTime) : 0
+      sorted.forEach((_, i) => { if (anchor + i * wxSlot + wxSlot > dayWin.e) over++ })
+    })
     return over
   })()
   async function applyShorten() {
     const L = wxSlot
     if (!wxMovable.length || L <= 0) return
     setWxBusy(true)
-    const anchor = wxFrom ? hmToMin(wxFrom) : Math.min(...wxMovable.map(g => hmToMin(g.startTime)))
     const byField: Record<string, Game[]> = {}
     wxMovable.forEach(g => { (byField[g.location] = byField[g.location] || []).push(g) })
     for (const loc of Object.keys(byField)) {
       const list = byField[loc].slice().sort((a, b) => hmToMin(a.startTime) - hmToMin(b.startTime))
+      const anchor = hmToMin(list[0].startTime)  // keep the first remaining game on this field put; only pack the rest tighter
       for (let i = 0; i < list.length; i++) {
         await patchGame(list[i].id, { startTime: minToHM(anchor + i * L) })
       }
@@ -947,7 +950,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
                   </>
                 ) : (
                   <>
-                    <div className="text-slate-700">Re-stack <span className="font-semibold">{wxMovable.length}</span> game{wxMovable.length === 1 ? '' : 's'} per field at <span className="font-semibold">{wxSlot}-min</span> slots from {wxFrom ? fmtTime(wxFrom) : 'the first game'}.</div>
+                    <div className="text-slate-700">Tighten <span className="font-semibold">{wxMovable.length}</span> unplayed game{wxMovable.length === 1 ? '' : 's'} (from {wxFrom ? fmtTime(wxFrom) : 'the first remaining game'}) to <span className="font-semibold">{wxSlot}-min</span> slots. Each field keeps its first remaining game; the rest pull in. Earlier games are untouched.</div>
                     {wxShortenOver > 0 && <div className="text-amber-700 mt-1 inline-flex items-center gap-1"><AlertTriangle size={13} /> {wxShortenOver} would still pass the day&apos;s end ({fmtTime(minToHM(dayWin.e))}).</div>}
                   </>
                 )}
@@ -1018,7 +1021,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
               <option value="oneday">All on this day</option>
             </select>
             <button
-              onClick={() => { setShowWeather(true); if (!wxFrom && dayGames.length) setWxFrom([...dayGames].sort((a, b) => hmToMin(a.startTime) - hmToMin(b.startTime))[0].startTime) }}
+              onClick={() => { setShowWeather(true); if (!wxFrom) { const u = dayGames.filter(g => !gameDone(g)).sort((a, b) => hmToMin(a.startTime) - hmToMin(b.startTime)); if (u.length) setWxFrom(u[0].startTime) } }}
               disabled={dayGames.length === 0}
               title="Weather delay — push back the rest of today's unplayed games"
               className="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-40 bg-amber-500 hover:bg-amber-600 text-white border-amber-600 whitespace-nowrap"
