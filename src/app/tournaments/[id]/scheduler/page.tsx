@@ -1130,7 +1130,7 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
             <button
               onClick={() => setHideEmptySlots(v => !v)}
               className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${hideEmptySlots ? 'bg-slate-200 text-slate-700 border-slate-300' : 'text-slate-400 border-slate-200 hover:border-slate-400'}`}
-              title="Hide time rows with no games">
+              title="Compact view: hides empty time rows so you only see slots that have games. Click again to show every time.">
               <span className="inline-flex items-center gap-1"><Clock size={12} /> Compact</span>
             </button>
             <div className="relative">
