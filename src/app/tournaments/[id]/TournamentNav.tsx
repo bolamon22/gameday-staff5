@@ -69,7 +69,6 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
       { href: `${base}/registrations`,        label: 'Team registrations' },
       { href: `${base}/player-registrations`, label: 'Player rosters' },
       { href: `${base}/roster`,               label: 'Staff roster' },
-      { href: `${base}/pay-summary`,          label: 'Payroll' },
     ]},
     { label: 'Game Day', items: [
       { href: `${base}/scores`,         label: 'Post scores' },
