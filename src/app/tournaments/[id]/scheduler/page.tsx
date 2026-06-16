@@ -4,7 +4,7 @@ import Link from 'next/link'
 import TournamentNav from '../TournamentNav'
 import toast, { Toaster } from 'react-hot-toast'
 import { autoFill, isRealTeam } from '@/lib/autoSchedule'
-import { RefreshCw, RotateCw, Check, CheckCircle2, ArrowLeftRight, X, Send, ArrowLeft, ArrowRight, PanelRight, PanelLeft, Trash2, ChevronUp, ChevronDown, ArrowUpDown, Clock, MapPin, Building2, AlertTriangle, Zap } from 'lucide-react'
+import { RefreshCw, RotateCw, Check, CheckCircle2, ArrowLeftRight, X, Send, ArrowLeft, ArrowRight, PanelRight, PanelLeft, Trash2, ChevronUp, ChevronDown, ArrowUpDown, Clock, MapPin, Building2, AlertTriangle, Zap, CloudRain } from 'lucide-react'
 
 interface Game {
   id: string
@@ -18,6 +18,8 @@ interface Game {
   team2: string
   isChampionship: boolean
   isCanceled: boolean
+  score1?: number | null
+  score2?: number | null
 }
 
 interface Field {
@@ -124,6 +126,10 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   const [autoFilling, setAutoFilling]   = useState(false)
   const [gridZoom, setGridZoom]         = useState(1)
   const [splitMode, setSplitMode]       = useState<'d1d2'|'spread'|'oneday'>('d1d2')
+  const [showWeather, setShowWeather] = useState(false)
+  const [wxDelay, setWxDelay]         = useState(30)
+  const [wxFrom, setWxFrom]           = useState('')
+  const [wxBusy, setWxBusy]           = useState(false)
 
   // ── Parking lot filters ──────────────────────────────────────────────────
   const [filterDiv,        setFilterDiv]        = useState('__all__')
@@ -581,10 +587,27 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
   }
   const dayWin = windowForDate(activeDate)
   const allSlots = makeSlots(dayWin.s, dayWin.e, increment)
+  // grid rows include any actual game time (so weather-shifted / off-grid games still render)
+  const gridSlots = Array.from(new Set([...allSlots, ...dayGames.map(g => g.startTime)])).sort((a, b) => hmToMin(a) - hmToMin(b))
   const slots = hideEmptySlots
-    ? allSlots.filter(s => dayGames.some(g => g.startTime === s))
-    : allSlots
+    ? gridSlots.filter(s => dayGames.some(g => g.startTime === s))
+    : gridSlots
   const visibleFields = fields.filter(f => !hiddenFields.has(f.fullName))
+
+  // ── Weather delay (hold + shift) ──
+  const gameDone = (g: Game) => g.isCanceled || (g.score1 != null && g.score2 != null)
+  const wxCutoff = wxFrom ? hmToMin(wxFrom) : -1
+  const wxMovable = dayGames.filter(g => !gameDone(g) && hmToMin(g.startTime) >= wxCutoff)
+  const wxOverflow = wxMovable.filter(g => hmToMin(g.startTime) + wxDelay + increment > dayWin.e)
+  async function applyWeatherDelay() {
+    if (!wxMovable.length || wxDelay <= 0) return
+    setWxBusy(true)
+    for (const g of wxMovable) {
+      await patchGame(g.id, { startTime: minToHM(hmToMin(g.startTime) + wxDelay) })
+    }
+    setWxBusy(false); setShowWeather(false)
+    toast.success(`Delayed ${wxMovable.length} game${wxMovable.length === 1 ? '' : 's'} by ${wxDelay} min — review & publish`)
+  }
 
   async function autoFillDay() {
     if (filtered.length === 0) { toast('Nothing in the parking lot to place'); return }
@@ -844,6 +867,43 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
+      {/* ── Weather delay modal ── */}
+      {showWeather && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setShowWeather(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h2 className="text-lg font-semibold text-slate-900 inline-flex items-center gap-2"><CloudRain size={18} className="text-amber-500" /> Weather delay</h2>
+              <button onClick={() => setShowWeather(false)} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <p className="text-sm text-slate-500">Push back the rest of {fmtDate(activeDate)}. Played games (with a score) and canceled games stay put.</p>
+              <div>
+                <label className="text-xs font-semibold text-slate-600">Delay by</label>
+                <div className="flex items-center gap-2 mt-1">
+                  {[15, 30, 45, 60].map(m => (
+                    <button key={m} onClick={() => setWxDelay(m)} className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${wxDelay === m ? 'bg-amber-500 text-white border-amber-600' : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'}`}>{m}m</button>
+                  ))}
+                  <input type="number" min="5" step="5" value={wxDelay} onChange={e => setWxDelay(Math.max(0, Number(e.target.value) || 0))} className="w-16 text-sm border border-slate-300 rounded-lg px-2 py-1.5" />
+                  <span className="text-xs text-slate-500">min</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-600">Affect games starting at or after</label>
+                <input type="time" value={wxFrom} onChange={e => setWxFrom(e.target.value)} className="block mt-1 text-sm border border-slate-300 rounded-lg px-2 py-1.5" />
+              </div>
+              <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-sm">
+                <div className="text-slate-700"><span className="font-semibold">{wxMovable.length}</span> game{wxMovable.length === 1 ? '' : 's'} will move +{wxDelay} min.</div>
+                {wxOverflow.length > 0 && <div className="text-amber-700 mt-1 inline-flex items-center gap-1"><AlertTriangle size={13} /> {wxOverflow.length} would pass the day&apos;s end ({fmtTime(minToHM(dayWin.e))}) — may need shortening or another day.</div>}
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t flex justify-end gap-2">
+              <button onClick={() => setShowWeather(false)} className="text-sm px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50">Cancel</button>
+              <button onClick={applyWeatherDelay} disabled={wxBusy || !wxMovable.length || wxDelay <= 0} className="text-sm font-semibold px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-40">{wxBusy ? 'Applying…' : 'Apply delay'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Header (merged with publish status) ── */}
       <div className={`border-b px-4 sm:px-6 py-2 flex items-center gap-3 flex-wrap ${hasChanges ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200'}`}>
         <div className="flex items-center gap-2 mr-1">
@@ -900,6 +960,14 @@ export default function SchedulerPage({ params }: { params: { id: string } }) {
               <option value="spread">Pool all days / bracket last</option>
               <option value="oneday">All on this day</option>
             </select>
+            <button
+              onClick={() => { setShowWeather(true); if (!wxFrom && dayGames.length) setWxFrom([...dayGames].sort((a, b) => hmToMin(a.startTime) - hmToMin(b.startTime))[0].startTime) }}
+              disabled={dayGames.length === 0}
+              title="Weather delay — push back the rest of today's unplayed games"
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-40 bg-amber-500 hover:bg-amber-600 text-white border-amber-600 whitespace-nowrap"
+            >
+              <span className="inline-flex items-center gap-1"><CloudRain size={13} /> Weather</span>
+            </button>
             <button
               onClick={autoFillDay}
               disabled={autoFilling || filtered.length === 0}
