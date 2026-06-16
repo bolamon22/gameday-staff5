@@ -793,7 +793,7 @@ if (loading) return (
               const maxN = Math.max(smartMax, ...divisions.map(d => d.teamCount), 2)
               const counts: number[] = []; for (let n = 2; n <= maxN; n++) counts.push(n)
               const g = Number(guarantee) || 4
-              const BRACKETS = [{ v: '', l: 'None' }, { v: 'single', l: 'Single elim' }, { v: 'single-con', l: 'Single elim + 3rd' }, { v: 'double', l: 'Double elim' }, { v: '2gg', l: '2-Game Guarantee (both-ways)' }]
+              const BRACKETS = [{ v: '', l: 'None' }, { v: 'single', l: 'Single elim' }, { v: 'single-con', l: 'Single elim + 3rd' }, { v: 'double', l: 'Double elim' }, { v: '2gg', l: 'Both-ways consolation' }]
               const setField = (n: number, k: 'games' | 'pools' | 'bracket' | 'advance' | 'consolation', val: number | string | undefined) => setSmartTable(prev => ({ ...prev, [n]: { ...prev[n], [k]: val } }))
               return (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowSmartEditor(false)}>

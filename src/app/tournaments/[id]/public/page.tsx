@@ -313,7 +313,7 @@ function BracketView({bracketList,scheduledGames}:{bracketList:BkBracket[];sched
   return(
     <div className="space-y-6">
       {bracketList.map(bracket=>{
-        if(bracket.format==='2gg')return <MirrorBracket key={bracket.id} bracket={bracket} scheduledGames={scheduledGames} showFlight={bracketList.length>1}/>
+        if(bracket.format==='2gg'&&bracket.games.some(g=>(g.label||'').toLowerCase().includes('consolation championship')))return <MirrorBracket key={bracket.id} bracket={bracket} scheduledGames={scheduledGames} showFlight={bracketList.length>1}/>
         const offset=bracket.numberOffset??0
         const schedByNum=new Map(scheduledGames.map(g=>[g.gameNumber,g]))
         const mainGames=bracket.games.filter(g=>g.section==='winners'||g.section==='championship')

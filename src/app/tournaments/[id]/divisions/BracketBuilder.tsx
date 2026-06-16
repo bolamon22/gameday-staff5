@@ -55,7 +55,7 @@ function roundLabel(round: number, maxRound: number): string {
 const FORMAT_LABELS: Record<string, string> = {
   single: 'Single Elimination',
   double: 'Double Elimination',
-  '2gg': 'Consolation (both-ways)',
+  '2gg': 'Both-ways consolation',
 }
 
 const SECTION_LABELS: Record<string, string> = {
@@ -515,7 +515,7 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
         <label className="mb-5 flex items-start gap-3 bg-slate-800 border border-slate-700 rounded-xl p-4 cursor-pointer">
           <input type="checkbox" checked={loserConsolation} onChange={e => setLoserConsolation(e.target.checked)} className="mt-0.5 accent-teal-500" />
           <span className="text-sm">
-            <span className="font-semibold text-white">Everyone in the bracket · guarantee a 2nd game</span>
+            <span className="font-semibold text-white">2-game guarantee · every team plays a 2nd game</span>
             <span className="block text-slate-400 mt-0.5">For 2 pool-game divisions. All teams play; first-round losers get a loser-fed consolation game (plus auto &ldquo;if needed&rdquo; games), so the bracket fills the 4-game guarantee. Set &ldquo;Teams in bracket&rdquo; to the full team count.</span>
           </span>
         </label>
@@ -830,7 +830,7 @@ export default function BracketBuilder({ tournamentId, division, planFormat, pla
       )}
 
       {/* ── Preview tab ───────────────────────────────────────────────────── */}
-      {tab === 'preview' && (bracket.format === '2gg' ? (
+      {tab === 'preview' && (bracket.format === '2gg' && bracket.games.some(g => (g.label || '').toLowerCase().includes('consolation championship')) ? (
         <MirrorPreview
           logos={logos}
           numberOffset={bracket.numberOffset || 0}
