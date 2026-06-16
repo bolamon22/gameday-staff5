@@ -100,6 +100,7 @@ export default function RosterPage({ params }: { params:{id:string} }) {
   const [addSearch, setAddSearch] = useState('')
   const [addRole, setAddRole] = useState('all')
   const [addCert, setAddCert] = useState('all')
+  const [addGender, setAddGender] = useState('all')
 
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkField, setBulkField] = useState('')
@@ -187,6 +188,7 @@ export default function RosterPage({ params }: { params:{id:string} }) {
   const filteredNotOnRoster = notOnRoster
     .filter(w=>addRole==='all'||parseRoles(w).includes(addRole))
     .filter(w=>addCert==='all'||w.certLevel===addCert)
+    .filter(w=>addGender==='all'||!parseRoles(w).includes('ref')||(addGender==='both'?w.gender==='both':(w.gender===addGender||w.gender==='both')))
     .filter(w=>!addSearch||w.name.toLowerCase().includes(addSearch.toLowerCase()))
     .sort((a,b)=>a.name.localeCompare(b.name))
 
@@ -471,8 +473,15 @@ export default function RosterPage({ params }: { params:{id:string} }) {
               <option value="all">All levels</option>
               {CERT_LEVELS.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
+            <label className="text-sm text-slate-500">Can ref:</label>
+            <select className="select !w-auto text-sm" value={addGender} onChange={e=>setAddGender(e.target.value)}>
+              <option value="all">Any</option>
+              <option value="boys">Boys</option>
+              <option value="girls">Girls</option>
+              <option value="both">Both only</option>
+            </select>
             <span className="text-xs text-slate-400">{filteredNotOnRoster.length} shown</span>
-            {(addSearch||addRole!=='all'||addCert!=='all')&&<button className="text-xs text-slate-400 hover:text-slate-600" onClick={()=>{setAddSearch('');setAddRole('all');setAddCert('all')}}>Clear</button>}
+            {(addSearch||addRole!=='all'||addCert!=='all'||addGender!=='all')&&<button className="text-xs text-slate-400 hover:text-slate-600" onClick={()=>{setAddSearch('');setAddRole('all');setAddCert('all');setAddGender('all')}}>Clear</button>}
           </div>
           <table className="w-full text-sm">
             <tbody className="divide-y divide-slate-100">
@@ -484,7 +493,7 @@ export default function RosterPage({ params }: { params:{id:string} }) {
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">{wRoles.map(r=><span key={r} className="badge bg-slate-100 text-slate-600">{rLabel(r)}</span>)}</div>
                   </td>
-                  <td className="px-4 py-3">{wRoles.includes('ref')?<span className={`badge ${w.certLevel==='college'?'bg-purple-100 text-purple-700':w.certLevel==='hs'?'bg-teal-100 text-teal-700':'bg-slate-100 text-slate-600'}`}>{certLabel(w.certLevel)}</span>:<span className="text-slate-400">—</span>}</td>
+                  <td className="px-4 py-3">{wRoles.includes('ref')?<div className="flex flex-wrap items-center gap-1"><span className={`badge ${w.certLevel==='college'?'bg-purple-100 text-purple-700':w.certLevel==='hs'?'bg-teal-100 text-teal-700':'bg-slate-100 text-slate-600'}`}>{certLabel(w.certLevel)}</span><span className={`badge ${w.gender==='boys'?'bg-sky-100 text-sky-700':w.gender==='girls'?'bg-pink-100 text-pink-700':'bg-violet-100 text-violet-700'}`}>{w.gender==='boys'?'Boys':w.gender==='girls'?'Girls':'Both'}</span></div>:<span className="text-slate-400">—</span>}</td>
                   <td className="px-4 py-3 text-xs text-slate-400">{w.phone||w.email||'—'}</td>
                   <td className="px-4 py-3 text-right">
                     <button onClick={()=>toggleRoster(w.id)} disabled={saving===w.id} className="btn-primary btn-sm">+ Add</button>
