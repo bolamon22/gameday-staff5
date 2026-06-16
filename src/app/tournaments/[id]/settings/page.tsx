@@ -21,6 +21,7 @@ const DEFAULT_PRICING = { tier1: 1495, tier1Max: 3, tier2: 1450, tier2Max: 6, ti
 const INFO_ICON_OPTIONS = ['info', 'heart-pulse', 'shirt', 'square-parking', 'scroll-text', 'utensils', 'phone', 'cloud-lightning']
 
 const BROADCAST_ROLE_OPTIONS = [
+  { key: 'scheduler', label: 'Schedulers' },
   { key: 'assigner', label: 'Assigners' },
   { key: 'staff', label: 'Staff (field ops, medical, etc.)' },
   { key: 'scorekeeper', label: 'Scorekeepers' },
