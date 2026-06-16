@@ -42,6 +42,17 @@ rebuild, and commit through GitHub Desktop itself for multi-file/dir changes. A 
 - The Read/Edit/Write file tools can TRUNCATE files in this Downloads folder (and their view can
   diverge from what git/bash see). **Write/patch files via the shell** (python / sed / cat heredoc);
   restore a clobbered file with `git show HEAD:path > path`. Verify with `wc -l` + esbuild after.
+- **Stale-mount truncation (Jun 16 — caused a broken prod deploy):** the sandbox mount can serve a
+  *stale, truncated* copy of a large file (hit on the ~95 KB `divisions/page.tsx`) — `stat`/`wc -c`
+  agree on size yet the content ends mid-component — while git/GHD hold the full, correct file. A
+  python read→write then persists the truncation and the build fails (`Unexpected end of file`).
+  **Safe edit / recovery:** read the REAL file from git, not the working tree —
+  `SHA=$(cat .git/refs/heads/master); git cat-file -p "$SHA:path" > /tmp/x` (use the SHA, **not**
+  `HEAD` — the index is often corrupt so `HEAD` won't resolve). Edit the /tmp copy, **guard before
+  writing** (assert it ends with the closing `}` AND esbuild is CLEAN), then write it back. **Never
+  commit a write whose esbuild fails** — that means the read was truncated. If a truncated commit
+  already landed, revert it in GHD (History → right-click commit → *Revert changes in commit*) to
+  restore prod, then redo via the git-object method.
 - GitHub Desktop's window occasionally hard-crashes to a black screen — a PC restart fixes it. The
   sandbox cannot reach github.com, so pushes go through GitHub Desktop on the Windows side.
 - Chrome stealing frontmost focus blocks clicks on GitHub Desktop (it's read-tier) — re-open GHD or
@@ -58,9 +69,41 @@ rebuild, and commit through GitHub Desktop itself for multi-file/dir changes. A 
 - Note: the BracketBuilder/scoring bracket views are intentionally their own visual style
   (CFP "rail" layout); the rest of the app follows the light slate/teal standard.
 
-## Current state (as of Jun 14, 2026)
+## Current state (as of Jun 16, 2026)
 Core flow: tournaments → divisions → pools → pool games → brackets → scheduler → assigner →
 scores → public. Highlights shipped to live:
+
+- **Jun 15-16 batch (all LIVE on master; bracket work tagged `stable-2026-06-15-bracket-fixes`):**
+  - **New Tournament form** (`src/app/page.tsx`): number-of-fields (auto-creates Field 1–N venue),
+    daily start/end times (→ venues `defaultAvailability`), team registration fee (any amount,
+    `step=any`; pre-filled $1,495), logo upload, **registration mode** (built-in vs CSV import — hides
+    fee + routes to importer when importing), canonical lacrosse divisions **none preselected**, and a
+    "change later in Settings" note. Fields are written as objects `{id,name,abbr}` (not strings) so
+    the Setup Venues editor renders them.
+  - **Setup wizard `builder/page.tsx`**: "Schedule rules" renamed **"Game Timing & Format"**; added
+    **period format** (halves/quarters/periods/running) + **time between periods**, saved to
+    `scoringConfig` (rules route) and shown on the live scorer.
+  - **Scheduler**: fixed `makeSlots` (was resetting minutes each hour → overlapping rows); **Day
+    start/Day end** now load from saved daily times and **persist** (and field-save no longer wipes
+    them). Added a **Game Scheduler link** card on the Divisions sidebar.
+  - **Org self-serve**: owner "Your team" page (`/dashboard/org`), org-scoped invites
+    (`/api/org/users`), director first-run welcome. `/api/tournaments` no-org fallback tightened to
+    `[]` (users with no org see nothing — so assign Sunshine staff + Bill to their orgs).
+  - **Divisions page**: per-division **delete a team** (Teams tab; also clears it from pools + deletes
+    the now-empty registration); sidebar shows **pool vs bracket** game counts; **Smart Defaults** got
+    an editable Game-guarantee field + **Save as global default** checkbox (`/api/smart-defaults-default`).
+  - **Bracket fixes** (`bracket/route.ts` + `BracketBuilder.tsx` + public): consolation auto-pairing
+    no longer creates rematches (don't pair L-Bx vs L-By when one game's winner feeds the other —
+    validated 4-16 teams); **inline ✎ edit** of consolation matchups; **de-conflated** "2-game
+    guarantee" (loser-fed, any count) vs **"Both-ways consolation"** (the 8/16 mirror); the both-ways
+    **mirror only renders when the bracket has a "Consolation Championship" game** (builder + public)
+    so loser-fed/odd-count brackets show the clean standard layout instead of garbling.
+  - Misc: removed Payroll from People dropdown; collapsible tournament header (shows logo when
+    minimized, persisted); Schedulers added to Settings → Broadcast permissions; broadcast-roles save
+    now allows `admin` (not just `director`); dark-mode fix for rose/red/pink-50 tints (division rows).
+  - **Imports**: bulk import no longer requires contact email/phone (`source:'import'`); import UI
+    genericized ("Import teams from a spreadsheet"; TourneyMachine as one example); Registrations page
+    "Import" button now links to the import wizard.
 
 - **Dashboard redesign (LIVE, Jun 14 — tag `stable-2026-06-14-dashboard-scheduler`)**: the tournament
   dashboard + header were de-cluttered. `TournamentNav` now groups everything into click-open
