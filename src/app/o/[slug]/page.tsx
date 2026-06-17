@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@libsql/client'
-import { MapPin, CalendarDays, ArrowRight, Trophy } from 'lucide-react'
+import { MapPin, CalendarDays, ArrowRight, Trophy, Facebook, Instagram, Globe } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +17,6 @@ function fmtRange(s: string, e: string) {
   if (s) return `${fmtDay(s)}, ${yr(s)}`
   return 'Dates TBA'
 }
-
 function initials(name: string) {
   return name.split(' ').filter(w => w.length > 2).slice(0, 2).map(w => w[0].toUpperCase()).join('') || name.slice(0, 2).toUpperCase()
 }
@@ -40,9 +39,7 @@ function Card({ t }: { t: Tourn }) {
           Details <ArrowRight size={14} />
         </Link>
         {t.teamRegEnabled ? (
-          <Link href={`/tournaments/${t.id}/register`} className="flex-1 text-center text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 py-3 transition-colors">
-            Register
-          </Link>
+          <Link href={`/tournaments/${t.id}/register`} className="flex-1 text-center text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 py-3 transition-colors">Register</Link>
         ) : null}
       </div>
     </div>
@@ -64,6 +61,19 @@ export default async function OrgSite({ params }: { params: { slug: string } }) 
     )
   }
   const org = orgRes.rows[0] as any
+
+  // editable content (Phase 2)
+  let content: any = {}
+  try {
+    const cr = await client.execute({ sql: 'SELECT value FROM "AppSetting" WHERE key = ?', args: [`orgSite:${org.id}`] })
+    if (cr.rows.length) content = JSON.parse(((cr.rows[0] as any).value as string) || '{}')
+  } catch { /* no content yet */ }
+  const hero = content.hero || {}
+  const about = content.about || {}
+  const sponsors: any[] = Array.isArray(content.sponsors) ? content.sponsors : []
+  const contact = content.contact || {}
+  const socials = content.socials || {}
+
   const tRes = await client.execute({
     sql: 'SELECT id, name, startDate, endDate, location, logoUrl, sport, teamRegEnabled FROM "Tournament" WHERE orgId = ? ORDER BY startDate',
     args: [org.id as string],
@@ -75,7 +85,6 @@ export default async function OrgSite({ params }: { params: { slug: string } }) 
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Top bar */}
       <header className="bg-white border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <span className="font-bold text-slate-900 text-lg">{org.name}</span>
@@ -86,11 +95,15 @@ export default async function OrgSite({ params }: { params: { slug: string } }) 
       </header>
 
       {/* Hero */}
-      <section className="bg-[#0f1f3d] text-white">
-        <div className="max-w-6xl mx-auto px-6 py-14">
+      <section className="relative bg-[#0f1f3d] text-white overflow-hidden">
+        {hero.imageUrl && <>
+          <img src={hero.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />
+          <div className="absolute inset-0 bg-[#0f1f3d]/70" />
+        </>}
+        <div className="relative max-w-6xl mx-auto px-6 py-16">
           <p className="text-teal-300 font-semibold tracking-wide text-sm uppercase">Tournaments</p>
-          <h1 className="text-4xl sm:text-5xl font-extrabold mt-2 leading-tight">{org.name}</h1>
-          <p className="text-slate-300 mt-3 max-w-2xl text-lg">Upcoming events, schedules, standings and team registration — all in one place.</p>
+          <h1 className="text-4xl sm:text-5xl font-extrabold mt-2 leading-tight">{hero.headline || org.name}</h1>
+          <p className="text-slate-200 mt-3 max-w-2xl text-lg">{hero.subtext || 'Upcoming events, schedules, standings and team registration — all in one place.'}</p>
         </div>
       </section>
 
@@ -100,19 +113,58 @@ export default async function OrgSite({ params }: { params: { slug: string } }) 
           ? <p className="text-slate-500">No upcoming tournaments posted yet — check back soon.</p>
           : <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{upcoming.map(t => <Card key={t.id} t={t} />)}</div>}
 
-        {past.length > 0 && (
-          <>
-            <h2 className="text-xl font-bold text-slate-900 mt-12 mb-5">Past tournaments</h2>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{past.map(t => <Card key={t.id} t={t} />)}</div>
-          </>
-        )}
+        {past.length > 0 && <>
+          <h2 className="text-xl font-bold text-slate-900 mt-12 mb-5">Past tournaments</h2>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{past.map(t => <Card key={t.id} t={t} />)}</div>
+        </>}
       </main>
 
+      {/* About */}
+      {about.body && (
+        <section className="bg-white border-t border-slate-200">
+          <div className="max-w-6xl mx-auto px-6 py-12">
+            <h2 className="text-xl font-bold text-slate-900 mb-3">{about.heading || 'About'}</h2>
+            <p className="text-slate-600 max-w-3xl whitespace-pre-line leading-relaxed">{about.body}</p>
+          </div>
+        </section>
+      )}
+
+      {/* Sponsors */}
+      {sponsors.length > 0 && (
+        <section className="bg-slate-50 border-t border-slate-200">
+          <div className="max-w-6xl mx-auto px-6 py-12">
+            <h2 className="text-xl font-bold text-slate-900 mb-6">Sponsors &amp; partners</h2>
+            <div className="flex flex-wrap items-center gap-x-10 gap-y-6">
+              {sponsors.map((s, i) => {
+                const img = s.logoUrl
+                  ? <img src={s.logoUrl} alt={s.name || ''} title={s.name || ''} className="h-16 object-contain" />
+                  : <span className="text-slate-600 font-medium">{s.name}</span>
+                return s.url
+                  ? <a key={i} href={s.url} target="_blank" rel="noreferrer" className="opacity-90 hover:opacity-100 transition-opacity">{img}</a>
+                  : <div key={i}>{img}</div>
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       <footer className="border-t border-slate-200 bg-white">
-        <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">
+        <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-sm text-slate-500">
           <div>
             <span className="font-semibold text-slate-700">{org.name}</span>
-            {org.contactEmail && <span> · <a href={`mailto:${org.contactEmail}`} className="hover:text-teal-700">{org.contactEmail}</a></span>}
+            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+              {(contact.email || org.contactEmail) && <a href={`mailto:${contact.email || org.contactEmail}`} className="hover:text-teal-700">{contact.email || org.contactEmail}</a>}
+              {contact.phone && <a href={`tel:${contact.phone}`} className="hover:text-teal-700">{contact.phone}</a>}
+              {contact.hours && <span>{contact.hours}</span>}
+              {contact.address && <span>{contact.address}</span>}
+            </div>
+            {(socials.facebook || socials.instagram || socials.website) && (
+              <div className="flex gap-3 mt-2 text-slate-400">
+                {socials.facebook && <a href={socials.facebook} target="_blank" rel="noreferrer" className="hover:text-teal-700" aria-label="Facebook"><Facebook size={18} /></a>}
+                {socials.instagram && <a href={socials.instagram} target="_blank" rel="noreferrer" className="hover:text-teal-700" aria-label="Instagram"><Instagram size={18} /></a>}
+                {socials.website && <a href={socials.website} target="_blank" rel="noreferrer" className="hover:text-teal-700" aria-label="Website"><Globe size={18} /></a>}
+              </div>
+            )}
           </div>
           <span className="text-xs text-slate-400">Powered by Whistle Ready</span>
         </div>
