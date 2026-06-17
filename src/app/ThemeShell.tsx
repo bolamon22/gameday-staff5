@@ -11,7 +11,8 @@ export default function ThemeShell() {
   const pathname = usePathname() || ''
   const isPublic = /\/public(\/|$)/.test(pathname)
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register')
-  const isStaff = !isPublic && !isAuthPage
+  const isSite = pathname.startsWith('/o/')  // public org website = fixed light theme
+  const isStaff = !isPublic && !isAuthPage && !isSite
   const [dark, setDark] = useState(true)
 
   useEffect(() => {
