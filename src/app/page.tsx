@@ -34,6 +34,7 @@ const EMPTY_FORM = { name:'', sport:'Lacrosse', startDate:'', endDate:'', locati
 const ADMIN_LINKS = [
   { label: '👥 User Management',    href: '/admin/users',              desc: 'Add, edit, delete users and assign roles' },
   { label: '🔐 Permissions',        href: '/admin/permissions',        desc: 'Control what each role can access' },
+  { label: '📋 Forms',              href: '/dashboard/org/forms',      desc: 'Reusable forms — player waiver, vendor' },
   { label: '🏒 Club Director View', href: '/dashboard/club-director',  desc: 'Preview the Club Director dashboard' },
   { label: '👤 My Profile',         href: '/profile',                  desc: 'Edit your name, email and password' },
 ]
