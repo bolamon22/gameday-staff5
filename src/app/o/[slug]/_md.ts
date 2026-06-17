@@ -18,7 +18,7 @@ export function mdToHtml(src: string): string {
   let i = 0
   let para: string[] = []
   const flushPara = () => {
-    if (para.length) { out.push(`<p class="text-slate-600 leading-relaxed mb-4">${inline(para.join(' '))}</p>`); para = [] }
+    if (para.length) { out.push(`<p class="text-slate-600 leading-relaxed mb-4">${para.map(inline).join('<br />')}</p>`); para = [] }
   }
   while (i < lines.length) {
     const line = lines[i]
