@@ -1,14 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function RegisterPage() {
+function RegisterInner() {
   const router = useRouter()
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+  const sp = useSearchParams()
+  const role = sp.get('role') || ''
+  const [name, setName] = useState(sp.get('name') || '')
+  const [email, setEmail] = useState(sp.get('email') || '')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
@@ -23,7 +25,7 @@ export default function RegisterPage() {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, role: role || undefined }),
     })
     const data = await res.json()
     if (!res.ok) { setError(data.error || 'Registration failed.'); setLoading(false); return }
@@ -43,8 +45,8 @@ export default function RegisterPage() {
               <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" strokeWidth="2.5" strokeLinecap="round"/>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Create Account</h1>
-          <p className="text-sm text-gray-500 mt-1">Join Whistle Ready</p>
+          <h1 className="text-2xl font-bold text-gray-800">{role === 'parent' ? 'Create your parent account' : 'Create Account'}</h1>
+          <p className="text-sm text-gray-500 mt-1">{role === 'parent' ? 'Manage your players & register faster next time' : 'Join Whistle Ready'}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -87,5 +89,13 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterInner />
+    </Suspense>
   )
 }

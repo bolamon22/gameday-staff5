@@ -17,7 +17,7 @@ export default function PlayerRegForm({ orgId, fields, waiverTitle, waiverHtml, 
     parentName: '', parentEmail: '', parentPhone: '',
     parent2Name: '', parent2Email: '', parent2Phone: '',
     emergencyName: '', emergencyPhone: '',
-    hotel: '', newsletter: false,
+    hotel: '', hotelName: '', newsletter: false,
     agree: false, signature: '',
   })
   const set = (k: string, v: any) => setD((p: any) => ({ ...p, [k]: v }))
@@ -33,11 +33,39 @@ export default function PlayerRegForm({ orgId, fields, waiverTitle, waiverHtml, 
     } catch { toast.error('Submission failed') } finally { setSubmitting(false) }
   }
 
+  const receiptRows: [string, string][] = [
+    ['Player name', d.playerName], ['Player email', d.playerEmail], ['US Lacrosse #', d.usLacrosse], ['Date of birth', d.dob],
+    ['Gender', d.gender], ['Grade', d.grade], ['Team', d.teamName], ['Jersey #', d.jerseyNumber],
+    ['Parent', d.parentName], ['Parent email', d.parentEmail], ['Parent phone', d.parentPhone],
+    ['Parent 2', d.parent2Name], ['Parent 2 email', d.parent2Email], ['Parent 2 phone', d.parent2Phone],
+    ['Emergency contact', d.emergencyName], ['Emergency phone', d.emergencyPhone],
+    ['Hotel / rental', d.hotel], ['Where staying', d.hotelName], ['Signature', d.signature],
+  ]
   if (done) return (
-    <div className="max-w-xl mx-auto px-6 py-20 text-center">
-      <CheckCircle2 size={48} className="mx-auto text-teal-500" />
-      <h1 className="text-2xl font-extrabold text-slate-900 mt-4">{confirmationTitle}</h1>
-      <div className="text-slate-500 mt-3 leading-relaxed text-left sm:text-center" dangerouslySetInnerHTML={{ __html: confirmationHtml }} />
+    <div className="max-w-xl mx-auto px-6 py-16">
+      <div className="text-center">
+        <CheckCircle2 size={48} className="mx-auto text-teal-500" />
+        <h1 className="text-2xl font-extrabold text-slate-900 mt-4">{confirmationTitle}</h1>
+        <div className="text-slate-500 mt-3 leading-relaxed" dangerouslySetInnerHTML={{ __html: confirmationHtml }} />
+      </div>
+
+      <div className="mt-8 bg-white border border-slate-200 rounded-2xl p-5">
+        <h2 className="text-sm font-bold text-slate-800 mb-3 pb-2 border-b border-slate-100">Your submission</h2>
+        <div className="grid sm:grid-cols-2 gap-x-8 gap-y-1.5">
+          {receiptRows.filter(([, v]) => v && String(v).trim()).map(([label, v]) => (
+            <div key={label} className="flex justify-between gap-4 text-sm border-b border-slate-50 py-1">
+              <span className="text-slate-400">{label}</span><span className="text-slate-700 text-right">{v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-6 bg-teal-50 border border-teal-200 rounded-2xl p-5 text-center">
+        <h3 className="font-bold text-slate-900">Create a parent account</h3>
+        <p className="text-sm text-slate-600 mt-1">Manage your players, register faster for future tournaments, and update details anytime.</p>
+        <a href={`/register?role=parent&name=${encodeURIComponent(d.parentName || d.playerName || '')}&email=${encodeURIComponent(d.parentEmail || d.playerEmail || '')}`}
+          className="inline-block mt-4 bg-teal-600 hover:bg-teal-700 text-white font-semibold px-6 py-2.5 rounded-full transition-colors">Create a parent account</a>
+      </div>
     </div>
   )
 
@@ -89,6 +117,7 @@ export default function PlayerRegForm({ orgId, fields, waiverTitle, waiverHtml, 
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <label className={labelCls}>Is your family staying at a hotel or vacation rental during the tournament? *</label>
           <select className={inputCls} value={d.hotel} onChange={e => set('hotel', e.target.value)} required><option value="">Select…</option><option>Yes</option><option>No</option><option>Maybe</option></select>
+          {d.hotel === 'Yes' && <div className="mt-3"><label className={labelCls}>Which hotel / where are you staying? *</label><input className={inputCls} value={d.hotelName} onChange={e => set('hotelName', e.target.value)} placeholder="Hotel or rental name" required /></div>}
         </div>
       )}
 
