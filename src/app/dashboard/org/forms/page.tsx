@@ -123,10 +123,10 @@ function FormsInner() {
       <section className="card p-5 mb-5">
         <div className="flex items-center gap-2 mb-1">
           <span className="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center"><FileText size={16} /></span>
-          <h2 className="font-semibold text-slate-800">Player registration &amp; waiver</h2>
+          <h2 className="font-semibold text-slate-800">Player Waiver</h2>
           {formPath && <a href={formPath} target="_blank" rel="noreferrer" className="ml-auto text-sm border border-slate-300 rounded-lg px-3 py-1.5 text-slate-600 hover:bg-slate-50 inline-flex items-center gap-1.5"><ExternalLink size={14} /> View form</a>}
         </div>
-        <p className="text-xs text-slate-400 mb-4">The waiver and optional fields used on the player registration form.</p>
+        <p className="text-xs text-slate-400 mb-4">The waiver and optional fields players complete to compete.</p>
 
         {/* Public link */}
         {formPath && (

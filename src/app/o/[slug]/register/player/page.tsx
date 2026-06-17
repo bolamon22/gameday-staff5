@@ -62,12 +62,12 @@ export default async function PlayerRegistrationPage({ params }: { params: { slu
             ? <img src={org.logoUrl} alt="" className="w-12 h-12 rounded-lg object-contain bg-white/95 p-1" />
             : <Link href={`/o/${params.slug}`} className="font-extrabold text-lg">{org.name}</Link>}
           <div>
-            <div className="text-xs uppercase tracking-[0.2em] text-teal-300">Player Registration</div>
+            <div className="text-xs uppercase tracking-[0.2em] text-teal-300">Player Waiver</div>
             <h1 className="text-xl font-extrabold leading-tight">{org.name}</h1>
           </div>
         </div>
       </header>
-      <p className="max-w-2xl mx-auto px-6 pt-6 text-sm text-slate-500">All players must complete this form to compete. Required fields are marked *.</p>
+      <p className="max-w-2xl mx-auto px-6 pt-6 text-sm text-slate-500">All players must complete this waiver to compete. Required fields are marked *.</p>
       <PlayerRegForm orgId={org.id} fields={fields} waiverTitle={waiverTitle} waiverHtml={waiverHtml} confirmationTitle={confirmationTitle} confirmationHtml={confirmationHtml} />
     </div>
   )
