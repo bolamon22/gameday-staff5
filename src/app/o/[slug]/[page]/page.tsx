@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { createClient } from '@libsql/client'
 import { Trophy, ChevronLeft } from 'lucide-react'
-import { OrgHeader, OrgFooter, PageLink } from '../_chrome'
+import { OrgHeader, OrgFooter, buildNav, PageRec } from '../_chrome'
+import { mdToHtml } from '../_md'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,35 +21,34 @@ export default async function OrgInfoPage({ params }: { params: { slug: string; 
     const cr = await client.execute({ sql: 'SELECT value FROM "AppSetting" WHERE key = ?', args: [`orgSite:${org.id}`] })
     if (cr.rows.length) content = JSON.parse(((cr.rows[0] as any).value as string) || '{}')
   } catch { /* no content */ }
-  const pages: any[] = Array.isArray(content.pages) ? content.pages : []
-  const page = pages.find(p => p.slug === params.page)
-  const navPages: PageLink[] = pages.filter(p => p.title && p.slug).map(p => ({ title: p.title, slug: p.slug }))
-  const gallery: any[] = Array.isArray(content.gallery) ? content.gallery : []
-  if (gallery.length > 0) navPages.unshift({ title: 'Gallery', slug: 'gallery' })
   if (content.logo) org.logoUrl = content.logo
+  const pages: PageRec[] = Array.isArray(content.pages) ? content.pages : []
+  const gallery: any[] = Array.isArray(content.gallery) ? content.gallery : []
+  const page = pages.find(p => p.slug === params.page)
+  const nav = buildNav(params.slug, pages, gallery.length > 0)
   const contact = content.contact || {}
   const socials = content.socials || {}
 
-  // register CTA = earliest upcoming tournament that takes registrations
-  const tRes = await client.execute({
-    sql: 'SELECT id, startDate, endDate, teamRegEnabled FROM "Tournament" WHERE orgId = ? ORDER BY startDate',
-    args: [org.id as string],
-  })
+  const tRes = await client.execute({ sql: 'SELECT id, startDate, endDate, teamRegEnabled FROM "Tournament" WHERE orgId = ? ORDER BY startDate', args: [org.id as string] })
   const today = new Date().toISOString().slice(0, 10)
-  const upcoming = (tRes.rows as any[]).filter(t => (t.endDate || t.startDate || '') >= today)
-  const reg = upcoming.find(t => Number(t.teamRegEnabled))
+  const reg = (tRes.rows as any[]).filter(t => (t.endDate || t.startDate || '') >= today).find(t => Number(t.teamRegEnabled))
   const registerHref = reg ? `/tournaments/${reg.id}/register` : undefined
 
   if (!page) return <NotFound slug={params.slug} />
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <OrgHeader org={org} slug={params.slug} pages={navPages} registerHref={registerHref} />
+      <OrgHeader org={org} slug={params.slug} nav={nav} registerHref={registerHref} />
+      {/* Title band */}
+      <section className="bg-gradient-to-br from-[#0b1f3a] via-[#0e7490] to-[#0b1f3a] text-white">
+        <div className="max-w-3xl mx-auto px-6 py-14">
+          <Link href={`/o/${params.slug}`} className="text-sm text-teal-200 hover:text-white inline-flex items-center gap-1"><ChevronLeft size={14} /> Back</Link>
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mt-3">{page.title}</h1>
+        </div>
+      </section>
       <main className="max-w-3xl mx-auto px-6 py-12 w-full flex-1">
-        <Link href={`/o/${params.slug}`} className="text-sm text-slate-500 hover:text-teal-700 inline-flex items-center gap-1"><ChevronLeft size={14} /> Back</Link>
-        <h1 className="text-3xl font-extrabold text-slate-900 mt-3 mb-5">{page.title}</h1>
         {page.body
-          ? <div className="text-slate-600 whitespace-pre-line leading-relaxed text-[15px]">{page.body}</div>
+          ? <article className="text-[15px]" dangerouslySetInnerHTML={{ __html: mdToHtml(page.body) }} />
           : <p className="text-slate-400">This page has no content yet.</p>}
       </main>
       <OrgFooter org={org} contact={contact} socials={socials} />

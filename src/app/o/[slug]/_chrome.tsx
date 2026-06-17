@@ -1,9 +1,39 @@
 import Link from 'next/link'
-import { Facebook, Instagram, Globe } from 'lucide-react'
+import { Facebook, Instagram, Globe, ChevronDown } from 'lucide-react'
 
-export type PageLink = { title: string; slug: string }
+export type PageRec = { title: string; slug: string; group?: string }
+export type NavLink = { title: string; href: string }
+export type NavItem = { type: 'link'; title: string; href: string } | { type: 'group'; label: string; children: NavLink[] }
 
-export function OrgHeader({ org, slug, pages, registerHref }: { org: any; slug: string; pages: PageLink[]; registerHref?: string }) {
+// Build the ordered nav (with dropdown groups) from the org's pages.
+export function buildNav(slug: string, pages: PageRec[], hasGallery: boolean): NavItem[] {
+  const items: NavItem[] = [{ type: 'link', title: 'Tournaments', href: `/o/${slug}` }]
+  if (hasGallery) items.push({ type: 'link', title: 'Gallery', href: `/o/${slug}/gallery` })
+  const groupAt: Record<string, number> = {}
+  for (const p of pages) {
+    if (!p.title || !p.slug) continue
+    const href = `/o/${slug}/${p.slug}`
+    const g = (p.group || '').trim()
+    if (g) {
+      if (groupAt[g] === undefined) { groupAt[g] = items.length; items.push({ type: 'group', label: g, children: [] }) }
+      ;(items[groupAt[g]] as any).children.push({ title: p.title, href })
+    } else {
+      items.push({ type: 'link', title: p.title, href })
+    }
+  }
+  return items
+}
+
+function flatten(nav: NavItem[]): NavLink[] {
+  const out: NavLink[] = []
+  for (const it of nav) {
+    if (it.type === 'link') out.push({ title: it.title, href: it.href })
+    else it.children.forEach(c => out.push(c))
+  }
+  return out
+}
+
+export function OrgHeader({ org, slug, nav, registerHref }: { org: any; slug: string; nav: NavItem[]; registerHref?: string }) {
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/70">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
@@ -12,16 +42,25 @@ export function OrgHeader({ org, slug, pages, registerHref }: { org: any; slug: 
           <span className="font-extrabold tracking-tight text-slate-900 text-lg">{org.name}</span>
         </Link>
         <nav className="hidden md:flex items-center gap-7 text-[13px] font-semibold uppercase tracking-wide text-slate-600 ml-auto mr-2">
-          <Link href={`/o/${slug}`} className="hover:text-teal-700 transition-colors">Tournaments</Link>
-          {pages.map(p => <Link key={p.slug} href={`/o/${slug}/${p.slug}`} className="hover:text-teal-700 transition-colors">{p.title}</Link>)}
+          {nav.map((it, i) => it.type === 'link'
+            ? <Link key={i} href={it.href} className="hover:text-teal-700 transition-colors">{it.title}</Link>
+            : (
+              <div key={i} className="relative group">
+                <span className="inline-flex items-center gap-1 cursor-default hover:text-teal-700 transition-colors">{it.label} <ChevronDown size={13} /></span>
+                <div className="absolute left-0 top-full pt-3 hidden group-hover:block">
+                  <div className="bg-white rounded-xl shadow-xl border border-slate-200 py-2 min-w-[200px]">
+                    {it.children.map((c, j) => <Link key={j} href={c.href} className="block px-4 py-2 text-slate-600 normal-case tracking-normal text-sm hover:bg-slate-50 hover:text-teal-700">{c.title}</Link>)}
+                  </div>
+                </div>
+              </div>
+            ))}
         </nav>
         {registerHref && <Link href={registerHref} className="text-sm font-semibold bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-full transition-colors flex-shrink-0 shadow-sm">Register</Link>}
       </div>
-      {pages.length > 0 && (
+      {nav.length > 1 && (
         <div className="md:hidden border-t border-slate-100">
           <div className="max-w-6xl mx-auto px-6 py-2 flex flex-wrap gap-x-5 gap-y-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
-            <Link href={`/o/${slug}`} className="hover:text-teal-700">Tournaments</Link>
-            {pages.map(p => <Link key={p.slug} href={`/o/${slug}/${p.slug}`} className="hover:text-teal-700">{p.title}</Link>)}
+            {flatten(nav).map((c, i) => <Link key={i} href={c.href} className="hover:text-teal-700">{c.title}</Link>)}
           </div>
         </div>
       )}

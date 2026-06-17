@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@libsql/client'
 import { Trophy } from 'lucide-react'
-import { OrgHeader, OrgFooter, PageLink } from '../_chrome'
+import { OrgHeader, OrgFooter, buildNav, PageRec } from '../_chrome'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,9 +24,8 @@ export default async function GalleryPage({ params }: { params: { slug: string }
   const gallery: any[] = Array.isArray(content.gallery) ? content.gallery : []
   const contact = content.contact || {}
   const socials = content.socials || {}
-  const pages: any[] = Array.isArray(content.pages) ? content.pages : []
-  const navPages: PageLink[] = pages.filter(p => p.title && p.slug).map(p => ({ title: p.title, slug: p.slug }))
-  if (gallery.length > 0) navPages.unshift({ title: 'Gallery', slug: 'gallery' })
+  const pages: PageRec[] = Array.isArray(content.pages) ? content.pages : []
+  const nav = buildNav(params.slug, pages, gallery.length > 0)
 
   const tRes = await client.execute({ sql: 'SELECT id, startDate, endDate, teamRegEnabled FROM "Tournament" WHERE orgId = ? ORDER BY startDate', args: [org.id as string] })
   const today = new Date().toISOString().slice(0, 10)
@@ -35,7 +34,7 @@ export default async function GalleryPage({ params }: { params: { slug: string }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <OrgHeader org={org} slug={params.slug} pages={navPages} registerHref={registerHref} />
+      <OrgHeader org={org} slug={params.slug} nav={nav} registerHref={registerHref} />
       <main className="max-w-6xl mx-auto px-6 py-14 w-full flex-1">
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 mb-8">Gallery</h1>
         {gallery.length === 0

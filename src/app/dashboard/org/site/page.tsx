@@ -5,10 +5,10 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
-import { ChevronLeft, Plus, Trash2, ExternalLink, ImagePlus, Save } from 'lucide-react'
+import { ChevronLeft, ChevronUp, ChevronDown, Plus, Trash2, ExternalLink, ImagePlus, Save } from 'lucide-react'
 
 type Sponsor = { name: string; logoUrl: string; url: string }
-type Page = { title: string; slug: string; body: string }
+type Page = { title: string; slug: string; body: string; group: string }
 type Photo = { url: string; caption: string }
 type Insta = { username: string; token: string }
 type Content = {
@@ -79,6 +79,8 @@ function OrgSiteEditorInner() {
       else { const e = await res.json().catch(() => ({})); toast.error(e.error || 'Save failed') }
     } catch { toast.error('Save failed') } finally { setSaving(false) }
   }
+
+  const movePage = (i: number, dir: -1 | 1) => setC(v => { const a = [...v.pages]; const j = i + dir; if (j < 0 || j >= a.length) return v; [a[i], a[j]] = [a[j], a[i]]; return { ...v, pages: a } })
 
   if (loading) return <div className="text-slate-400 text-center py-16">Loading…</div>
 
@@ -163,20 +165,27 @@ function OrgSiteEditorInner() {
       <section className="card p-5 mb-5">
         <div className="flex items-center justify-between mb-1">
           <h2 className="font-semibold text-slate-800">Info pages</h2>
-          <button onClick={() => setC(v => ({ ...v, pages: [...v.pages, { title: '', slug: '', body: '' }] }))} className="text-sm text-teal-700 hover:text-teal-900 inline-flex items-center gap-1"><Plus size={14} /> Add page</button>
+          <button onClick={() => setC(v => ({ ...v, pages: [...v.pages, { title: '', slug: '', body: '', group: '' }] }))} className="text-sm text-teal-700 hover:text-teal-900 inline-flex items-center gap-1"><Plus size={14} /> Add page</button>
         </div>
-        <p className="text-xs text-slate-400 mb-3">Add pages like Directions, Refund policy, Hotels or FAQ. They appear in your site's top navigation.</p>
+        <p className="text-xs text-slate-400 mb-3">Add pages like Directions, Refund policy, Hotels or FAQ. Give pages the same Menu group to nest them under a dropdown. Use the arrows to reorder. Body supports Markdown (# heading, **bold**, - bullets, [links](https://…)).</p>
         {c.pages.length === 0 && <p className="text-sm text-slate-400">No pages yet.</p>}
         <div className="space-y-3">
           {c.pages.map((pg, i) => (
             <div key={i} className="border border-slate-200 rounded-xl p-3">
               <div className="flex items-center gap-2">
+                <div className="flex flex-col">
+                  <button onClick={() => movePage(i, -1)} disabled={i === 0} className="text-slate-300 hover:text-slate-600 disabled:opacity-30"><ChevronUp size={15} /></button>
+                  <button onClick={() => movePage(i, 1)} disabled={i === c.pages.length - 1} className="text-slate-300 hover:text-slate-600 disabled:opacity-30"><ChevronDown size={15} /></button>
+                </div>
                 <input className="input flex-1" value={pg.title} onChange={e => { const title = e.target.value; setC(v => ({ ...v, pages: v.pages.map((x, j) => j === i ? { ...x, title, slug: x.slug || slugify(title) } : x) })) }} placeholder="Page title (e.g. Directions & parking)" />
                 <button onClick={() => setC(v => ({ ...v, pages: v.pages.filter((_, j) => j !== i) }))} className="text-slate-400 hover:text-red-600"><Trash2 size={15} /></button>
               </div>
-              <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
-                <span>/o/{org?.slug || 'your-org'}/</span>
-                <input className="input py-1 text-xs flex-1" value={pg.slug} onChange={e => setC(v => ({ ...v, pages: v.pages.map((x, j) => j === i ? { ...x, slug: slugify(e.target.value) } : x) }))} placeholder="directions" />
+              <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                <div className="flex items-center gap-1 text-xs text-slate-400 flex-1">
+                  <span className="whitespace-nowrap">/o/{org?.slug || 'your-org'}/</span>
+                  <input className="input py-1 text-xs flex-1" value={pg.slug} onChange={e => setC(v => ({ ...v, pages: v.pages.map((x, j) => j === i ? { ...x, slug: slugify(e.target.value) } : x) }))} placeholder="directions" />
+                </div>
+                <input className="input py-1 text-xs sm:w-48" value={pg.group || ''} onChange={e => setC(v => ({ ...v, pages: v.pages.map((x, j) => j === i ? { ...x, group: e.target.value } : x) }))} placeholder="Menu group (optional)" />
               </div>
               <textarea className="input min-h-[100px] mt-2" value={pg.body} onChange={e => setC(v => ({ ...v, pages: v.pages.map((x, j) => j === i ? { ...x, body: e.target.value } : x) }))} placeholder="Page content…" />
             </div>

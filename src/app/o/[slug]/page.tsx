@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@libsql/client'
 import { MapPin, CalendarDays, ArrowRight, Trophy, Instagram } from 'lucide-react'
-import { OrgHeader, OrgFooter, PageLink } from './_chrome'
+import { OrgHeader, OrgFooter, buildNav, PageRec } from './_chrome'
 import { fetchInstagram } from './_instagram'
 
 export const dynamic = 'force-dynamic'
@@ -78,9 +78,8 @@ export default async function OrgSite({ params }: { params: { slug: string } }) 
   const gallery: any[] = Array.isArray(content.gallery) ? content.gallery : []
   const ig = content.instagram || {}
 
-  const pages: any[] = Array.isArray(content.pages) ? content.pages : []
-  const navPages: PageLink[] = pages.filter(p => p.title && p.slug).map(p => ({ title: p.title, slug: p.slug }))
-  if (gallery.length > 0) navPages.unshift({ title: 'Gallery', slug: 'gallery' })
+  const pages: PageRec[] = Array.isArray(content.pages) ? content.pages : []
+  const nav = buildNav(params.slug, pages, gallery.length > 0)
 
   const tRes = await client.execute({
     sql: 'SELECT id, name, startDate, endDate, location, logoUrl, sport, teamRegEnabled FROM "Tournament" WHERE orgId = ? ORDER BY startDate',
@@ -96,7 +95,7 @@ export default async function OrgSite({ params }: { params: { slug: string } }) 
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <OrgHeader org={org} slug={params.slug} pages={navPages} registerHref={registerHref} />
+      <OrgHeader org={org} slug={params.slug} nav={nav} registerHref={registerHref} />
 
       {/* Hero */}
       <section className="relative overflow-hidden text-white">
