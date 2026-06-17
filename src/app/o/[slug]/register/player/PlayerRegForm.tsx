@@ -9,7 +9,7 @@ const inputCls = 'w-full border border-slate-300 rounded-lg px-3 py-2 text-sm fo
 const labelCls = 'block text-sm font-medium text-slate-700 mb-1'
 const GRADES = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
 
-export default function PlayerRegForm({ orgId, fields, waiverTitle, waiverHtml, confirmationTitle, confirmationHtml }: { orgId: string; fields: Fields; waiverTitle: string; waiverHtml: string; confirmationTitle: string; confirmationHtml: string }) {
+export default function PlayerRegForm({ orgId, fields, waiverTitle, waiverHtml, confirmationTitle, confirmationHtml, teams, tournamentId, tournamentName }: { orgId: string; fields: Fields; waiverTitle: string; waiverHtml: string; confirmationTitle: string; confirmationHtml: string; teams?: string[]; tournamentId?: string; tournamentName?: string }) {
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [d, setD] = useState<any>({
@@ -27,7 +27,7 @@ export default function PlayerRegForm({ orgId, fields, waiverTitle, waiverHtml, 
     if (!d.agree || !d.signature.trim()) { toast.error('Please agree to the waiver and sign'); return }
     setSubmitting(true)
     try {
-      const res = await fetch('/api/org-forms/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orgId, formType: 'player', data: d }) })
+      const res = await fetch('/api/org-forms/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orgId, formType: 'player', data: { ...d, tournamentId: tournamentId || '', tournamentName: tournamentName || '' } }) })
       if (res.ok) setDone(true)
       else { const e = await res.json().catch(() => ({})); toast.error(e.error || 'Submission failed') }
     } catch { toast.error('Submission failed') } finally { setSubmitting(false) }
@@ -54,7 +54,9 @@ export default function PlayerRegForm({ orgId, fields, waiverTitle, waiverHtml, 
           <div><label className={labelCls}>Date of birth *</label><input className={inputCls} type="date" value={d.dob} onChange={e => set('dob', e.target.value)} required /></div>
           {fields.gender && <div><label className={labelCls}>Gender *</label><select className={inputCls} value={d.gender} onChange={e => set('gender', e.target.value)} required><option value="">Select…</option><option>Female</option><option>Male</option></select></div>}
           {fields.grade && <div><label className={labelCls}>Player grade *</label><select className={inputCls} value={d.grade} onChange={e => set('grade', e.target.value)} required><option value="">Select…</option>{GRADES.map(g => <option key={g}>{g}</option>)}</select></div>}
-          {fields.teamName && <div><label className={labelCls}>Team or club name *</label><input className={inputCls} value={d.teamName} onChange={e => set('teamName', e.target.value)} required /></div>}
+          {fields.teamName && <div><label className={labelCls}>Team or club name *</label>{teams && teams.length > 0
+            ? <select className={inputCls} value={d.teamName} onChange={e => set('teamName', e.target.value)} required><option value="">Select your team…</option>{teams.map(tm => <option key={tm} value={tm}>{tm}</option>)}<option value="__other">Other / not listed</option></select>
+            : <input className={inputCls} value={d.teamName} onChange={e => set('teamName', e.target.value)} required />}</div>}
           <div><label className={labelCls}>Jersey number</label><input className={inputCls} value={d.jerseyNumber} onChange={e => set('jerseyNumber', e.target.value)} /></div>
         </div>
       </div>
