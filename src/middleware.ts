@@ -2,7 +2,7 @@ import { getToken } from 'next-auth/jwt'
 import { NextRequest, NextResponse } from 'next/server'
 import permissionsConfig from './lib/role-permissions.json'
 
-const PUBLIC_ROUTES = ['/login', '/register']
+const PUBLIC_ROUTES = ['/login', '/register', '/o/']  // /o/[slug] = public org website
 const ALL_ROLES_ROUTES = ['/profile', '/api/profile', '/api/auth', '/dashboard/', '/unauthorized']
 
 const FEATURE_ROUTE_MAP: Record<string, string[]> = {}
