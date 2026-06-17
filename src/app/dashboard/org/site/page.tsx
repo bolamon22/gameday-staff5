@@ -9,6 +9,7 @@ import { ChevronLeft, Plus, Trash2, ExternalLink, ImagePlus, Save } from 'lucide
 
 type Sponsor = { name: string; logoUrl: string; url: string }
 type Page = { title: string; slug: string; body: string }
+type Photo = { url: string; caption: string }
 type Content = {
   logo: string
   hero: { headline: string; subtext: string; imageUrl: string }
@@ -17,6 +18,7 @@ type Content = {
   contact: { email: string; phone: string; hours: string; address: string }
   socials: { facebook: string; instagram: string; website: string }
   pages: Page[]
+  gallery: Photo[]
 }
 const EMPTY: Content = {
   logo: '',
@@ -26,6 +28,7 @@ const EMPTY: Content = {
   contact: { email: '', phone: '', hours: '', address: '' },
   socials: { facebook: '', instagram: '', website: '' },
   pages: [],
+  gallery: [],
 }
 
 const slugify = (t: string) => t.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
@@ -60,7 +63,7 @@ function OrgSiteEditorInner() {
         if (qOrg) { setOrg({ name: qName, slug: qSlug }) }
         else { const o = await fetch('/api/org').then(r => r.ok ? r.json() : null); if (o) setOrg({ name: o.name, slug: o.slug }) }
         const d = await fetch(`/api/org-site${apiQ}`).then(r => r.ok ? r.json() : {})
-        setC({ ...EMPTY, ...d, logo: d.logo || '', hero: { ...EMPTY.hero, ...(d.hero || {}) }, about: { ...EMPTY.about, ...(d.about || {}) }, contact: { ...EMPTY.contact, ...(d.contact || {}) }, socials: { ...EMPTY.socials, ...(d.socials || {}) }, sponsors: Array.isArray(d.sponsors) ? d.sponsors : [], pages: Array.isArray(d.pages) ? d.pages : [] })
+        setC({ ...EMPTY, ...d, logo: d.logo || '', hero: { ...EMPTY.hero, ...(d.hero || {}) }, about: { ...EMPTY.about, ...(d.about || {}) }, contact: { ...EMPTY.contact, ...(d.contact || {}) }, socials: { ...EMPTY.socials, ...(d.socials || {}) }, sponsors: Array.isArray(d.sponsors) ? d.sponsors : [], pages: Array.isArray(d.pages) ? d.pages : [], gallery: Array.isArray(d.gallery) ? d.gallery : [] })
       } catch {} finally { setLoading(false) }
     })()
   }, [status, session, role])
@@ -78,6 +81,7 @@ function OrgSiteEditorInner() {
 
   const logoImg = async (f?: File | null) => { if (!f) return; const u = await uploadImage(f); if (u) setC(v => ({ ...v, logo: u })); else toast.error('Upload failed') }
   const heroImg = async (f?: File | null) => { if (!f) return; const u = await uploadImage(f); if (u) setC(v => ({ ...v, hero: { ...v.hero, imageUrl: u } })); else toast.error('Upload failed') }
+  const galleryAdd = async (files?: FileList | null) => { if (!files || !files.length) return; for (const f of Array.from(files)) { const u = await uploadImage(f); if (u) setC(v => ({ ...v, gallery: [...v.gallery, { url: u, caption: '' }] })); else toast.error('Upload failed') } }
   const sponLogo = async (i: number, f?: File | null) => { if (!f) return; const u = await uploadImage(f); if (u) setC(v => ({ ...v, sponsors: v.sponsors.map((s, j) => j === i ? { ...s, logoUrl: u } : s) })); else toast.error('Upload failed') }
 
   return (
@@ -172,6 +176,27 @@ function OrgSiteEditorInner() {
                 <input className="input py-1 text-xs flex-1" value={pg.slug} onChange={e => setC(v => ({ ...v, pages: v.pages.map((x, j) => j === i ? { ...x, slug: slugify(e.target.value) } : x) }))} placeholder="directions" />
               </div>
               <textarea className="input min-h-[100px] mt-2" value={pg.body} onChange={e => setC(v => ({ ...v, pages: v.pages.map((x, j) => j === i ? { ...x, body: e.target.value } : x) }))} placeholder="Page content…" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Photo gallery */}
+      <section className="card p-5 mb-5">
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="font-semibold text-slate-800">Photo gallery</h2>
+          <label className="text-sm text-teal-700 hover:text-teal-900 inline-flex items-center gap-1 cursor-pointer"><Plus size={14} /> Add photos<input type="file" accept="image/*" multiple className="hidden" onChange={e => galleryAdd(e.target.files)} /></label>
+        </div>
+        <p className="text-xs text-slate-400 mb-3">Photos appear in a grid on your site. You can add several at once.</p>
+        {c.gallery.length === 0 && <p className="text-sm text-slate-400">No photos yet.</p>}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {c.gallery.map((ph, i) => (
+            <div key={i} className="border border-slate-200 rounded-xl overflow-hidden">
+              <img src={ph.url} alt="" className="w-full h-28 object-cover" />
+              <div className="p-2 flex items-center gap-1">
+                <input className="input py-1 text-xs flex-1" value={ph.caption} onChange={e => setC(v => ({ ...v, gallery: v.gallery.map((x, j) => j === i ? { ...x, caption: e.target.value } : x) }))} placeholder="Caption (optional)" />
+                <button onClick={() => setC(v => ({ ...v, gallery: v.gallery.filter((_, j) => j !== i) }))} className="text-slate-400 hover:text-red-600"><Trash2 size={14} /></button>
+              </div>
             </div>
           ))}
         </div>

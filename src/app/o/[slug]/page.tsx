@@ -77,6 +77,7 @@ export default async function OrgSite({ params }: { params: { slug: string } }) 
   const pages: any[] = Array.isArray(content.pages) ? content.pages : []
   const navPages: PageLink[] = pages.filter(p => p.title && p.slug).map(p => ({ title: p.title, slug: p.slug }))
   if (content.logo) org.logoUrl = content.logo
+  const gallery: any[] = Array.isArray(content.gallery) ? content.gallery : []
 
   const tRes = await client.execute({
     sql: 'SELECT id, name, startDate, endDate, location, logoUrl, sport, teamRegEnabled FROM "Tournament" WHERE orgId = ? ORDER BY startDate',
@@ -123,6 +124,23 @@ export default async function OrgSite({ params }: { params: { slug: string } }) 
           <div className="max-w-6xl mx-auto px-6 py-12">
             <h2 className="text-xl font-bold text-slate-900 mb-3">{about.heading || 'About'}</h2>
             <p className="text-slate-600 max-w-3xl whitespace-pre-line leading-relaxed">{about.body}</p>
+          </div>
+        </section>
+      )}
+
+      {/* Gallery */}
+      {gallery.length > 0 && (
+        <section className="bg-white border-t border-slate-200">
+          <div className="max-w-6xl mx-auto px-6 py-12">
+            <h2 className="text-xl font-bold text-slate-900 mb-6">Gallery</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {gallery.map((ph, i) => (
+                <a key={i} href={ph.url} target="_blank" rel="noreferrer" className="group block rounded-2xl overflow-hidden border border-slate-200 bg-slate-50">
+                  <img src={ph.url} alt={ph.caption || ''} className="w-full h-44 object-cover group-hover:opacity-95 transition-opacity" />
+                  {ph.caption && <p className="text-xs text-slate-500 px-3 py-2 truncate">{ph.caption}</p>}
+                </a>
+              ))}
+            </div>
           </div>
         </section>
       )}
