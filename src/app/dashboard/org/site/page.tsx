@@ -10,6 +10,7 @@ import { ChevronLeft, Plus, Trash2, ExternalLink, ImagePlus, Save } from 'lucide
 type Sponsor = { name: string; logoUrl: string; url: string }
 type Page = { title: string; slug: string; body: string }
 type Content = {
+  logo: string
   hero: { headline: string; subtext: string; imageUrl: string }
   about: { heading: string; body: string }
   sponsors: Sponsor[]
@@ -18,6 +19,7 @@ type Content = {
   pages: Page[]
 }
 const EMPTY: Content = {
+  logo: '',
   hero: { headline: '', subtext: '', imageUrl: '' },
   about: { heading: '', body: '' },
   sponsors: [],
@@ -58,7 +60,7 @@ function OrgSiteEditorInner() {
         if (qOrg) { setOrg({ name: qName, slug: qSlug }) }
         else { const o = await fetch('/api/org').then(r => r.ok ? r.json() : null); if (o) setOrg({ name: o.name, slug: o.slug }) }
         const d = await fetch(`/api/org-site${apiQ}`).then(r => r.ok ? r.json() : {})
-        setC({ ...EMPTY, ...d, hero: { ...EMPTY.hero, ...(d.hero || {}) }, about: { ...EMPTY.about, ...(d.about || {}) }, contact: { ...EMPTY.contact, ...(d.contact || {}) }, socials: { ...EMPTY.socials, ...(d.socials || {}) }, sponsors: Array.isArray(d.sponsors) ? d.sponsors : [], pages: Array.isArray(d.pages) ? d.pages : [] })
+        setC({ ...EMPTY, ...d, logo: d.logo || '', hero: { ...EMPTY.hero, ...(d.hero || {}) }, about: { ...EMPTY.about, ...(d.about || {}) }, contact: { ...EMPTY.contact, ...(d.contact || {}) }, socials: { ...EMPTY.socials, ...(d.socials || {}) }, sponsors: Array.isArray(d.sponsors) ? d.sponsors : [], pages: Array.isArray(d.pages) ? d.pages : [] })
       } catch {} finally { setLoading(false) }
     })()
   }, [status, session, role])
@@ -74,6 +76,7 @@ function OrgSiteEditorInner() {
 
   if (loading) return <div className="text-slate-400 text-center py-16">Loading…</div>
 
+  const logoImg = async (f?: File | null) => { if (!f) return; const u = await uploadImage(f); if (u) setC(v => ({ ...v, logo: u })); else toast.error('Upload failed') }
   const heroImg = async (f?: File | null) => { if (!f) return; const u = await uploadImage(f); if (u) setC(v => ({ ...v, hero: { ...v.hero, imageUrl: u } })); else toast.error('Upload failed') }
   const sponLogo = async (i: number, f?: File | null) => { if (!f) return; const u = await uploadImage(f); if (u) setC(v => ({ ...v, sponsors: v.sponsors.map((s, j) => j === i ? { ...s, logoUrl: u } : s) })); else toast.error('Upload failed') }
 
@@ -91,6 +94,17 @@ function OrgSiteEditorInner() {
           <button onClick={save} disabled={saving} className="text-sm font-semibold bg-teal-600 hover:bg-teal-700 text-white rounded-lg px-4 py-2 inline-flex items-center gap-1.5 disabled:opacity-50"><Save size={14} /> {saving ? 'Saving…' : 'Save'}</button>
         </div>
       </div>
+
+      {/* Branding */}
+      <section className="card p-5 mb-5">
+        <h2 className="font-semibold text-slate-800 mb-3">Logo</h2>
+        <div className="flex items-center gap-3">
+          {c.logo ? <img src={c.logo} alt="" className="h-16 w-16 object-contain rounded-xl border border-slate-200 bg-white" /> : <div className="h-16 w-16 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400"><ImagePlus size={18} /></div>}
+          <label className="text-sm border border-slate-300 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-50 cursor-pointer">Upload<input type="file" accept="image/*" className="hidden" onChange={e => logoImg(e.target.files?.[0])} /></label>
+          {c.logo && <button onClick={() => setC(v => ({ ...v, logo: '' }))} className="text-sm text-slate-400 hover:text-red-600">Remove</button>}
+        </div>
+        <p className="text-xs text-slate-400 mt-2">Shown in your site header and hero.</p>
+      </section>
 
       {/* Hero */}
       <section className="card p-5 mb-5">

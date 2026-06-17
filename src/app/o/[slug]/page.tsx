@@ -76,6 +76,7 @@ export default async function OrgSite({ params }: { params: { slug: string } }) 
   const socials = content.socials || {}
   const pages: any[] = Array.isArray(content.pages) ? content.pages : []
   const navPages: PageLink[] = pages.filter(p => p.title && p.slug).map(p => ({ title: p.title, slug: p.slug }))
+  if (content.logo) org.logoUrl = content.logo
 
   const tRes = await client.execute({
     sql: 'SELECT id, name, startDate, endDate, location, logoUrl, sport, teamRegEnabled FROM "Tournament" WHERE orgId = ? ORDER BY startDate',
