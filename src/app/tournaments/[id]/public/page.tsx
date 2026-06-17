@@ -909,6 +909,10 @@ export default function PublicTournamentPage() {
                 className="flex items-center gap-1.5 bg-teal-500 hover:bg-teal-400 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors">
                 <ClipboardList size={14}/> Register
               </Link>
+              <Link href={`/tournaments/${id}/player-waiver`} target="_blank"
+                className="flex items-center gap-1.5 bg-teal-50 text-teal-700 hover:bg-teal-100 text-xs font-bold px-3 py-2 rounded-lg transition-colors">
+                <ScrollText size={14}/> Player Waiver
+              </Link>
               <button className="flex items-center gap-1.5 bg-green-100 text-green-800 text-xs font-bold px-3 py-2 rounded hover:bg-green-200 transition-colors">
                 <Bell size={14}/> Get Notified
               </button>
