@@ -56,6 +56,7 @@ function OrgSiteEditorInner() {
   const [c, setC] = useState<Content>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [openPages, setOpenPages] = useState<Record<number, boolean>>({})
 
   useEffect(() => {
     if (status === 'loading') return
@@ -165,29 +166,35 @@ function OrgSiteEditorInner() {
       <section className="card p-5 mb-5">
         <div className="flex items-center justify-between mb-1">
           <h2 className="font-semibold text-slate-800">Info pages</h2>
-          <button onClick={() => setC(v => ({ ...v, pages: [...v.pages, { title: '', slug: '', body: '', group: '' }] }))} className="text-sm text-teal-700 hover:text-teal-900 inline-flex items-center gap-1"><Plus size={14} /> Add page</button>
+          <button onClick={() => setC(v => { const idx = v.pages.length; setOpenPages(o => ({ ...o, [idx]: true })); return { ...v, pages: [...v.pages, { title: '', slug: '', body: '', group: '' }] } })} className="text-sm text-teal-700 hover:text-teal-900 inline-flex items-center gap-1"><Plus size={14} /> Add page</button>
         </div>
         <p className="text-xs text-slate-400 mb-3">Add pages like Directions, Refund policy, Hotels or FAQ. Give pages the same Menu group to nest them under a dropdown. Use the arrows to reorder. Body supports Markdown (# heading, **bold**, - bullets, [links](https://…)).</p>
         {c.pages.length === 0 && <p className="text-sm text-slate-400">No pages yet.</p>}
         <div className="space-y-3">
           {c.pages.map((pg, i) => (
-            <div key={i} className="border border-slate-200 rounded-xl p-3">
-              <div className="flex items-center gap-2">
+            <div key={i} className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="flex items-center gap-2 p-3">
                 <div className="flex flex-col">
                   <button onClick={() => movePage(i, -1)} disabled={i === 0} className="text-slate-300 hover:text-slate-600 disabled:opacity-30"><ChevronUp size={15} /></button>
                   <button onClick={() => movePage(i, 1)} disabled={i === c.pages.length - 1} className="text-slate-300 hover:text-slate-600 disabled:opacity-30"><ChevronDown size={15} /></button>
                 </div>
                 <input className="input flex-1" value={pg.title} onChange={e => { const title = e.target.value; setC(v => ({ ...v, pages: v.pages.map((x, j) => j === i ? { ...x, title, slug: x.slug || slugify(title) } : x) })) }} placeholder="Page title (e.g. Directions & parking)" />
+                {pg.group ? <span className="text-xs bg-slate-100 text-slate-500 rounded-full px-2 py-0.5 hidden sm:inline">{pg.group}</span> : null}
+                <button onClick={() => setOpenPages(o => ({ ...o, [i]: !o[i] }))} className="text-slate-400 hover:text-slate-600 p-1" title={openPages[i] ? 'Collapse' : 'Expand'}><ChevronDown size={16} className={`transition-transform ${openPages[i] ? 'rotate-180' : ''}`} /></button>
                 <button onClick={() => setC(v => ({ ...v, pages: v.pages.filter((_, j) => j !== i) }))} className="text-slate-400 hover:text-red-600"><Trash2 size={15} /></button>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2 mt-2">
-                <div className="flex items-center gap-1 text-xs text-slate-400 flex-1">
-                  <span className="whitespace-nowrap">/o/{org?.slug || 'your-org'}/</span>
-                  <input className="input py-1 text-xs flex-1" value={pg.slug} onChange={e => setC(v => ({ ...v, pages: v.pages.map((x, j) => j === i ? { ...x, slug: slugify(e.target.value) } : x) }))} placeholder="directions" />
+              {openPages[i] && (
+                <div className="px-3 pb-3 border-t border-slate-100 pt-3">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="flex items-center gap-1 text-xs text-slate-400 flex-1">
+                      <span className="whitespace-nowrap">/o/{org?.slug || 'your-org'}/</span>
+                      <input className="input py-1 text-xs flex-1" value={pg.slug} onChange={e => setC(v => ({ ...v, pages: v.pages.map((x, j) => j === i ? { ...x, slug: slugify(e.target.value) } : x) }))} placeholder="directions" />
+                    </div>
+                    <input className="input py-1 text-xs sm:w-48" value={pg.group || ''} onChange={e => setC(v => ({ ...v, pages: v.pages.map((x, j) => j === i ? { ...x, group: e.target.value } : x) }))} placeholder="Menu group (optional)" />
+                  </div>
+                  <textarea className="input min-h-[160px] mt-2" value={pg.body} onChange={e => setC(v => ({ ...v, pages: v.pages.map((x, j) => j === i ? { ...x, body: e.target.value } : x) }))} placeholder="Page content…" />
                 </div>
-                <input className="input py-1 text-xs sm:w-48" value={pg.group || ''} onChange={e => setC(v => ({ ...v, pages: v.pages.map((x, j) => j === i ? { ...x, group: e.target.value } : x) }))} placeholder="Menu group (optional)" />
-              </div>
-              <textarea className="input min-h-[100px] mt-2" value={pg.body} onChange={e => setC(v => ({ ...v, pages: v.pages.map((x, j) => j === i ? { ...x, body: e.target.value } : x) }))} placeholder="Page content…" />
+              )}
             </div>
           ))}
         </div>
