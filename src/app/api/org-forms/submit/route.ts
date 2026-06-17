@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { Resend } from 'resend'
+import { mdToHtml } from '@/app/o/[slug]/_md'
 
 async function ensureTable() {
   try {
@@ -29,6 +31,29 @@ export async function POST(req: NextRequest) {
     if (list.length > 5000) list.splice(0, list.length - 5000)
     const value = JSON.stringify(list)
     await prisma.appSetting.upsert({ where: { key: key(orgId) }, update: { value }, create: { key: key(orgId), value } })
+
+    // Confirmation email (non-blocking) — uses the org's configured confirmation text.
+    try {
+      const to = String(data.playerEmail || data.parentEmail || '').trim()
+      if (to && process.env.RESEND_API_KEY) {
+        const cfgRow = await prisma.appSetting.findUnique({ where: { key: `orgForms:${orgId}` } })
+        const cfg = cfgRow ? (JSON.parse(cfgRow.value || '{}').player || {}) : {}
+        if (cfg.emailConfirmation !== false) {
+          const orgRows = await prisma.$queryRawUnsafe<any[]>('SELECT name FROM "Organization" WHERE id = ?', orgId)
+          const orgName = orgRows?.[0]?.name || 'the tournament'
+          const title = cfg.confirmationTitle || "You're registered!"
+          const bodyHtml = mdToHtml(cfg.confirmationMessage || "Thanks for registering. We've received your information and signed waiver.")
+          const resend = new Resend(process.env.RESEND_API_KEY)
+          await resend.emails.send({
+            from: process.env.INVITE_FROM_EMAIL || 'noreply@gamedaystaff.com',
+            to,
+            subject: `Registration received \u2014 ${orgName}`,
+            html: `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto"><h1 style="font-size:20px;color:#0f172a">${title}</h1><div style="color:#475569;font-size:15px;line-height:1.6">${bodyHtml}</div><p style="color:#94a3b8;font-size:12px;margin-top:24px">${orgName} \u00b7 Player registration confirmation</p></div>`,
+          })
+        }
+      }
+    } catch { /* email failure must not fail the submission */ }
+
     return NextResponse.json({ ok: true })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Failed to submit' }, { status: 500 })

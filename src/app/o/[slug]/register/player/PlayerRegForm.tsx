@@ -9,7 +9,7 @@ const inputCls = 'w-full border border-slate-300 rounded-lg px-3 py-2 text-sm fo
 const labelCls = 'block text-sm font-medium text-slate-700 mb-1'
 const GRADES = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
 
-export default function PlayerRegForm({ orgId, fields, waiverTitle, waiverHtml }: { orgId: string; fields: Fields; waiverTitle: string; waiverHtml: string }) {
+export default function PlayerRegForm({ orgId, fields, waiverTitle, waiverHtml, confirmationTitle, confirmationHtml }: { orgId: string; fields: Fields; waiverTitle: string; waiverHtml: string; confirmationTitle: string; confirmationHtml: string }) {
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [d, setD] = useState<any>({
@@ -36,8 +36,8 @@ export default function PlayerRegForm({ orgId, fields, waiverTitle, waiverHtml }
   if (done) return (
     <div className="max-w-xl mx-auto px-6 py-20 text-center">
       <CheckCircle2 size={48} className="mx-auto text-teal-500" />
-      <h1 className="text-2xl font-extrabold text-slate-900 mt-4">You're registered!</h1>
-      <p className="text-slate-500 mt-2">Thanks, {d.playerName || 'player'}. Your registration and waiver have been received.</p>
+      <h1 className="text-2xl font-extrabold text-slate-900 mt-4">{confirmationTitle}</h1>
+      <div className="text-slate-500 mt-3 leading-relaxed text-left sm:text-center" dangerouslySetInnerHTML={{ __html: confirmationHtml }} />
     </div>
   )
 

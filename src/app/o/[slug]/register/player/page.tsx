@@ -51,6 +51,8 @@ export default async function PlayerRegistrationPage({ params }: { params: { slu
   const waiverTitle = pf.waiverTitle || 'Player Participation Waiver & Release of Liability'
   const waiverHtml = mdToHtml(pf.waiverText || DEFAULT_WAIVER)
   const fields = { ...DEFAULT_FIELDS, ...(pf.fields || {}) }
+  const confirmationTitle = pf.confirmationTitle || "You're registered!"
+  const confirmationHtml = mdToHtml(pf.confirmationMessage || "Thanks for registering. We've received your information and signed waiver. We'll be in touch with event details \u2014 see you on the field!")
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -66,7 +68,7 @@ export default async function PlayerRegistrationPage({ params }: { params: { slu
         </div>
       </header>
       <p className="max-w-2xl mx-auto px-6 pt-6 text-sm text-slate-500">All players must complete this form to compete. Required fields are marked *.</p>
-      <PlayerRegForm orgId={org.id} fields={fields} waiverTitle={waiverTitle} waiverHtml={waiverHtml} />
+      <PlayerRegForm orgId={org.id} fields={fields} waiverTitle={waiverTitle} waiverHtml={waiverHtml} confirmationTitle={confirmationTitle} confirmationHtml={confirmationHtml} />
     </div>
   )
 }

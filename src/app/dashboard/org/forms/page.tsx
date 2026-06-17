@@ -30,6 +30,9 @@ type PlayerForm = {
   waiverTitle: string
   waiverText: string
   fields: { gender: boolean; grade: boolean; teamName: boolean; parent2: boolean; hotelQuestion: boolean; newsletter: boolean }
+  confirmationTitle: string
+  confirmationMessage: string
+  emailConfirmation: boolean
 }
 type Forms = { player: PlayerForm }
 const EMPTY: Forms = {
@@ -37,6 +40,9 @@ const EMPTY: Forms = {
     waiverTitle: 'Player Participation Waiver & Release of Liability',
     waiverText: DEFAULT_WAIVER,
     fields: { gender: true, grade: true, teamName: true, parent2: true, hotelQuestion: false, newsletter: false },
+    confirmationTitle: "You're registered!",
+    confirmationMessage: "Thanks for registering. We've received your information and signed waiver. We'll be in touch with event details — see you on the field!",
+    emailConfirmation: true,
   },
 }
 
@@ -146,6 +152,20 @@ function FormsInner() {
               <span><span className="text-sm text-slate-700 font-medium">{fl.label}</span><br /><span className="text-xs text-slate-400">{fl.hint}</span></span>
             </label>
           ))}
+        </div>
+
+        {/* Confirmation & email */}
+        <div className="mt-5 pt-4 border-t border-slate-100">
+          <h3 className="text-sm font-semibold text-slate-700 mb-2">After submitting</h3>
+          <label className="label">Confirmation title</label>
+          <input className="input" value={pf.confirmationTitle} onChange={e => setF(v => ({ ...v, player: { ...v.player, confirmationTitle: e.target.value } }))} placeholder="You're registered!" />
+          <label className="label mt-3">Confirmation message</label>
+          <textarea className="input min-h-[90px]" value={pf.confirmationMessage} onChange={e => setF(v => ({ ...v, player: { ...v.player, confirmationMessage: e.target.value } }))} placeholder="Shown on the thank-you screen and in the confirmation email." />
+          <p className="text-xs text-slate-400 mt-1">Supports Markdown. Shown on the success screen and emailed to the registrant.</p>
+          <label className="flex items-start gap-2 mt-3 cursor-pointer">
+            <input type="checkbox" className="mt-0.5 accent-teal-500" checked={pf.emailConfirmation} onChange={e => setF(v => ({ ...v, player: { ...v.player, emailConfirmation: e.target.checked } }))} />
+            <span className="text-sm text-slate-700">Email a confirmation to the registrant <span className="text-xs text-slate-400">(sent to the player or parent email)</span></span>
+          </label>
         </div>
 
         {/* Submissions */}
