@@ -52,15 +52,6 @@ export default async function TournamentPlayerWaiver({ params }: { params: { id:
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <section className="bg-gradient-to-br from-[#0b1f3a] via-[#0e7490] to-[#0b1f3a] text-white">
-        <div className="max-w-2xl mx-auto px-6 py-8 flex items-center gap-3">
-          {org.logoUrl && <img src={org.logoUrl} alt="" className="w-12 h-12 rounded-lg object-contain bg-white/95 p-1" />}
-          <div>
-            <div className="text-xs uppercase tracking-[0.2em] text-teal-200">Player Waiver</div>
-            <h1 className="text-2xl font-extrabold leading-tight">{t.name}</h1>
-          </div>
-        </div>
-      </section>
       <p className="max-w-2xl mx-auto px-6 pt-6 text-sm text-slate-500">All players must complete this waiver to compete. Required fields are marked *.</p>
       <PlayerRegForm orgId={orgId} fields={fields} waiverTitle={waiverTitle} waiverHtml={waiverHtml} confirmationTitle={confirmationTitle} confirmationHtml={confirmationHtml} teams={teams} tournamentId={t.id} tournamentName={t.name} />
     </div>

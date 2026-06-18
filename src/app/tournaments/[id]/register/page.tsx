@@ -292,17 +292,6 @@ export default function RegisterPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Toaster />
-        <div className="bg-gradient-to-br from-[#0b1f3a] via-[#0e7490] to-[#0b1f3a] px-4 py-4">
-          <div className="max-w-2xl mx-auto flex items-center gap-3">
-            {(tournamentLogo || org?.logoUrl) && (
-              <img src={tournamentLogo || org?.logoUrl} alt="logo" className="h-11 w-11 object-contain rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />
-            )}
-            <div>
-              <h1 className="text-base font-bold text-white leading-tight">{tournamentName}</h1>
-              <p className="text-[11px] text-blue-300 mt-0.5 font-medium">{org?.name || 'Team Registration'}</p>
-            </div>
-          </div>
-        </div>
         <div className="max-w-2xl mx-auto px-4 py-8 space-y-4">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">Order Summary</h2>
@@ -349,17 +338,6 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster />
-      <div className="bg-gradient-to-br from-[#0b1f3a] via-[#0e7490] to-[#0b1f3a] px-4 py-4">
-        <div className="max-w-3xl mx-auto flex items-center gap-3">
-          {tournamentLogo && (
-            <img src={tournamentLogo} alt="logo" className="h-11 w-11 object-contain rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />
-          )}
-          <div>
-            <h1 className="text-base font-bold text-white leading-tight">{tournamentName}</h1>
-            <p className="text-[11px] text-teal-300 mt-0.5 font-medium">Team Registration</p>
-          </div>
-        </div>
-      </div>
       <div className="py-8 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-2xl shadow p-8">
