@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@libsql/client'
-import { Trophy, MapPin, CalendarDays, ClipboardList, ScrollText, Utensils, ListChecks, Phone, Mail, ExternalLink } from 'lucide-react'
+import { Trophy, MapPin, CalendarDays, ClipboardList, ScrollText, Utensils, ListChecks, Phone, Mail, ExternalLink, Hotel } from 'lucide-react'
 import { mdToHtml } from '@/app/o/[slug]/_md'
 
 export const dynamic = 'force-dynamic'
@@ -34,7 +34,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
   const base = `/tournaments/${params.id}`
 
   const actions = [
-    Number(t.teamRegEnabled) ? { href: `${base}/register`, label: 'Register', icon: <ClipboardList size={15} /> } : null,
+    Number(t.teamRegEnabled) ? { href: `${base}/register`, label: 'Register', icon: <ClipboardList size={15} />, primary: true } : null,
     { href: `${base}/player-waiver`, label: 'Player Waiver', icon: <ScrollText size={15} /> },
     { href: `${base}/vendor-request`, label: 'Vendor Request', icon: <Utensils size={15} /> },
     { href: `${base}/public`, label: 'Schedule & Standings', icon: <ListChecks size={15} /> },
@@ -54,7 +54,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
           </div>
           <div className="mt-7 flex flex-wrap gap-2">
             {actions.map((a, i) => (
-              <Link key={i} href={a.href} target="_blank" className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 backdrop-blur border border-white/20 text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors">{a.icon} {a.label}</Link>
+              <Link key={i} href={a.href} target="_blank" className={`inline-flex items-center gap-1.5 text-sm font-semibold px-5 py-2.5 rounded-full transition-colors ${a.primary ? 'bg-teal-500 hover:bg-teal-400 text-white shadow-lg shadow-teal-500/20' : 'bg-white/95 hover:bg-white text-[#0b1f3a]'}`}>{a.icon} {a.label}</Link>
             ))}
           </div>
         </div>
@@ -90,7 +90,12 @@ export default async function TournamentEventPage({ params }: { params: { id: st
           </Block>
         )}
 
-        {c.hotels && <Block title="Hotels"><div className="prose-body" dangerouslySetInnerHTML={{ __html: mdToHtml(c.hotels) }} /></Block>}
+        {(c.hotelsUrl || c.hotels) && (
+          <Block title="Hotels">
+            {c.hotelsUrl && <a href={c.hotelsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold px-5 py-2.5 rounded-full mb-4"><Hotel size={15} /> Book hotels</a>}
+            {c.hotels && <div className="prose-body" dangerouslySetInnerHTML={{ __html: mdToHtml(c.hotels) }} />}
+          </Block>
+        )}
         {c.rules && <Block title="Rules & policies"><div className="prose-body" dangerouslySetInnerHTML={{ __html: mdToHtml(c.rules) }} /></Block>}
 
         {contacts.length > 0 && (

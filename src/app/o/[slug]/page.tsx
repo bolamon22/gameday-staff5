@@ -37,7 +37,7 @@ function Card({ t }: { t: Tourn }) {
         </div>
       </div>
       <div className="mt-auto border-t border-slate-100 flex">
-        <Link href={`/tournaments/${t.id}/public`} className="flex-1 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50 py-3 transition-colors inline-flex items-center justify-center gap-1">
+        <Link href={`/tournaments/${t.id}/event`} className="flex-1 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50 py-3 transition-colors inline-flex items-center justify-center gap-1">
           Details <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
         </Link>
         {t.teamRegEnabled ? (

@@ -11,9 +11,9 @@ type Loc = { name: string; address: string; mapUrl: string; fieldMapUrl: string 
 type Contact = { name: string; role: string; phone: string; email: string }
 type Content = {
   overview: string; feesText: string; divisionsText: string; ageChartUrl: string
-  locations: Loc[]; hotels: string; rules: string; contacts: Contact[]
+  locations: Loc[]; hotels: string; hotelsUrl: string; rules: string; contacts: Contact[]
 }
-const EMPTY: Content = { overview: '', feesText: '', divisionsText: '', ageChartUrl: '', locations: [], hotels: '', rules: '', contacts: [] }
+const EMPTY: Content = { overview: '', feesText: '', divisionsText: '', ageChartUrl: '', locations: [], hotels: '', hotelsUrl: '', rules: '', contacts: [] }
 
 const labelCls = 'block text-xs font-semibold uppercase tracking-wide text-slate-500 mt-3 mb-1'
 const inputCls = 'w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400'
@@ -133,8 +133,12 @@ export default function EventPageEditor() {
           </div>
         </Sec>
 
-        <Sec title="Hotels" summary={c.hotels ? 'Set' : 'Empty'} isOpen={!!open.hotels} onToggle={() => toggle('hotels')}>
-          <textarea className={`${inputCls} min-h-[120px]`} value={c.hotels} onChange={e => setC(v => ({ ...v, hotels: e.target.value }))} placeholder="Stay-to-play info, hotel block links…" />
+        <Sec title="Hotels" summary={c.hotelsUrl || c.hotels ? 'Set' : 'Empty'} isOpen={!!open.hotels} onToggle={() => toggle('hotels')}>
+          <label className={labelCls}>Booking link (housing company)</label>
+          <input className={inputCls} value={c.hotelsUrl} onChange={e => setC(v => ({ ...v, hotelsUrl: e.target.value }))} placeholder="https://book.housingcompany.com/…" />
+          <p className="text-xs text-slate-400 mt-1">Shows as a “Book hotels” button on the event page.</p>
+          <label className={labelCls}>Details (optional)</label>
+          <textarea className={`${inputCls} min-h-[120px]`} value={c.hotels} onChange={e => setC(v => ({ ...v, hotels: e.target.value }))} placeholder="Stay-to-play info, room blocks, notes…" />
           <p className="text-xs text-slate-400 mt-1">Supports Markdown, including [links](https://…).</p>
         </Sec>
 
