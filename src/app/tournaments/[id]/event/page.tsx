@@ -89,13 +89,13 @@ export default async function TournamentEventPage({ params }: { params: { id: st
 
       <main className="max-w-4xl mx-auto px-6 py-12 space-y-4">
         {c.overview && (
-          <EventSection id="overview" title="Overview" defaultOpen>
+          <EventSection id="overview" title="Overview">
             <div className="prose-body" dangerouslySetInnerHTML={{ __html: mdToHtml(c.overview) }} />
           </EventSection>
         )}
 
         {(c.feesText || divisions.length > 0) && (
-          <EventSection id="fees" title="Fees & divisions" defaultOpen>
+          <EventSection id="fees" title="Fees & divisions">
             <div className="grid sm:grid-cols-2 gap-8">
               {c.feesText && (
                 <div>
@@ -115,7 +115,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
         )}
 
         {locations.length > 0 && (
-          <EventSection id="locations" title="Locations & field maps" defaultOpen>
+          <EventSection id="locations" title="Locations & field maps">
             <div className="grid sm:grid-cols-2 gap-5">
               {locations.map((l, i) => (
                 <div key={i} className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
@@ -159,7 +159,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
         )}
 
         {contacts.length > 0 && (
-          <EventSection id="contacts" title="Contacts" defaultOpen>
+          <EventSection id="contacts" title="Contacts">
             <div className="grid sm:grid-cols-2 gap-4">
               {contacts.map((ct, i) => (
                 <div key={i} className="bg-white border border-slate-200 rounded-2xl p-4">
@@ -176,7 +176,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
         )}
 
         {sponsors.length > 0 && (
-          <EventSection id="sponsors" title="Sponsors & partners" defaultOpen>
+          <EventSection id="sponsors" title="Sponsors & partners">
             <div className="flex flex-wrap items-center gap-x-10 gap-y-6">
               {sponsors.map((s, i) => {
                 const img = s.logoUrl ? <img src={s.logoUrl} alt={s.name || ''} className="h-12 object-contain" /> : <span className="text-slate-600 font-medium">{s.name}</span>
