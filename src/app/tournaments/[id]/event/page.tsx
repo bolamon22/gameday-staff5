@@ -197,7 +197,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
   return (
     <div className="min-h-screen bg-slate-50">
       {org.slug && <OrgHeader org={orgForChrome} slug={org.slug} nav={nav} registerHref={registerHref} />}
-      <section className="relative overflow-hidden text-white bg-gradient-to-br from-[#0b1f3a] via-[#0e7490] to-[#0b1f3a]">
+      <section className="relative text-white bg-gradient-to-br from-[#0b1f3a] via-[#0e7490] to-[#0b1f3a]">
         <div className="max-w-4xl mx-auto px-6 py-14">
           <div className="flex items-center gap-4">
             {t.logoUrl && <img src={t.logoUrl} alt="" className="w-20 h-20 rounded-xl object-contain bg-white/95 p-1.5" />}
@@ -217,7 +217,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
       </section>
 
       <main className="max-w-4xl mx-auto px-6 py-12 space-y-4">
-        {rendered.map((x: any) => <div key={x.b.id}>{x.el}</div>)}
+        {rendered.filter((x: any) => x.b.type !== 'rules').map((x: any) => <div key={x.b.id}>{x.el}</div>)}
       </main>
       {org.slug && <OrgFooter org={orgForChrome} contact={contact} socials={socials} />}
     </div>
