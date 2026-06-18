@@ -292,7 +292,7 @@ export default function RegisterPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Toaster />
-        <div className="bg-[#0f1f3d] px-4 py-4">
+        <div className="bg-gradient-to-br from-[#0b1f3a] via-[#0e7490] to-[#0b1f3a] px-4 py-4">
           <div className="max-w-2xl mx-auto flex items-center gap-3">
             {(tournamentLogo || org?.logoUrl) && (
               <img src={tournamentLogo || org?.logoUrl} alt="logo" className="h-11 w-11 object-contain rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />
@@ -349,7 +349,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster />
-      <div className="bg-[#0f1f3d] px-4 py-4">
+      <div className="bg-gradient-to-br from-[#0b1f3a] via-[#0e7490] to-[#0b1f3a] px-4 py-4">
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           {tournamentLogo && (
             <img src={tournamentLogo} alt="logo" className="h-11 w-11 object-contain rounded-xl border border-white/10 bg-white/5 flex-shrink-0" />

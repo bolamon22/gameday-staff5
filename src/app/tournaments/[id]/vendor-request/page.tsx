@@ -29,7 +29,7 @@ export default async function TournamentVendorRequest({ params }: { params: { id
   const confirmationHtml = mdToHtml(vf.confirmationMessage || "Thanks! We've received your vendor request and will be in touch about next steps and payment.")
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="bg-[#0b1220] text-white"><div className="max-w-2xl mx-auto px-6 py-6 flex items-center gap-3">{org.logoUrl && <img src={org.logoUrl} alt="" className="w-12 h-12 rounded-lg object-contain bg-white/95 p-1" />}<div><div className="text-xs uppercase tracking-[0.2em] text-teal-300">Vendor Request</div><h1 className="text-xl font-extrabold leading-tight">{t.name}</h1></div></div></header>
+      <section className="bg-gradient-to-br from-[#0b1f3a] via-[#0e7490] to-[#0b1f3a] text-white"><div className="max-w-2xl mx-auto px-6 py-8 flex items-center gap-3">{org.logoUrl && <img src={org.logoUrl} alt="" className="w-12 h-12 rounded-lg object-contain bg-white/95 p-1" />}<div><div className="text-xs uppercase tracking-[0.2em] text-teal-200">Vendor Request</div><h1 className="text-2xl font-extrabold leading-tight">{t.name}</h1></div></div></section>
       <VendorForm orgId={orgId} levels={levels} paymentOptions={paymentOptions} disclaimerHtml={disclaimerHtml} confirmationTitle={confirmationTitle} confirmationHtml={confirmationHtml} tournamentId={t.id} tournamentName={t.name} />
     </div>
   )

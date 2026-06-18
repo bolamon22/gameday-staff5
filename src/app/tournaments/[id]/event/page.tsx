@@ -80,7 +80,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
           </div>
           <div className="mt-7 flex flex-wrap gap-2">
             {actions.map((a, i) => (
-              <Link key={i} href={a.href} target="_blank" className={`inline-flex items-center gap-1.5 text-sm font-semibold px-5 py-2.5 rounded-full transition-colors ${a.primary ? 'bg-teal-500 hover:bg-teal-400 text-white shadow-lg shadow-teal-500/20' : 'bg-white/95 hover:bg-white text-[#0b1f3a]'}`}>{a.icon} {a.label}</Link>
+              <Link key={i} href={a.href} className={`inline-flex items-center gap-1.5 text-sm font-semibold px-5 py-2.5 rounded-full transition-colors ${a.primary ? 'bg-teal-500 hover:bg-teal-400 text-white shadow-lg shadow-teal-500/20' : 'bg-white/95 hover:bg-white text-[#0b1f3a]'}`}>{a.icon} {a.label}</Link>
             ))}
             <EventInfoNav items={infoItems} />
           </div>
