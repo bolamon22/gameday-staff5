@@ -103,8 +103,8 @@ export default function EventPageEditor() {
 
         <Sec title="Overview" summary={c.overview ? 'Set' : 'Empty'} isOpen={!!open.overview} onToggle={() => toggle('overview')}>
           <label className={labelCls}>Summary</label>
-          <MarkdownField value={c.overview} onChange={val => setC(v => ({ ...v, overview: val }))} minHeight={140} placeholder="Welcome blurb about this tournament…" />
           <AiGenerateButton kind="overview" onResult={(t) => setC(v => ({ ...v, overview: t }))} />
+          <MarkdownField value={c.overview} onChange={val => setC(v => ({ ...v, overview: val }))} minHeight={140} placeholder="Welcome blurb about this tournament…" />
           <p className="text-xs text-slate-400 mt-1">Supports Markdown (## headings, **bold**, - bullets).</p>
         </Sec>
 
@@ -154,14 +154,14 @@ export default function EventPageEditor() {
           <input className={inputCls} value={c.hotelsUrl} onChange={e => setC(v => ({ ...v, hotelsUrl: e.target.value }))} placeholder="https://book.housingcompany.com/…" />
           <p className="text-xs text-slate-400 mt-1">Shows as a “Book hotels” button on the event page.</p>
           <label className={labelCls}>Details (optional)</label>
-          <MarkdownField value={c.hotels} onChange={val => setC(v => ({ ...v, hotels: val }))} minHeight={120} placeholder="Stay-to-play info, room blocks, notes…" />
           <AiGenerateButton kind="custom" onResult={(t) => setC(v => ({ ...v, hotels: t }))} />
+          <MarkdownField value={c.hotels} onChange={val => setC(v => ({ ...v, hotels: val }))} minHeight={120} placeholder="Stay-to-play info, room blocks, notes…" />
           <p className="text-xs text-slate-400 mt-1">Supports Markdown, including [links](https://…).</p>
         </Sec>
 
         <Sec title="Rules & policies" summary={c.rules ? 'Set' : 'Empty'} isOpen={!!open.rules} onToggle={() => toggle('rules')}>
-          <MarkdownField value={c.rules} onChange={val => setC(v => ({ ...v, rules: val }))} minHeight={120} placeholder="Rules, policies, or links…" />
           <AiGenerateButton kind="custom" onResult={(t) => setC(v => ({ ...v, rules: t }))} />
+          <MarkdownField value={c.rules} onChange={val => setC(v => ({ ...v, rules: val }))} minHeight={120} placeholder="Rules, policies, or links…" />
           <p className="text-xs text-slate-400 mt-1">Supports Markdown.</p>
         </Sec>
 
