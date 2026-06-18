@@ -21,7 +21,7 @@ function fmtRange(s: string, e: string) {
 
 export default async function TournamentEventPage({ params }: { params: { id: string } }) {
   const client = db()
-  const tRes = await client.execute({ sql: 'SELECT id, name, startDate, endDate, location, logoUrl, orgId, teamRegEnabled FROM "Tournament" WHERE id = ?', args: [params.id] })
+  const tRes = await client.execute({ sql: 'SELECT id, name, startDate, endDate, location, logoUrl, orgId, teamRegEnabled, registrationDivisions FROM "Tournament" WHERE id = ?', args: [params.id] })
   if (tRes.rows.length === 0) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-center px-6"><div><Trophy size={40} className="mx-auto text-slate-300" /><h1 className="mt-3 text-xl font-bold text-slate-800">Tournament not found</h1></div></div>
   }
@@ -42,7 +42,9 @@ export default async function TournamentEventPage({ params }: { params: { id: st
   const nav = org.slug ? buildNav(org.slug, navPages, hasGallery) : []
   const registerHref = Number(t.teamRegEnabled) ? `/tournaments/${params.id}/register` : undefined
 
-  const divisions: string[] = String(c.divisionsText || '').split('\n').map((x: string) => x.trim()).filter(Boolean)
+  const setupDivisions: string[] = (() => { try { const d = JSON.parse(t.registrationDivisions || '[]'); return Array.isArray(d) ? d.filter(Boolean) : [] } catch { return [] } })()
+  const manualDivisions: string[] = String(c.divisionsText || '').split('\n').map((x: string) => x.trim()).filter(Boolean)
+  const divisions: string[] = setupDivisions.length ? setupDivisions : manualDivisions
   const locations: any[] = Array.isArray(c.locations) ? c.locations : []
   const contacts: any[] = Array.isArray(c.contacts) ? c.contacts : []
   const infoItems = [

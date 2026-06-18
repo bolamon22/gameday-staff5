@@ -47,16 +47,13 @@ export default function EventPageEditor() {
   const [open, setOpen] = useState<Record<string, boolean>>({ overview: true })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [regDivs, setRegDivs] = useState<string[]>([])
 
   useEffect(() => {
     fetch(`/api/tournaments/${id}`).then(r => r.ok ? r.json() : null).then(d => {
       if (d) {
         setName(d.name || 'Tournament'); setLogo(d.logoUrl || undefined)
-        setC(prev => {
-          const next = { ...EMPTY, ...prev }
-          if (!next.divisionsText) { try { const divs = JSON.parse(d.registrationDivisions || '[]'); if (Array.isArray(divs) && divs.length) next.divisionsText = divs.join('\n') } catch {} }
-          return next
-        })
+        try { const divs = JSON.parse(d.registrationDivisions || '[]'); if (Array.isArray(divs)) setRegDivs(divs.filter(Boolean)) } catch {}
       }
     }).catch(() => {})
     fetch(`/api/tournaments/${id}/site`).then(r => r.ok ? r.json() : {}).then(d => {
@@ -105,10 +102,16 @@ export default function EventPageEditor() {
           <textarea className={`${inputCls} min-h-[120px]`} value={c.feesText} onChange={e => setC(v => ({ ...v, feesText: e.target.value }))} placeholder={'$1,495 per team for 1–3 teams\n$1,450 per team for 4–6 teams\nPayment not required at registration'} />
         </Sec>
 
-        <Sec title="Divisions" summary={c.divisionsText ? 'Set' : 'Empty'} isOpen={!!open.divisions} onToggle={() => toggle('divisions')}>
-          <label className={labelCls}>Divisions (one per line)</label>
-          <textarea className={`${inputCls} min-h-[120px]`} value={c.divisionsText} onChange={e => setC(v => ({ ...v, divisionsText: e.target.value }))} />
-          <label className={labelCls}>Age chart / eligibility link (optional)</label>
+        <Sec title="Divisions" summary={`${regDivs.length} from setup`} isOpen={!!open.divisions} onToggle={() => toggle('divisions')}>
+          <p className="text-xs text-slate-500 mb-3">Divisions are pulled automatically from <a href={`/tournaments/${id}/builder`} className="text-teal-700 hover:text-teal-900 underline">Setup &rsaquo; Divisions</a> and stay in sync with the event page — no need to retype them here.</p>
+          {regDivs.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {regDivs.map((d, i) => <span key={i} className="text-sm bg-slate-100 text-slate-700 rounded-full px-3 py-1">{d}</span>)}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400">No divisions selected yet in Setup &rsaquo; Divisions.</p>
+          )}
+          <label className={`${labelCls} mt-4`}>Age chart / eligibility link (optional)</label>
           <input className={inputCls} value={c.ageChartUrl} onChange={e => setC(v => ({ ...v, ageChartUrl: e.target.value }))} placeholder="https://…" />
         </Sec>
 
