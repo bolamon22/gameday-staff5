@@ -10,13 +10,13 @@ const inp = 'w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:o
 function DisplayPicker({ b, updateProps }: { b: Block; updateProps: (id: string, patch: any) => void }) {
   const p = b.props || {}
   return (
-    <>
-      <label className={lbl}>Show this block</label>
+    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 mb-1">
+      <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Where this block appears</label>
       <select className={inp} value={p.display || 'inline'} onChange={e => updateProps(b.id, { display: e.target.value })}>
         <option value="inline">On the event page</option>
-        <option value="page">Its own page (linked in the Event info menu)</option>
+        <option value="page">Its own page (linked in the Event info menu, not on the home page)</option>
       </select>
-    </>
+    </div>
   )
 }
 
@@ -24,11 +24,11 @@ function Editor({ b, updateProps }: { b: Block; updateProps: (id: string, patch:
   const p = b.props || {}
   if (b.type === 'custom') return (
     <>
+      <DisplayPicker b={b} updateProps={updateProps} />
       <label className={lbl}>Title</label>
       <input className={inp} value={p.title || ''} onChange={e => updateProps(b.id, { title: e.target.value })} placeholder="Section title" />
       <label className={lbl}>Content</label>
       <MarkdownField value={p.body || ''} onChange={v => updateProps(b.id, { body: v })} minHeight={120} placeholder="Write anything — parking, food trucks, awards…" />
-      <DisplayPicker b={b} updateProps={updateProps} />
     </>
   )
   if (b.type === 'cta') return (
@@ -47,24 +47,30 @@ function Editor({ b, updateProps }: { b: Block; updateProps: (id: string, patch:
   if (b.type === 'faq') {
     const items: any[] = Array.isArray(p.items) ? p.items : []
     const setItems = (it: any[]) => updateProps(b.id, { items: it })
+    const moveItem = (from: number, to: number) => { if (to < 0 || to >= items.length || from === to) return; const n = [...items]; const [m] = n.splice(from, 1); n.splice(to, 0, m); setItems(n) }
     return (
       <>
+        <DisplayPicker b={b} updateProps={updateProps} />
         <label className={lbl}>Title (optional)</label>
         <input className={inp} value={p.title || ''} onChange={e => updateProps(b.id, { title: e.target.value })} placeholder="e.g. Frequently asked questions, Travel info…" />
         <label className={lbl}>Collapsible sections</label>
         <div className="space-y-2">
           {items.map((it, idx) => (
             <div key={idx} className="border border-slate-200 rounded-lg p-2">
+              <div className="flex items-center gap-1 mb-1.5">
+                <span className="text-xs font-semibold text-slate-400 flex-1">Section {idx + 1}</span>
+                <button type="button" onClick={() => moveItem(idx, idx - 1)} disabled={idx === 0} className="p-1 rounded text-slate-400 hover:bg-slate-100 disabled:opacity-30" title="Move up"><ChevronUp size={14} /></button>
+                <button type="button" onClick={() => moveItem(idx, idx + 1)} disabled={idx === items.length - 1} className="p-1 rounded text-slate-400 hover:bg-slate-100 disabled:opacity-30" title="Move down"><ChevronDown size={14} /></button>
+                <button type="button" onClick={() => setItems(items.filter((_, j) => j !== idx))} className="p-1 rounded text-slate-400 hover:bg-red-50 hover:text-red-600" title="Delete section"><Trash2 size={14} /></button>
+              </div>
               <input className={inp} value={it.q || ''} onChange={e => setItems(items.map((x, j) => j === idx ? { ...x, q: e.target.value } : x))} placeholder="Heading (what people tap to expand)" />
               <div className="mt-1.5">
                 <MarkdownField value={it.a || ''} onChange={v => setItems(items.map((x, j) => j === idx ? { ...x, a: v } : x))} minHeight={90} placeholder="Content — supports bold, bullets, links…" />
               </div>
-              <button type="button" onClick={() => setItems(items.filter((_, j) => j !== idx))} className="text-xs text-slate-400 hover:text-red-600 mt-1">Remove</button>
             </div>
           ))}
           <button type="button" onClick={() => setItems([...items, { q: '', a: '' }])} className="text-sm text-teal-700 hover:text-teal-900 inline-flex items-center gap-1"><Plus size={14} /> Add section</button>
         </div>
-        <DisplayPicker b={b} updateProps={updateProps} />
       </>
     )
   }
