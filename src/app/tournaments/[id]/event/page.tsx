@@ -3,6 +3,7 @@ import { createClient } from '@libsql/client'
 import { Trophy, MapPin, CalendarDays, ClipboardList, ScrollText, Utensils, ListChecks, Phone, Mail, ExternalLink, Hotel } from 'lucide-react'
 import { mdToHtml } from '@/app/o/[slug]/_md'
 import FieldMap from '@/components/FieldMap'
+import EventInfoNav from '@/components/EventInfoNav'
 import { OrgHeader, OrgFooter, buildNav } from '@/app/o/[slug]/_chrome'
 
 export const dynamic = 'force-dynamic'
@@ -43,6 +44,15 @@ export default async function TournamentEventPage({ params }: { params: { id: st
   const divisions: string[] = String(c.divisionsText || '').split('\n').map((x: string) => x.trim()).filter(Boolean)
   const locations: any[] = Array.isArray(c.locations) ? c.locations : []
   const contacts: any[] = Array.isArray(c.contacts) ? c.contacts : []
+  const infoItems = [
+    c.overview && { href: '#overview', label: 'Overview' },
+    (c.feesText || divisions.length) && { href: '#fees', label: 'Fees & divisions' },
+    locations.length && { href: '#locations', label: 'Locations & field maps' },
+    (c.hotelsUrl || c.hotels) && { href: '#hotels', label: 'Hotels' },
+    c.rules && { href: '#rules', label: 'Rules & policies' },
+    contacts.length && { href: '#contacts', label: 'Contacts' },
+    sponsors.length && { href: '#sponsors', label: 'Sponsors & partners' },
+  ].filter(Boolean) as { href: string; label: string }[]
   const base = `/tournaments/${params.id}`
 
   const actions = [
@@ -69,14 +79,15 @@ export default async function TournamentEventPage({ params }: { params: { id: st
             {actions.map((a, i) => (
               <Link key={i} href={a.href} target="_blank" className={`inline-flex items-center gap-1.5 text-sm font-semibold px-5 py-2.5 rounded-full transition-colors ${a.primary ? 'bg-teal-500 hover:bg-teal-400 text-white shadow-lg shadow-teal-500/20' : 'bg-white/95 hover:bg-white text-[#0b1f3a]'}`}>{a.icon} {a.label}</Link>
             ))}
+            <EventInfoNav items={infoItems} />
           </div>
         </div>
       </section>
 
       <main className="max-w-4xl mx-auto px-6 py-12 space-y-12">
-        {c.overview && <Block title="Overview"><div className="prose-body" dangerouslySetInnerHTML={{ __html: mdToHtml(c.overview) }} /></Block>}
+        {c.overview && <Block id="overview" title="Overview"><div className="prose-body" dangerouslySetInnerHTML={{ __html: mdToHtml(c.overview) }} /></Block>}
 
-        <div className="grid sm:grid-cols-2 gap-8">
+        <div id="fees" className="scroll-mt-24 grid sm:grid-cols-2 gap-8">
           {c.feesText && <Block title="Tournament fees"><div className="text-sm text-slate-600 whitespace-pre-line leading-relaxed">{c.feesText}</div></Block>}
           {divisions.length > 0 && (
             <Block title="Divisions">
@@ -87,7 +98,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
         </div>
 
         {locations.length > 0 && (
-          <Block title="Locations & field maps">
+          <Block id="locations" title="Locations & field maps">
             <div className="grid sm:grid-cols-2 gap-5">
               {locations.map((l, i) => (
                 <div key={i} className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
@@ -113,15 +124,15 @@ export default async function TournamentEventPage({ params }: { params: { id: st
         )}
 
         {(c.hotelsUrl || c.hotels) && (
-          <Block title="Hotels">
+          <Block id="hotels" title="Hotels">
             {c.hotelsUrl && <a href={c.hotelsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold px-5 py-2.5 rounded-full mb-4"><Hotel size={15} /> Book hotels</a>}
             {c.hotels && <div className="prose-body" dangerouslySetInnerHTML={{ __html: mdToHtml(c.hotels) }} />}
           </Block>
         )}
-        {c.rules && <Block title="Rules & policies"><div className="prose-body" dangerouslySetInnerHTML={{ __html: mdToHtml(c.rules) }} /></Block>}
+        {c.rules && <Block id="rules" title="Rules & policies"><div className="prose-body" dangerouslySetInnerHTML={{ __html: mdToHtml(c.rules) }} /></Block>}
 
         {contacts.length > 0 && (
-          <Block title="Contacts">
+          <Block id="contacts" title="Contacts">
             <div className="grid sm:grid-cols-2 gap-4">
               {contacts.map((ct, i) => (
                 <div key={i} className="bg-white border border-slate-200 rounded-2xl p-4">
@@ -138,7 +149,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
         )}
 
         {sponsors.length > 0 && (
-          <Block title="Sponsors & partners">
+          <Block id="sponsors" title="Sponsors & partners">
             <div className="flex flex-wrap items-center gap-x-10 gap-y-6">
               {sponsors.map((s, i) => {
                 const img = s.logoUrl ? <img src={s.logoUrl} alt={s.name || ''} className="h-12 object-contain" /> : <span className="text-slate-600 font-medium">{s.name}</span>
@@ -153,9 +164,9 @@ export default async function TournamentEventPage({ params }: { params: { id: st
   )
 }
 
-function Block({ title, children }: { title: string; children: React.ReactNode }) {
+function Block({ title, children, id }: { title: string; children: React.ReactNode; id?: string }) {
   return (
-    <section>
+    <section id={id} className="scroll-mt-24">
       <h2 className="text-xl font-extrabold tracking-tight text-slate-900 mb-4">{title}</h2>
       {children}
     </section>
