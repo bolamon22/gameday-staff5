@@ -69,7 +69,35 @@ rebuild, and commit through GitHub Desktop itself for multi-file/dir changes. A 
 - Note: the BracketBuilder/scoring bracket views are intentionally their own visual style
   (CFP "rail" layout); the rest of the app follows the light slate/teal standard.
 
-## Current state (as of Jun 16, 2026)
+## Current state (as of Jun 18, 2026)
+
+- **Public event page builder (LIVE)** — each tournament has a public **event page** (`/tournaments/[id]/event`)
+  rendered from an ordered **block list**, edited at **Setup → Event page → Page builder**
+  (`src/components/BlockBuilder.tsx`). Architecture:
+  - Content lives in AppSetting `tournamentSite:{id}` (via `api/tournaments/[id]/site`). The block model is
+    `src/lib/eventBlocks.ts`: `resolveBlocks(c)` returns an ordered `Block[]` (`{id,type,hidden?,props}`),
+    migrating from the older `sectionOrder`/`hiddenSections`. **Built-in** types (overview, fees, locations,
+    hotels, rules, contacts, sponsors) are singletons whose content comes from dedicated fields; **custom**
+    types (`custom`, `cta`, `faq`, `countdown`) are repeatable with content in `props`. `src/lib/eventSections.ts`
+    holds labels/default order.
+  - Builder: drag/▲▼ reorder, eye = show/hide, custom blocks add/duplicate/delete + inline edit. `faq` is a
+    generic **Collapsible sections** block (Heading/Content, content is rich-text Markdown via `MarkdownField`;
+    renders with `FaqBlock`). `countdown` = `CountdownBlock` (live timer to start date).
+  - **Per-block display mode** (`props.display` = `inline` | `page`) on custom/faq: `inline` renders in the page
+    body; `page` keeps it OFF the body and gives it its own page at `/tournaments/[id]/p/[blockId]` linked from
+    the **Event info** dropdown (`EventInfoNav`). The built-in **Rules** has its own page at `/tournaments/[id]/rules`.
+  - **Shared chrome**: `src/app/tournaments/[id]/_eventChrome.tsx` (used via `layout.tsx` on register / player-waiver /
+    vendor-request / rules / p) wraps those pages in the org site header + the same event hero (logo, dates,
+    action buttons, Event info dropdown). Public routes are allow-listed in `middleware.ts` and rendered light by
+    `ThemeShell` (regex includes `event|rules|p|register|player-register|player-waiver|vendor-request`).
+  - **AI drafting**: `api/ai/generate` (Anthropic SDK, reuses `ANTHROPIC_API_KEY` like `api/chat`,
+    model `claude-haiku-4-5-20251001`, staff-only) + `src/components/AiGenerateButton.tsx` — "Generate with AI"
+    on Overview / Hotels / Rules and on custom + collapsible content fields.
+  - Divisions on the event page read **live** from `registrationDivisions` (Setup → Divisions), not a typed copy.
+  - Gotcha: hero/panels use `overflow-hidden` for rounded corners, which clips absolutely-positioned dropdowns —
+    render such menus inline (see EventInfoNav fix / Add-block menu).
+
+## Earlier state (as of Jun 16, 2026)
 Core flow: tournaments → divisions → pools → pool games → brackets → scheduler → assigner →
 scores → public. Highlights shipped to live:
 
