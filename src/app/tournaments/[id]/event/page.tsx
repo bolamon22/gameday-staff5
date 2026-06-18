@@ -7,6 +7,8 @@ import EventInfoNav from '@/components/EventInfoNav'
 import EventSection from '@/components/EventSection'
 import CountdownBlock from '@/components/CountdownBlock'
 import FaqBlock from '@/components/FaqBlock'
+import ScheduleBlock from '@/components/ScheduleBlock'
+import StandingsBlock from '@/components/StandingsBlock'
 import { SECTION_LABELS } from '@/lib/eventSections'
 import { resolveBlocks, isBuiltin } from '@/lib/eventBlocks'
 import { OrgHeader, OrgFooter, buildNav } from '@/app/o/[slug]/_chrome'
@@ -181,6 +183,8 @@ export default async function TournamentEventPage({ params }: { params: { id: st
         {p.caption && <figcaption className="text-center text-sm text-slate-500 mt-2">{p.caption}</figcaption>}
       </figure>
     ) : null
+    if (b.type === 'schedule') return <EventSection id={b.id} title={p.title || 'Schedule'}><ScheduleBlock /></EventSection>
+    if (b.type === 'standings') return <EventSection id={b.id} title={p.title || 'Standings'}><StandingsBlock /></EventSection>
     if (b.type === 'countdown') return t.startDate ? <CountdownBlock title={p.title} target={t.startDate} /> : null
     return null
   }

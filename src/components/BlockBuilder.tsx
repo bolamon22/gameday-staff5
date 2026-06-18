@@ -103,6 +103,13 @@ function Editor({ b, updateProps }: { b: Block; updateProps: (id: string, patch:
       <input className={inp} value={p.link || ''} onChange={e => updateProps(b.id, { link: e.target.value })} placeholder="https://… (makes the image clickable)" />
     </>
   )
+  if (b.type === 'schedule' || b.type === 'standings') return (
+    <>
+      <label className={lbl}>Title</label>
+      <input className={inp} value={p.title || ''} onChange={e => updateProps(b.id, { title: e.target.value })} placeholder={b.type === 'schedule' ? 'Schedule' : 'Standings'} />
+      <p className="text-xs text-slate-400 mt-2">Pulls live from this tournament&apos;s games — updates automatically as games are scheduled and scored.</p>
+    </>
+  )
   if (b.type === 'countdown') return (
     <>
       <label className={lbl}>Title</label>
