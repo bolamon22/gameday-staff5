@@ -114,12 +114,12 @@ export default function BlockBuilder({ blocks, onChange }: { blocks: Block[]; on
         )
       })}
 
-      <div className="relative pt-1">
+      <div className="pt-1">
         <button type="button" onClick={() => setAdding(a => !a)} className="text-sm font-medium text-teal-700 hover:text-teal-900 inline-flex items-center gap-1.5"><Plus size={15} /> Add block</button>
         {adding && (
-          <div className="absolute left-0 mt-1 w-52 bg-white rounded-lg shadow-xl ring-1 ring-black/5 py-1 z-20">
+          <div className="mt-2 w-full sm:w-64 bg-white rounded-lg border border-slate-200 overflow-hidden">
             {CUSTOM_TYPES.map(tp => (
-              <button key={tp} type="button" onClick={() => add(tp)} className="block w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">{CUSTOM_BLOCK_LABELS[tp]}</button>
+              <button key={tp} type="button" onClick={() => add(tp)} className="block w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 last:border-0">{CUSTOM_BLOCK_LABELS[tp]}</button>
             ))}
           </div>
         )}
