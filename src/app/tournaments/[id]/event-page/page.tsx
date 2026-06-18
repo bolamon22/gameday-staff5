@@ -1,0 +1,168 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+import Link from 'next/link'
+import toast, { Toaster } from 'react-hot-toast'
+import TournamentNav from '../TournamentNav'
+import { ChevronDown, Plus, Trash2, Save, ExternalLink, ImagePlus } from 'lucide-react'
+
+type Loc = { name: string; address: string; mapUrl: string; fieldMapUrl: string }
+type Contact = { name: string; role: string; phone: string; email: string }
+type Content = {
+  overview: string; feesText: string; divisionsText: string; ageChartUrl: string
+  locations: Loc[]; hotels: string; rules: string; contacts: Contact[]
+}
+const EMPTY: Content = { overview: '', feesText: '', divisionsText: '', ageChartUrl: '', locations: [], hotels: '', rules: '', contacts: [] }
+
+const labelCls = 'block text-xs font-semibold uppercase tracking-wide text-slate-500 mt-3 mb-1'
+const inputCls = 'w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400'
+
+async function uploadImage(file: File): Promise<string | null> {
+  const fd = new FormData(); fd.append('file', file)
+  const r = await fetch('/api/upload', { method: 'POST', body: fd })
+  if (!r.ok) return null
+  const d = await r.json().catch(() => ({})); return d.url || null
+}
+
+function Sec({ title, summary, isOpen, onToggle, children }: { title: string; summary?: string; isOpen: boolean; onToggle: () => void; children: React.ReactNode }) {
+  return (
+    <section className="card mb-4 overflow-hidden">
+      <button type="button" onClick={onToggle} className="w-full flex items-center gap-3 p-4 text-left">
+        <h2 className="font-semibold text-slate-800 flex-1">{title}</h2>
+        {summary ? <span className="text-xs bg-slate-100 text-slate-500 rounded-full px-2 py-0.5">{summary}</span> : null}
+        <ChevronDown size={18} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {isOpen && <div className="px-5 pb-5 border-t border-slate-100 pt-4">{children}</div>}
+    </section>
+  )
+}
+
+export default function EventPageEditor() {
+  const { id } = useParams() as { id: string }
+  const [name, setName] = useState('Tournament')
+  const [logo, setLogo] = useState<string | undefined>(undefined)
+  const [c, setC] = useState<Content>(EMPTY)
+  const [open, setOpen] = useState<Record<string, boolean>>({ overview: true })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    fetch(`/api/tournaments/${id}`).then(r => r.ok ? r.json() : null).then(d => {
+      if (d) {
+        setName(d.name || 'Tournament'); setLogo(d.logoUrl || undefined)
+        setC(prev => {
+          const next = { ...EMPTY, ...prev }
+          if (!next.divisionsText) { try { const divs = JSON.parse(d.registrationDivisions || '[]'); if (Array.isArray(divs) && divs.length) next.divisionsText = divs.join('\n') } catch {} }
+          return next
+        })
+      }
+    }).catch(() => {})
+    fetch(`/api/tournaments/${id}/site`).then(r => r.ok ? r.json() : {}).then(d => {
+      setC(prev => ({ ...EMPTY, ...d, locations: Array.isArray(d.locations) ? d.locations : [], contacts: Array.isArray(d.contacts) ? d.contacts : [], divisionsText: d.divisionsText || prev.divisionsText }))
+    }).catch(() => {}).finally(() => setLoading(false))
+  }, [id])
+
+  async function save() {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/tournaments/${id}/site`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) })
+      if (res.ok) toast.success('Event page saved')
+      else { const e = await res.json().catch(() => ({})); toast.error(e.error || 'Save failed') }
+    } catch { toast.error('Save failed') } finally { setSaving(false) }
+  }
+  const toggle = (k: string) => setOpen(o => ({ ...o, [k]: !o[k] }))
+  const fieldMapUpload = async (i: number, f?: File | null) => { if (!f) return; const u = await uploadImage(f); if (u) setC(v => ({ ...v, locations: v.locations.map((x, j) => j === i ? { ...x, fieldMapUrl: u } : x) })); else toast.error('Upload failed') }
+
+  if (loading) return <div className="text-slate-400 text-center py-16">Loading…</div>
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-6">
+      <div className="max-w-3xl mx-auto">
+        <Toaster position="top-right" />
+        <TournamentNav id={id} name={name} logoUrl={logo} />
+
+        <div className="flex items-center justify-between mt-6 mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Event page</h1>
+            <p className="text-sm text-slate-500">Public info parents &amp; coaches see for this tournament.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href={`/tournaments/${id}/event`} target="_blank" className="text-sm border border-slate-300 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-50 inline-flex items-center gap-1.5"><ExternalLink size={14} /> View</Link>
+            <button onClick={save} disabled={saving} className="text-sm font-semibold bg-teal-600 hover:bg-teal-700 text-white rounded-lg px-4 py-2 inline-flex items-center gap-1.5 disabled:opacity-50"><Save size={14} /> {saving ? 'Saving…' : 'Save'}</button>
+          </div>
+        </div>
+
+        <Sec title="Overview" summary={c.overview ? 'Set' : 'Empty'} isOpen={!!open.overview} onToggle={() => toggle('overview')}>
+          <label className={labelCls}>Summary</label>
+          <textarea className={`${inputCls} min-h-[140px]`} value={c.overview} onChange={e => setC(v => ({ ...v, overview: e.target.value }))} placeholder="Welcome blurb about this tournament…" />
+          <p className="text-xs text-slate-400 mt-1">Supports Markdown (## headings, **bold**, - bullets).</p>
+        </Sec>
+
+        <Sec title="Fees" summary={c.feesText ? 'Set' : 'Empty'} isOpen={!!open.fees} onToggle={() => toggle('fees')}>
+          <label className={labelCls}>Fee structure</label>
+          <textarea className={`${inputCls} min-h-[120px]`} value={c.feesText} onChange={e => setC(v => ({ ...v, feesText: e.target.value }))} placeholder={'$1,495 per team for 1–3 teams\n$1,450 per team for 4–6 teams\nPayment not required at registration'} />
+        </Sec>
+
+        <Sec title="Divisions" summary={c.divisionsText ? 'Set' : 'Empty'} isOpen={!!open.divisions} onToggle={() => toggle('divisions')}>
+          <label className={labelCls}>Divisions (one per line)</label>
+          <textarea className={`${inputCls} min-h-[120px]`} value={c.divisionsText} onChange={e => setC(v => ({ ...v, divisionsText: e.target.value }))} />
+          <label className={labelCls}>Age chart / eligibility link (optional)</label>
+          <input className={inputCls} value={c.ageChartUrl} onChange={e => setC(v => ({ ...v, ageChartUrl: e.target.value }))} placeholder="https://…" />
+        </Sec>
+
+        <Sec title="Locations & field maps" summary={`${c.locations.length}`} isOpen={!!open.locations} onToggle={() => toggle('locations')}>
+          <div className="flex justify-end mb-2"><button onClick={() => setC(v => ({ ...v, locations: [...v.locations, { name: '', address: '', mapUrl: '', fieldMapUrl: '' }] }))} className="text-sm text-teal-700 hover:text-teal-900 inline-flex items-center gap-1"><Plus size={14} /> Add location</button></div>
+          {c.locations.length === 0 && <p className="text-sm text-slate-400">No locations yet.</p>}
+          <div className="space-y-3">
+            {c.locations.map((l, i) => (
+              <div key={i} className="border border-slate-200 rounded-xl p-3">
+                <div className="flex items-center gap-2">
+                  <input className="input flex-1" value={l.name} onChange={e => setC(v => ({ ...v, locations: v.locations.map((x, j) => j === i ? { ...x, name: e.target.value } : x) }))} placeholder="Venue name (e.g. Village Park)" />
+                  <button onClick={() => setC(v => ({ ...v, locations: v.locations.filter((_, j) => j !== i) }))} className="text-slate-400 hover:text-red-600"><Trash2 size={15} /></button>
+                </div>
+                <input className="input mt-2" value={l.address} onChange={e => setC(v => ({ ...v, locations: v.locations.map((x, j) => j === i ? { ...x, address: e.target.value } : x) }))} placeholder="Street address" />
+                <input className="input mt-2" value={l.mapUrl} onChange={e => setC(v => ({ ...v, locations: v.locations.map((x, j) => j === i ? { ...x, mapUrl: e.target.value } : x) }))} placeholder="Google Maps link (optional)" />
+                <div className="flex items-center gap-3 mt-2">
+                  {l.fieldMapUrl ? <img src={l.fieldMapUrl} alt="" className="h-16 w-24 object-cover rounded-lg border border-slate-200" /> : <div className="h-16 w-24 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400"><ImagePlus size={16} /></div>}
+                  <label className="text-sm border border-slate-300 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-50 cursor-pointer">Field map<input type="file" accept="image/*" className="hidden" onChange={e => fieldMapUpload(i, e.target.files?.[0])} /></label>
+                  {l.fieldMapUrl && <button onClick={() => setC(v => ({ ...v, locations: v.locations.map((x, j) => j === i ? { ...x, fieldMapUrl: '' } : x) }))} className="text-sm text-slate-400 hover:text-red-600">Remove</button>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Sec>
+
+        <Sec title="Hotels" summary={c.hotels ? 'Set' : 'Empty'} isOpen={!!open.hotels} onToggle={() => toggle('hotels')}>
+          <textarea className={`${inputCls} min-h-[120px]`} value={c.hotels} onChange={e => setC(v => ({ ...v, hotels: e.target.value }))} placeholder="Stay-to-play info, hotel block links…" />
+          <p className="text-xs text-slate-400 mt-1">Supports Markdown, including [links](https://…).</p>
+        </Sec>
+
+        <Sec title="Rules & policies" summary={c.rules ? 'Set' : 'Empty'} isOpen={!!open.rules} onToggle={() => toggle('rules')}>
+          <textarea className={`${inputCls} min-h-[120px]`} value={c.rules} onChange={e => setC(v => ({ ...v, rules: e.target.value }))} placeholder="Rules, policies, or links…" />
+          <p className="text-xs text-slate-400 mt-1">Supports Markdown.</p>
+        </Sec>
+
+        <Sec title="Contacts" summary={`${c.contacts.length}`} isOpen={!!open.contacts} onToggle={() => toggle('contacts')}>
+          <div className="flex justify-end mb-2"><button onClick={() => setC(v => ({ ...v, contacts: [...v.contacts, { name: '', role: '', phone: '', email: '' }] }))} className="text-sm text-teal-700 hover:text-teal-900 inline-flex items-center gap-1"><Plus size={14} /> Add contact</button></div>
+          {c.contacts.length === 0 && <p className="text-sm text-slate-400">No contacts yet.</p>}
+          <div className="space-y-3">
+            {c.contacts.map((ct, i) => (
+              <div key={i} className="border border-slate-200 rounded-xl p-3">
+                <div className="flex items-center gap-2">
+                  <input className="input flex-1" value={ct.name} onChange={e => setC(v => ({ ...v, contacts: v.contacts.map((x, j) => j === i ? { ...x, name: e.target.value } : x) }))} placeholder="Name" />
+                  <button onClick={() => setC(v => ({ ...v, contacts: v.contacts.filter((_, j) => j !== i) }))} className="text-slate-400 hover:text-red-600"><Trash2 size={15} /></button>
+                </div>
+                <div className="grid sm:grid-cols-3 gap-2 mt-2">
+                  <input className="input" value={ct.role} onChange={e => setC(v => ({ ...v, contacts: v.contacts.map((x, j) => j === i ? { ...x, role: e.target.value } : x) }))} placeholder="Role (e.g. Director)" />
+                  <input className="input" value={ct.phone} onChange={e => setC(v => ({ ...v, contacts: v.contacts.map((x, j) => j === i ? { ...x, phone: e.target.value } : x) }))} placeholder="Phone" />
+                  <input className="input" value={ct.email} onChange={e => setC(v => ({ ...v, contacts: v.contacts.map((x, j) => j === i ? { ...x, email: e.target.value } : x) }))} placeholder="Email" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Sec>
+      </div>
+    </div>
+  )
+}
