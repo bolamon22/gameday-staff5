@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@libsql/client'
 import { Trophy, MapPin, CalendarDays, ClipboardList, ScrollText, Utensils, ListChecks, Phone, Mail, ExternalLink, Hotel } from 'lucide-react'
 import { mdToHtml } from '@/app/o/[slug]/_md'
+import FieldMap from '@/components/FieldMap'
 import { OrgHeader, OrgFooter, buildNav } from '@/app/o/[slug]/_chrome'
 
 export const dynamic = 'force-dynamic'
@@ -90,11 +91,20 @@ export default async function TournamentEventPage({ params }: { params: { id: st
             <div className="grid sm:grid-cols-2 gap-5">
               {locations.map((l, i) => (
                 <div key={i} className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-                  {l.fieldMapUrl && <img src={l.fieldMapUrl} alt="" className="w-full h-44 object-cover" />}
+                  {l.fieldMapUrl && <FieldMap src={l.fieldMapUrl} label={l.name} />}
                   <div className="p-4">
                     <h3 className="font-bold text-slate-900">{l.name}</h3>
                     {l.address && <p className="text-sm text-slate-500 mt-0.5">{l.address}</p>}
-                    {l.mapUrl && <a href={l.mapUrl} target="_blank" rel="noreferrer" className="text-sm text-teal-700 hover:text-teal-900 inline-flex items-center gap-1 mt-2"><MapPin size={13} /> Directions</a>}
+                    {l.address && (
+                      <iframe
+                        title={`Map of ${l.name || 'venue'}`}
+                        src={`https://www.google.com/maps?q=${encodeURIComponent(l.address)}&output=embed`}
+                        className="w-full h-48 rounded-xl border border-slate-200 mt-3"
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                      />
+                    )}
+                    {(l.mapUrl || l.address) && <a href={l.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.address)}`} target="_blank" rel="noreferrer" className="text-sm text-teal-700 hover:text-teal-900 inline-flex items-center gap-1 mt-2"><MapPin size={13} /> Directions</a>}
                   </div>
                 </div>
               ))}

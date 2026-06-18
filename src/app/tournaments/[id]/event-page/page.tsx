@@ -124,6 +124,7 @@ export default function EventPageEditor() {
                 </div>
                 <input className="input mt-2" value={l.address} onChange={e => setC(v => ({ ...v, locations: v.locations.map((x, j) => j === i ? { ...x, address: e.target.value } : x) }))} placeholder="Street address" />
                 <input className="input mt-2" value={l.mapUrl} onChange={e => setC(v => ({ ...v, locations: v.locations.map((x, j) => j === i ? { ...x, mapUrl: e.target.value } : x) }))} placeholder="Google Maps link (optional)" />
+                <p className="text-xs text-slate-400 mt-1">A Google map embeds automatically from the street address. The field map image is clickable to enlarge on the public page.</p>
                 <div className="flex items-center gap-3 mt-2">
                   {l.fieldMapUrl ? <img src={l.fieldMapUrl} alt="" className="h-16 w-24 object-cover rounded-lg border border-slate-200" /> : <div className="h-16 w-24 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400"><ImagePlus size={16} /></div>}
                   <label className="text-sm border border-slate-300 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-50 cursor-pointer">Field map<input type="file" accept="image/*" className="hidden" onChange={e => fieldMapUpload(i, e.target.files?.[0])} /></label>
