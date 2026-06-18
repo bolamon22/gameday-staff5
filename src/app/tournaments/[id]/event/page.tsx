@@ -173,6 +173,14 @@ export default async function TournamentEventPage({ params }: { params: { id: st
         </EventSection>
       ) : null
     }
+    if (b.type === 'image') return p.url ? (
+      <figure>
+        {p.link
+          ? <a href={p.link} target="_blank" rel="noreferrer"><img src={p.url} alt={p.caption || ''} className="w-full rounded-2xl border border-slate-200" /></a>
+          : <img src={p.url} alt={p.caption || ''} className="w-full rounded-2xl border border-slate-200" />}
+        {p.caption && <figcaption className="text-center text-sm text-slate-500 mt-2">{p.caption}</figcaption>}
+      </figure>
+    ) : null
     if (b.type === 'countdown') return t.startDate ? <CountdownBlock title={p.title} target={t.startDate} /> : null
     return null
   }
@@ -185,7 +193,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
 
   const navLabel = (b: any) => isBuiltin(b.type) ? (SECTION_LABELS[b.type] || b.type) : ((b.props && b.props.title) || (b.type === 'faq' ? 'Details' : 'Section'))
   const infoItems = rendered
-    .filter((x: any) => x.b.type !== 'cta' && x.b.type !== 'countdown')
+    .filter((x: any) => x.b.type !== 'cta' && x.b.type !== 'countdown' && x.b.type !== 'image')
     .map((x: any) => ({ href: x.b.type === 'rules' ? `${base}/rules` : (x.page ? `${base}/p/${x.b.id}` : `#${x.b.id}`), label: navLabel(x.b) }))
 
   const actions = [

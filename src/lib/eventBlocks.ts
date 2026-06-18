@@ -4,13 +4,14 @@ import { SECTION_KEYS, SECTION_LABELS, resolveSectionOrder } from '@/lib/eventSe
 // (overview, locations, etc.). Custom block types are repeatable and store their
 // content inline in the block's `props`.
 export const BUILTIN_TYPES = SECTION_KEYS as readonly string[]
-export const CUSTOM_TYPES = ['custom', 'cta', 'faq', 'countdown'] as const
+export const CUSTOM_TYPES = ['custom', 'image', 'cta', 'faq', 'countdown'] as const
 
 export type Block = { id: string; type: string; hidden?: boolean; props?: any }
 
 export const CUSTOM_BLOCK_LABELS: Record<string, string> = {
   custom: 'Custom text',
   cta: 'Call-to-action button',
+  image: 'Image / banner',
   faq: 'Collapsible sections',
   countdown: 'Countdown',
 }
@@ -33,6 +34,7 @@ export function newBlock(type: string): Block {
   const id = newBlockId()
   switch (type) {
     case 'custom': return { id, type, props: { title: 'New section', body: '', display: 'inline' } }
+    case 'image': return { id, type, props: { url: '', caption: '', link: '' } }
     case 'cta': return { id, type, props: { label: 'Register now', url: '', style: 'primary' } }
     case 'faq': return { id, type, props: { title: '', items: [{ q: '', a: '' }], display: 'inline' } }
     case 'countdown': return { id, type, props: { title: 'Countdown to kickoff' } }

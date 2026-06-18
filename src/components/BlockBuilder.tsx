@@ -1,9 +1,16 @@
 'use client'
 import { useState } from 'react'
-import { GripVertical, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus } from 'lucide-react'
+import { GripVertical, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus, ImagePlus } from 'lucide-react'
 import MarkdownField from '@/components/MarkdownField'
 import AiGenerateButton from '@/components/AiGenerateButton'
 import { Block, blockTypeLabel, isBuiltin, newBlock, CUSTOM_BLOCK_LABELS, CUSTOM_TYPES } from '@/lib/eventBlocks'
+
+async function uploadImage(file: File): Promise<string | null> {
+  const fd = new FormData(); fd.append('file', file)
+  const r = await fetch('/api/upload', { method: 'POST', body: fd })
+  if (!r.ok) return null
+  const d = await r.json().catch(() => ({})); return d.url || null
+}
 
 const lbl = 'block text-xs font-semibold uppercase tracking-wide text-slate-500 mt-2 mb-1'
 const inp = 'w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400'
@@ -77,6 +84,25 @@ function Editor({ b, updateProps }: { b: Block; updateProps: (id: string, patch:
       </>
     )
   }
+  if (b.type === 'image') return (
+    <>
+      <label className={lbl}>Image</label>
+      <div className="flex items-center gap-3">
+        {p.url
+          ? <img src={p.url} alt="" className="h-20 w-32 object-cover rounded-lg border border-slate-200" />
+          : <div className="h-20 w-32 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400"><ImagePlus size={18} /></div>}
+        <label className="text-sm border border-slate-300 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-50 cursor-pointer">
+          {p.url ? 'Replace' : 'Upload'}
+          <input type="file" accept="image/*" className="hidden" onChange={async e => { const f = e.target.files?.[0]; if (!f) return; const u = await uploadImage(f); if (u) updateProps(b.id, { url: u }) }} />
+        </label>
+        {p.url && <button type="button" onClick={() => updateProps(b.id, { url: '' })} className="text-sm text-slate-400 hover:text-red-600">Remove</button>}
+      </div>
+      <label className={lbl}>Caption (optional)</label>
+      <input className={inp} value={p.caption || ''} onChange={e => updateProps(b.id, { caption: e.target.value })} placeholder="Photo or banner caption" />
+      <label className={lbl}>Link (optional)</label>
+      <input className={inp} value={p.link || ''} onChange={e => updateProps(b.id, { link: e.target.value })} placeholder="https://… (makes the image clickable)" />
+    </>
+  )
   if (b.type === 'countdown') return (
     <>
       <label className={lbl}>Title</label>
