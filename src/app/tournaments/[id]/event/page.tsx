@@ -232,7 +232,9 @@ export default async function TournamentEventPage({ params }: { params: { id: st
     t.location && { icon: <MapPin size={22} />, label: 'LOCATION', value: shortLocation(t.location) },
     divisions.length > 0 && { icon: <Award size={22} />, label: 'DIVISIONS', value: `${divisions.length} division${divisions.length > 1 ? 's' : ''}` },
     minFee && { icon: <DollarSign size={22} />, label: 'TEAM FEE', value: minFee },
+    (c.hotelsUrl || c.hotels) && { icon: <Hotel size={22} />, label: 'HOTELS', value: 'Book hotels', href: c.hotelsUrl || '#hotels' },
   ].filter(Boolean) as any[]
+  const factCols = ({ 1: 'sm:grid-cols-2', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4', 5: 'sm:grid-cols-5' } as any)[quickFacts.length] || 'sm:grid-cols-4' 
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -261,14 +263,19 @@ export default async function TournamentEventPage({ params }: { params: { id: st
 
       {quickFacts.length > 0 && (
         <div className="bg-white border-b border-slate-200">
-          <div className="max-w-4xl mx-auto px-6 grid grid-cols-2 sm:grid-cols-4 divide-x divide-slate-100">
-            {quickFacts.map((f: any, i: number) => (
-              <div key={i} className="px-4 py-5 text-center">
-                <span className="text-teal-600 inline-flex">{f.icon}</span>
-                <div className="text-[11px] tracking-wide text-slate-400 font-semibold mt-1.5">{f.label}</div>
-                <div className="text-sm font-bold text-slate-900 mt-0.5 line-clamp-2">{f.value}</div>
-              </div>
-            ))}
+          <div className={`max-w-4xl mx-auto px-6 grid grid-cols-2 ${factCols} divide-x divide-slate-100`}>
+            {quickFacts.map((f: any, i: number) => {
+              const inner = (
+                <>
+                  <span className="text-teal-600 inline-flex">{f.icon}</span>
+                  <div className="text-[11px] tracking-wide text-slate-400 font-semibold mt-1.5">{f.label}</div>
+                  <div className={`text-sm font-bold mt-0.5 line-clamp-2 ${f.href ? 'text-teal-700' : 'text-slate-900'}`}>{f.value}</div>
+                </>
+              )
+              return f.href
+                ? <a key={i} href={f.href} {...(String(f.href).startsWith('#') || String(f.href).includes('#') ? {} : { target: '_blank', rel: 'noreferrer' })} className="px-4 py-5 text-center block hover:bg-slate-50 transition-colors">{inner}</a>
+                : <div key={i} className="px-4 py-5 text-center">{inner}</div>
+            })}
           </div>
         </div>
       )}
