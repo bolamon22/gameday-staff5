@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import TournamentNav from '../TournamentNav'
 import RegPricingEditor from '@/components/RegPricingEditor'
-import { parsePricing, serializePricing, calcFee, DEFAULT_REG_PRICING, type RegPricing } from '@/lib/regPricing'
+import { parsePricing, serializePricing, calcFee as calcRegFee, DEFAULT_REG_PRICING, type RegPricing } from '@/lib/regPricing'
 import toast, { Toaster } from 'react-hot-toast'
 import { Plus, Upload, Download, Settings, ExternalLink, RefreshCw, Check, X, ChevronUp, ChevronDown, ChevronRight, Landmark, ImageUp } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
@@ -54,7 +54,7 @@ const payLabel = (m: string) => m === 'credit_card' ? 'Credit Card' : m === 'zel
 const fmt = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const today = () => new Date().toISOString().slice(0, 10)
 
-function calcInvoice(teams: TeamRow[], pricing: Pricing): number { return calcFee(teams, pricing) }
+function calcInvoice(teams: TeamRow[], pricing: Pricing): number { return calcRegFee(teams, pricing) }
 
 function downloadCSV(registrations: Registration[]) {
   const headers = [
