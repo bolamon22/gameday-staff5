@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@libsql/client'
-import { Trophy, MapPin, CalendarDays, ClipboardList, ScrollText, Utensils, ListChecks, Phone, Mail, ExternalLink, Hotel } from 'lucide-react'
+import { Trophy, MapPin, CalendarDays, ClipboardList, ScrollText, Utensils, ListChecks, Phone, Mail, ExternalLink, Hotel, Zap } from 'lucide-react'
 import { mdToHtml } from '@/app/o/[slug]/_md'
 import FieldMap from '@/components/FieldMap'
 import EventInfoNav from '@/components/EventInfoNav'
@@ -205,6 +205,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
     { href: `${base}/player-waiver`, label: 'Player Waiver', icon: <ScrollText size={15} /> },
     { href: `${base}/vendor-request`, label: 'Vendor Request', icon: <Utensils size={15} /> },
     { href: `${base}/public`, label: 'Schedule & Standings', icon: <ListChecks size={15} /> },
+    { href: `${base}/today`, label: 'Game Day', icon: <Zap size={15} /> },
   ].filter(Boolean) as any[]
 
   return (
