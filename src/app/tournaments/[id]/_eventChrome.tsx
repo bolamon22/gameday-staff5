@@ -20,11 +20,11 @@ function fmtRange(s: string, e: string) {
 export default async function EventChrome({ tournamentId, children }: { tournamentId: string; children: React.ReactNode }) {
   const client = db()
   const base = `/tournaments/${tournamentId}`
-  const eyebrow = ((t.sport ? String(t.sport) + ' ' : '') + 'tournament')
   let t: any = {}
-  try { const r = await client.execute({ sql: 'SELECT id, name, startDate, endDate, location, logoUrl, orgId, teamRegEnabled, registrationDivisions FROM "Tournament" WHERE id = ?', args: [tournamentId] }); if (r.rows.length) t = r.rows[0] } catch {}
+  try { const r = await client.execute({ sql: 'SELECT id, name, startDate, endDate, location, logoUrl, orgId, teamRegEnabled, registrationDivisions, sport FROM "Tournament" WHERE id = ?', args: [tournamentId] }); if (r.rows.length) t = r.rows[0] } catch {}
   let cs: any = {}
   try { const r = await client.execute({ sql: 'SELECT value FROM "AppSetting" WHERE key = ?', args: [`tournamentSite:${tournamentId}`] }); if (r.rows.length) cs = JSON.parse(((r.rows[0] as any).value as string) || '{}') } catch {}
+  const eyebrow = ((t.sport ? String(t.sport) + ' ' : '') + 'tournament')
   let org: any = { name: '', slug: '', logoUrl: '', contactEmail: '' }
   let navPages: any[] = []; let hasGallery = false; let contact: any = {}; let socials: any = {}; let orgLogo = ''; let sponsors: any[] = []
   if (t.orgId) {
