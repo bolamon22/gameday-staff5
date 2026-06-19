@@ -154,7 +154,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
   const customContent = (b: any): JSX.Element | null => {
     const p = b.props || {}
     if (b.type === 'custom') return (p.body && String(p.body).trim()) ? (
-      <EventSection id={b.id} title={p.title || 'Section'}>
+      <EventSection id={b.id} title={p.title || 'Section'} defaultOpen={!!p.open}>
         <div className="prose-body" dangerouslySetInnerHTML={{ __html: mdToHtml(p.body) }} />
       </EventSection>
     ) : null
@@ -170,7 +170,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
     if (b.type === 'faq') {
       const items = (Array.isArray(p.items) ? p.items : []).filter((it: any) => it && it.q)
       return items.length ? (
-        <EventSection id={b.id} title={p.title || 'Details'}>
+        <EventSection id={b.id} title={p.title || 'Details'} defaultOpen={!!p.open}>
           <FaqBlock items={items} />
         </EventSection>
       ) : null

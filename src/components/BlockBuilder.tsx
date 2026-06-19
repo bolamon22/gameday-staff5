@@ -33,6 +33,7 @@ function Editor({ b, updateProps }: { b: Block; updateProps: (id: string, patch:
   if (b.type === 'custom') return (
     <>
       <DisplayPicker b={b} updateProps={updateProps} />
+      <label className="flex items-center gap-2 mt-1 text-sm text-slate-600"><input type="checkbox" checked={!!p.open} onChange={e => updateProps(b.id, { open: e.target.checked })} className="rounded border-slate-300 text-teal-600 focus:ring-teal-400" /> Start expanded on the event page</label>
       <label className={lbl}>Title</label>
       <input className={inp} value={p.title || ''} onChange={e => updateProps(b.id, { title: e.target.value })} placeholder="Section title" />
       <label className={lbl}>Content</label>
@@ -60,6 +61,7 @@ function Editor({ b, updateProps }: { b: Block; updateProps: (id: string, patch:
     return (
       <>
         <DisplayPicker b={b} updateProps={updateProps} />
+        <label className="flex items-center gap-2 mt-1 text-sm text-slate-600"><input type="checkbox" checked={!!p.open} onChange={e => updateProps(b.id, { open: e.target.checked })} className="rounded border-slate-300 text-teal-600 focus:ring-teal-400" /> Start expanded on the event page</label>
         <label className={lbl}>Title (optional)</label>
         <input className={inp} value={p.title || ''} onChange={e => updateProps(b.id, { title: e.target.value })} placeholder="e.g. Frequently asked questions, Travel info…" />
         <label className={lbl}>Collapsible sections</label>
