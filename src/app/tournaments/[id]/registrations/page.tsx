@@ -5,6 +5,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import TournamentNav from '../TournamentNav'
+import RegPricingEditor from '@/components/RegPricingEditor'
+import { parsePricing, serializePricing, calcFee, DEFAULT_REG_PRICING, type RegPricing } from '@/lib/regPricing'
 import toast, { Toaster } from 'react-hot-toast'
 import { Plus, Upload, Download, Settings, ExternalLink, RefreshCw, Check, X, ChevronUp, ChevronDown, ChevronRight, Landmark, ImageUp } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
@@ -26,7 +28,7 @@ interface Registration {
   teams: RegisteredTeam[]; payments: RegistrationPayment[]
 }
 interface TeamRow { clubName: string; teamName: string; division: string; coachName: string; coachPhone: string; coachEmail: string; logoUrl: string }
-interface Pricing { tier1: number; tier1Max: number; tier2: number; tier2Max: number; tier3: number; sevenVSeven: number }
+type Pricing = RegPricing
 interface IndividualReg {
   id: string; firstName: string; lastName: string; email: string; phone: string
   position: string; jerseySize: string; shortsSize: string; numberRequest: string
@@ -36,7 +38,7 @@ interface IndividualReg {
   paymentStatus: string; waiverSigned: boolean; createdAt: string
 }
 
-const DEFAULT_PRICING: Pricing = { tier1: 1495, tier1Max: 3, tier2: 1450, tier2Max: 6, tier3: 1395, sevenVSeven: 1095 }
+const DEFAULT_PRICING: Pricing = DEFAULT_REG_PRICING
 const DEFAULT_DIVISIONS = [
   'Boys High School A','Boys High School B','Boys High School B2',
   'Boys U14 A and B','Boys U12 A and B',
@@ -52,15 +54,7 @@ const payLabel = (m: string) => m === 'credit_card' ? 'Credit Card' : m === 'zel
 const fmt = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const today = () => new Date().toISOString().slice(0, 10)
 
-function calcInvoice(teams: TeamRow[], pricing: Pricing): number {
-  const sevenV = teams.filter(t => t.division.toLowerCase().includes('7v7') || t.division.toLowerCase().includes('7 v 7'))
-  const regular = teams.filter(t => !t.division.toLowerCase().includes('7v7') && !t.division.toLowerCase().includes('7 v 7'))
-  let total = sevenV.length * pricing.sevenVSeven
-  const n = regular.length
-  const rate = n <= pricing.tier1Max ? pricing.tier1 : n <= pricing.tier2Max ? pricing.tier2 : pricing.tier3
-  total += n * rate
-  return total
-}
+function calcInvoice(teams: TeamRow[], pricing: Pricing): number { return calcFee(teams, pricing) }
 
 function downloadCSV(registrations: Registration[]) {
   const headers = [
@@ -442,8 +436,7 @@ export default function RegistrationsPage() {
       try { const tiers = JSON.parse(t.individualRegTiers || '[]'); if (tiers.length) setIndivRegTiers(tiers) } catch {}
       try { const pos = JSON.parse(t.individualRegPositions || '[]'); if (pos.length) setIndivRegPositions(pos) } catch {}
       try {
-        const p = JSON.parse(t.registrationPricing || '{}')
-        if (p.tier1) { setPricing(p); setPricingDraft(p) }
+        const pp = parsePricing(t.registrationPricing); setPricing(pp); setPricingDraft(pp)
         const d = JSON.parse(t.registrationDivisions || '[]')
         if (d.length > 0) { setDivisions(d); setDivisionsDraft(d) }
       } catch {}
@@ -458,7 +451,7 @@ export default function RegistrationsPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        registrationPricing: JSON.stringify(pricingDraft),
+        registrationPricing: serializePricing(pricingDraft),
         registrationDivisions: JSON.stringify(divisionsDraft),
       }),
     })
@@ -990,22 +983,8 @@ export default function RegistrationsPage() {
             <div className="absolute inset-0 bg-black/40" onClick={() => setShowPricing(false)} />
             <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md z-10">
               <h2 className="text-lg font-semibold text-slate-800 mb-4">Registration Pricing</h2>
-              <div className="space-y-3 text-sm">
-                {([
-                  { key: 'tier1', label: `Tier 1 (1–${pricingDraft.tier1Max} teams) per team` },
-                  { key: 'tier1Max', label: 'Tier 1 max teams' },
-                  { key: 'tier2', label: `Tier 2 (${pricingDraft.tier1Max+1}–${pricingDraft.tier2Max} teams) per team` },
-                  { key: 'tier2Max', label: 'Tier 2 max teams' },
-                  { key: 'tier3', label: `Tier 3 (${pricingDraft.tier2Max+1}+ teams) per team` },
-                  { key: 'sevenVSeven', label: '7v7 per team' },
-                ] as { key: keyof Pricing; label: string }[]).map(({ key, label }) => (
-                  <div key={key} className="flex items-center justify-between gap-4">
-                    <label className="text-slate-600 flex-1">{label}</label>
-                    <input type="number" value={pricingDraft[key]}
-                      onChange={e => setPricingDraft(p => ({ ...p, [key]: Number(e.target.value) }))}
-                      className="w-28 border border-slate-300 rounded-lg px-3 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-teal-500" />
-                  </div>
-                ))}
+              <div className="text-sm">
+                <RegPricingEditor value={pricingDraft} onChange={setPricingDraft} />
               </div>
               {/* Divisions editor */}
               <div className="mt-5 border-t pt-4">

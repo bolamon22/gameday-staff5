@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
+import { parsePricing, calcFee, feeScheduleLines, DEFAULT_REG_PRICING, type RegPricing } from '@/lib/regPricing'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 
@@ -29,18 +30,11 @@ const DEFAULT_DIVISIONS = [
   "Girls Lower School A (7v7)","Girls Lower School B (7v7 - No 2033's)",
 ]
 
-interface Pricing { tier1: number; tier1Max: number; tier2: number; tier2Max: number; tier3: number; sevenVSeven: number | null }
-const DEFAULT_PRICING: Pricing = { tier1: 1495, tier1Max: 3, tier2: 1450, tier2Max: 6, tier3: 1395, sevenVSeven: 1095 }
+type Pricing = RegPricing
+const DEFAULT_PRICING: Pricing = DEFAULT_REG_PRICING
 
 function calcInvoice(teams: TeamRow[], pricing: Pricing): number {
-  const has7v7 = pricing.sevenVSeven != null
-  const sevenV = has7v7 ? teams.filter(t => t.division.toLowerCase().includes('7v7') || t.division.toLowerCase().includes('7 v 7')) : []
-  const regular = has7v7 ? teams.filter(t => !t.division.toLowerCase().includes('7v7') && !t.division.toLowerCase().includes('7 v 7')) : teams
-  let total = sevenV.length * (pricing.sevenVSeven || 0)
-  const n = regular.length
-  const rate = n <= pricing.tier1Max ? pricing.tier1 : n <= pricing.tier2Max ? pricing.tier2 : pricing.tier3
-  total += n * rate
-  return total
+  return calcFee(teams, pricing)
 }
 
 const fmt = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
@@ -183,8 +177,7 @@ export default function RegisterPage() {
           if (divs.length > 0) setDivisions(divs)
         } catch {}
         try {
-          const p = JSON.parse(d.registrationPricing || '{}')
-          if (p.tier1) setPricing(p)
+          setPricing(parsePricing(d.registrationPricing))
         } catch {}
       })
       .catch(() => {})
@@ -487,10 +480,7 @@ export default function RegisterPage() {
                     </p>
                     {showFees && (
                       <div className="mt-2 text-xs text-blue-700 space-y-0.5">
-                        <div>1-{pricing.tier1Max} teams: {fmt(pricing.tier1)}/team</div>
-                        <div>{pricing.tier1Max + 1}-{pricing.tier2Max} teams: {fmt(pricing.tier2)}/team</div>
-                        <div>{pricing.tier2Max + 1}+ teams: {fmt(pricing.tier3)}/team</div>
-                        {pricing.sevenVSeven != null && <div>7v7 teams: {fmt(pricing.sevenVSeven)}/team</div>}
+                        {feeScheduleLines(pricing).map((line, i) => <div key={i}>{line}</div>)}
                       </div>
                     )}
                   </div>

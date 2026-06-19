@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import toast, { Toaster } from 'react-hot-toast'
 import { DEFAULT_PAY_RATES, PayRates } from '@/lib/utils'
 import TournamentNav from '../TournamentNav'
+import RegPricingEditor from '@/components/RegPricingEditor'
+import { parsePricing, serializePricing, baseFee, DEFAULT_REG_PRICING, type RegPricing } from '@/lib/regPricing'
 import { Trophy, MapPin, DollarSign, Award, Banknote, Users, ClipboardList, ChevronUp, ChevronDown, Copy, Calendar, X, Clock, Lightbulb, Check, Info, Megaphone, Plus, type LucideIcon } from 'lucide-react'
 
 const RATE_FIELDS = [
@@ -16,7 +18,6 @@ const RATE_FIELDS = [
   { key: 'assigner', label: 'Assigner Bonus' },
 ]
 
-const DEFAULT_PRICING = { tier1: 1495, tier1Max: 3, tier2: 1450, tier2Max: 6, tier3: 1395, sevenVSeven: 1095 }
 
 const INFO_ICON_OPTIONS = ['info', 'heart-pulse', 'shirt', 'square-parking', 'scroll-text', 'utensils', 'phone', 'cloud-lightning']
 
@@ -94,7 +95,7 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
   const [divRules, setDivRules] = useState<Record<string, number>>({})
   const [poolTb, setPoolTb] = useState<string[]>(pad6(DEFAULT_TB))
   const [divTb, setDivTb] = useState<string[]>(pad6(DEFAULT_TB))
-  const [pricing, setPricing] = useState(DEFAULT_PRICING)
+  const [pricing, setPricing] = useState<RegPricing>(DEFAULT_REG_PRICING)
   const [divisions, setDivisions] = useState<string[]>([])
   const [newDivision, setNewDivision] = useState('')
   const [venues, setVenues] = useState<Venue[]>([])
@@ -174,7 +175,7 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
       setRates({ ...DEFAULT_PAY_RATES, ...JSON.parse(t.payRates) })
       setDivRules(JSON.parse(t.divisionRules || '{}'))
       try { const obj = JSON.parse(t.tiebreakers || '{}'); const pool = Array.isArray(obj)?obj:(obj.pool||[]); const division = Array.isArray(obj)?obj:(obj.division||[]); setPoolTb(pad6(pool.length?pool:DEFAULT_TB)); setDivTb(pad6(division.length?division:DEFAULT_TB)) } catch {}
-      try { const p = JSON.parse(t.registrationPricing || '{}'); if (p.tier1) setPricing(p) } catch {}
+      setPricing(parsePricing(t.registrationPricing))
       try { const d = JSON.parse(t.registrationDivisions || '[]'); if (d.length > 0) setDivisions(d) } catch {}
       try { const v = JSON.parse(t.venues || '[]'); setVenues(v) } catch {}
       setTeamRegEnabled(t.teamRegEnabled !== false)
@@ -225,7 +226,7 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name, payRates: rates, divisionRules: divRules, tiebreakers: { pool: poolTb.filter(Boolean), division: divTb.filter(Boolean) },
-          registrationPricing: JSON.stringify(pricing),
+          registrationPricing: serializePricing(pricing),
           registrationDivisions: JSON.stringify(divisions),
           teamRegEnabled,
           individualRegEnabled: indivRegEnabled,
@@ -606,43 +607,10 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
 
           <SectionCard title="Registration Fees" description="Per-team pricing tiers for the public registration form" icon={DollarSign}
             open={open === 'fees'} onToggle={() => toggle('fees')}
-            badge={`$${pricing.tier1.toLocaleString()} base`}>
+            badge={`$${baseFee(pricing).toLocaleString()} base`}>
             <div className="space-y-4">
-              {[
-                { label: `1 – `, fieldMax: 'tier1Max', fieldPrice: 'tier1', suffix: ' teams' },
-                { label: ``, fieldMax: 'tier2Max', fieldPrice: 'tier2', prefix: true },
-                { label: `${pricing.tier2Max + 1}+ teams`, fieldMax: null, fieldPrice: 'tier3' },
-                ...(pricing.sevenVSeven != null ? [{ label: '7v7 teams', fieldMax: null, fieldPrice: 'sevenVSeven' }] : []),
-              ].map((row, i) => (
-                <div key={i} className="flex items-center justify-between gap-4 py-2 border-b border-slate-100 last:border-0">
-                  <p className="text-sm font-medium text-slate-700 flex items-center gap-1">
-                    {i === 0 && <>1–<input type="number" min="1" max="10" className="border border-slate-300 rounded px-1.5 py-0.5 w-12 text-center text-sm focus:outline-none focus:ring-1 focus:ring-teal-500" value={pricing.tier1Max} onChange={e => setPricing(p => ({ ...p, tier1Max: parseInt(e.target.value) || 3 }))} /> teams</>}
-                    {i === 1 && <>{pricing.tier1Max + 1}–<input type="number" min="1" max="20" className="border border-slate-300 rounded px-1.5 py-0.5 w-12 text-center text-sm focus:outline-none focus:ring-1 focus:ring-teal-500" value={pricing.tier2Max} onChange={e => setPricing(p => ({ ...p, tier2Max: parseInt(e.target.value) || 6 }))} /> teams</>}
-                    {i === 2 && <>{pricing.tier2Max + 1}+ teams</>}
-                    {i === 3 && <>7v7 teams</>}
-                    <span className="text-slate-400 font-normal text-xs ml-1">per team</span>
-                  </p>
-                  <div className="flex items-center gap-1">
-                    <span className="text-slate-400 text-sm">$</span>
-                    <input type="number" min="0" step="1"
-                      className="border border-slate-300 rounded-lg px-3 py-1.5 w-24 text-right text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                      value={i === 0 ? pricing.tier1 : i === 1 ? pricing.tier2 : i === 2 ? pricing.tier3 : pricing.sevenVSeven}
-                      onChange={e => {
-                        const v = parseFloat(e.target.value) || 0
-                        if (i === 0) setPricing(p => ({ ...p, tier1: v }))
-                        else if (i === 1) setPricing(p => ({ ...p, tier2: v }))
-                        else if (i === 2) setPricing(p => ({ ...p, tier3: v }))
-                        else setPricing(p => ({ ...p, sevenVSeven: v }))
-                      }} />
-                    {row.fieldPrice === 'sevenVSeven' && <button type="button" title="Remove tier" onClick={() => setPricing(p => ({ ...p, sevenVSeven: null as any }))} className="text-slate-300 hover:text-red-500 ml-1"><X size={15} /></button>}
-                  </div>
-                </div>
-              ))}
-              {pricing.sevenVSeven == null && (
-                <button type="button" onClick={() => setPricing(p => ({ ...p, sevenVSeven: 1095 as any }))}
-                  className="text-sm text-teal-700 hover:text-teal-900 font-medium inline-flex items-center gap-1"><Plus size={14} /> Add 7v7 tier</button>
-              )}
-              <button type="button" onClick={() => setPricing(DEFAULT_PRICING)}
+              <RegPricingEditor value={pricing} onChange={setPricing} />
+              <button type="button" onClick={() => setPricing(DEFAULT_REG_PRICING)}
                 className="text-xs text-slate-400 hover:text-slate-600 underline block">Reset to defaults</button>
             </div>
           </SectionCard>

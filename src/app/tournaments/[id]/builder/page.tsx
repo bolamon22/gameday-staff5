@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import TournamentNav from '../TournamentNav'
+import RegPricingEditor from '@/components/RegPricingEditor'
+import { parsePricing, serializePricing, baseFee, DEFAULT_REG_PRICING, type RegPricing } from '@/lib/regPricing'
 import { Trophy, Award, MapPin, DollarSign, Banknote, Clock, X, Calendar, ChevronUp, ChevronDown, Check, Circle, ArrowRight, ClipboardList } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -44,7 +46,6 @@ function fromDivItems(items: DivisionItem[], customs: string[]): string[] {
   return [...items.filter(i => i.checked).map(i => i.display), ...customs]
 }
 
-const DEFAULT_PRICING = { tier1: 1495, tier1Max: 3, tier2: 1450, tier2Max: 6, tier3: 1395, sevenVSeven: 1095 }
 
 interface StaffRole {
   id: string
@@ -180,7 +181,7 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
   const [tournamentDates, setTournamentDates] = useState<string[]>([])
 
   // Registration
-  const [pricing, setPricing]         = useState(DEFAULT_PRICING)
+  const [pricing, setPricing]         = useState<RegPricing>(DEFAULT_REG_PRICING)
 
   // Staff & Pay
   const [staffRoles, setStaffRoles]       = useState<StaffRole[]>([...DEFAULT_ROLES])
@@ -214,7 +215,7 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
         }
       } catch {}
       setOfficialsConfig({ ...DEFAULT_OFFICIALS_CONFIG, ...staffParsed.officialsConfig, rules: loadedRules })
-      try { const p = JSON.parse(t.registrationPricing || '{}'); if (p.tier1) setPricing(p) } catch {}
+      setPricing(parsePricing(t.registrationPricing))
       try {
         const d: string[] = JSON.parse(t.registrationDivisions || '[]')
         if (d.length) {
@@ -277,7 +278,7 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
           scheduleIncrement: parseInt(scheduleIncrement) || 50,
           payRates: serializeStaffConfig(staffRoles, officialsConfig),
           divisionRules: JSON.stringify(Object.fromEntries(officialsConfig.rules.map(r => [r.keyword, r.count]))),
-          registrationPricing: JSON.stringify(pricing),
+          registrationPricing: serializePricing(pricing),
           registrationDivisions: JSON.stringify(fromDivItems(divItems, customDivisions)),
           tiebreakers: { pool: poolTb.filter(Boolean), division: divTb.filter(Boolean) },
         }),
@@ -342,7 +343,7 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
     if (id === 'general')      return !!(name && startDate && location)
     if (id === 'divisions')    return divItems.some(i => i.checked) || customDivisions.length > 0
     if (id === 'venues')       return venues.length > 0
-    if (id === 'registration') return pricing.tier1 > 0
+    if (id === 'registration') return baseFee(pricing) > 0
     if (id === 'staffpay')     return staffRoles.length > 0
     if (id === 'schedule')     return !!(scheduleIncrement)
     if (id === 'tiebreakers')  return true
@@ -673,24 +674,8 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
     if (activeSection === 'registration') return (
       <div>
         <p className="text-sm text-slate-500 mb-5">Per-team pricing tiers shown on the public registration form.</p>
-        <div className="space-y-3">
-          {[
-            { label: <>1–<input type="number" min="1" max="10" className="border border-slate-300 rounded px-1.5 py-0.5 w-12 text-center text-sm mx-1 focus:outline-none focus:ring-1 focus:ring-teal-500" value={pricing.tier1Max} onChange={e => setPricing(p => ({ ...p, tier1Max: parseInt(e.target.value) || 3 }))} /> teams</>, price: pricing.tier1, setPrice: (v: number) => setPricing(p => ({ ...p, tier1: v })) },
-            { label: <>{pricing.tier1Max + 1}–<input type="number" min="1" max="20" className="border border-slate-300 rounded px-1.5 py-0.5 w-12 text-center text-sm mx-1 focus:outline-none focus:ring-1 focus:ring-teal-500" value={pricing.tier2Max} onChange={e => setPricing(p => ({ ...p, tier2Max: parseInt(e.target.value) || 6 }))} /> teams</>, price: pricing.tier2, setPrice: (v: number) => setPricing(p => ({ ...p, tier2: v })) },
-            { label: <>{pricing.tier2Max + 1}+ teams</>,                  price: pricing.tier3,       setPrice: (v: number) => setPricing(p => ({ ...p, tier3: v })) },
-            { label: <>7v7 teams</>,                                       price: pricing.sevenVSeven, setPrice: (v: number) => setPricing(p => ({ ...p, sevenVSeven: v })) },
-          ].map((row, i) => (
-            <div key={i} className="flex items-center justify-between gap-4 py-3 border-b border-slate-100 last:border-0">
-              <p className="text-sm font-medium text-slate-700 flex items-center">{row.label}<span className="text-slate-400 text-xs ml-2">per team</span></p>
-              <div className="flex items-center gap-1">
-                <span className="text-slate-400 text-sm">$</span>
-                <input type="number" min="0" step="1" className="border border-slate-300 rounded-lg px-3 py-1.5 w-28 text-right text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  value={row.price} onChange={e => row.setPrice(parseFloat(e.target.value) || 0)} />
-              </div>
-            </div>
-          ))}
-        </div>
-        <button type="button" onClick={() => setPricing(DEFAULT_PRICING)} className="text-xs text-slate-400 hover:text-slate-600 underline mt-4 block">Reset to defaults</button>
+        <RegPricingEditor value={pricing} onChange={setPricing} />
+        <button type="button" onClick={() => setPricing(DEFAULT_REG_PRICING)} className="text-xs text-slate-400 hover:text-slate-600 underline mt-4 block">Reset to defaults</button>
       </div>
     )
 
