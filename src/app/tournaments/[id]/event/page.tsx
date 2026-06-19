@@ -250,8 +250,6 @@ export default async function TournamentEventPage({ params }: { params: { id: st
             <div>
               <div className="text-teal-300 text-[11px] sm:text-xs font-semibold tracking-[0.18em] uppercase">{eyebrow}</div>
               <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.04] mt-1">{t.name}</h1>
-              <p className="text-teal-100 font-medium mt-2.5 inline-flex items-center gap-1.5"><CalendarDays size={15} /> {fmtRange(t.startDate, t.endDate)}</p>
-              {t.location && <p className="text-slate-200/90 text-sm mt-0.5 inline-flex items-center gap-1.5"><MapPin size={14} /> {t.location}</p>}
             </div>
           </div>
           <div className="mt-7 flex flex-wrap gap-2">

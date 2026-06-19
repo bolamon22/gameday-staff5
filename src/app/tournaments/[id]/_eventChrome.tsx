@@ -68,8 +68,6 @@ export default async function EventChrome({ tournamentId, children }: { tourname
               <div>
                 <div className="text-teal-300 text-[10px] sm:text-[11px] font-semibold tracking-[0.18em] uppercase">{eyebrow}</div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">{t.name}</h1>
-                <p className="text-teal-200 text-sm font-medium mt-1 inline-flex items-center gap-1.5"><CalendarDays size={14} /> {fmtRange(t.startDate, t.endDate)}</p>
-                {t.location && <p className="text-slate-200 text-sm inline-flex items-center gap-1.5"><MapPin size={13} /> {t.location}</p>}
               </div>
             </Link>
             <div className="mt-6 flex flex-wrap gap-2">
