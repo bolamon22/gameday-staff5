@@ -18,7 +18,8 @@ export async function GET(_: Request, { params }: { params:{id:string} }) {
 }
 export async function PATCH(req: Request, { params }: { params:{id:string} }) {
   const b = await req.json()
-  return NextResponse.json(await prisma.tournament.update({ where:{id:params.id}, data:{
+  // Fields that live in the Prisma schema.
+  const data: any = {
     ...(b.name!==undefined&&{name:b.name}),
     ...(b.sport!==undefined&&{sport:b.sport}),
     ...(b.startDate!==undefined&&{startDate:b.startDate}),
@@ -32,13 +33,22 @@ export async function PATCH(req: Request, { params }: { params:{id:string} }) {
     ...(b.tiebreakers!==undefined&&{tiebreakers:JSON.stringify(b.tiebreakers)}),
     ...(b.registrationPricing!==undefined&&{registrationPricing:b.registrationPricing}),
     ...(b.registrationDivisions!==undefined&&{registrationDivisions:b.registrationDivisions}),
-    ...(b.teamRegEnabled!==undefined&&{teamRegEnabled:Boolean(b.teamRegEnabled)}),
-    ...(b.individualRegEnabled!==undefined&&{individualRegEnabled:Boolean(b.individualRegEnabled)}),
-    ...(b.individualRegDescription!==undefined&&{individualRegDescription:b.individualRegDescription}),
-    ...(b.individualRegTiers!==undefined&&{individualRegTiers:b.individualRegTiers}),
-    ...(b.individualRegPositions!==undefined&&{individualRegPositions:b.individualRegPositions}),
-    ...(b.individualRegSizes!==undefined&&{individualRegSizes:b.individualRegSizes}),
-  }}))
+  }
+  // Registration-toggle columns live only in the DB (not the Prisma schema), so
+  // Prisma can't write them - set them via raw SQL, self-healing the column if missing.
+  const raw: Array<[string, string, any]> = []
+  if (b.teamRegEnabled!==undefined) raw.push(['teamRegEnabled', 'INTEGER DEFAULT 1', Boolean(b.teamRegEnabled) ? 1 : 0])
+  if (b.individualRegEnabled!==undefined) raw.push(['individualRegEnabled', 'INTEGER DEFAULT 0', Boolean(b.individualRegEnabled) ? 1 : 0])
+  if (b.individualRegDescription!==undefined) raw.push(['individualRegDescription', "TEXT DEFAULT ''", String(b.individualRegDescription ?? '')])
+  if (b.individualRegTiers!==undefined) raw.push(['individualRegTiers', "TEXT DEFAULT '[]'", String(b.individualRegTiers ?? '[]')])
+  if (b.individualRegPositions!==undefined) raw.push(['individualRegPositions', "TEXT DEFAULT '[]'", String(b.individualRegPositions ?? '[]')])
+  if (b.individualRegSizes!==undefined) raw.push(['individualRegSizes', "TEXT DEFAULT '[]'", String(b.individualRegSizes ?? '[]')])
+  for (const [col, type] of raw) { try { await prisma.$executeRawUnsafe(`ALTER TABLE "Tournament" ADD COLUMN "${col}" ${type}`) } catch {} }
+  for (const [col, , val] of raw) { try { await prisma.$executeRawUnsafe(`UPDATE "Tournament" SET "${col}" = ? WHERE id = ?`, val, params.id) } catch {} }
+  const out = Object.keys(data).length
+    ? await prisma.tournament.update({ where:{id:params.id}, data })
+    : await prisma.tournament.findUnique({ where:{id:params.id} })
+  return NextResponse.json(out)
 }
 export async function DELETE(_: Request, { params }: { params:{id:string} }) {
   await prisma.tournament.delete({ where:{id:params.id} }); return NextResponse.json({ ok:true })
