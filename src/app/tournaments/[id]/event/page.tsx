@@ -213,15 +213,16 @@ export default async function TournamentEventPage({ params }: { params: { id: st
     .filter((x: any) => x.el)
 
   const navLabel = (b: any) => isBuiltin(b.type) ? (SECTION_LABELS[b.type] || b.type) : ((b.props && b.props.title) || (b.type === 'faq' ? 'Details' : 'Section'))
-  const infoItems = rendered
-    .filter((x: any) => x.b.type !== 'cta' && x.b.type !== 'countdown' && x.b.type !== 'image')
-    .map((x: any) => ({ href: x.b.type === 'rules' ? `${base}/rules` : (x.page ? `${base}/p/${x.b.id}` : `#${x.b.id}`), label: navLabel(x.b) }))
+  const infoItems = [
+    ...rendered
+      .filter((x: any) => x.b.type !== 'cta' && x.b.type !== 'countdown' && x.b.type !== 'image')
+      .map((x: any) => ({ href: x.b.type === 'rules' ? `${base}/rules` : (x.page ? `${base}/p/${x.b.id}` : `#${x.b.id}`), label: navLabel(x.b) })),
+    { href: `${base}/vendor-request`, label: 'Vendor Request' },
+  ]
 
   const actions = [
     Number(t.teamRegEnabled) ? { href: `${base}/register`, label: 'Register', icon: <ClipboardList size={15} />, primary: true } : null,
     { href: `${base}/player-waiver`, label: 'Player Waiver', icon: <ScrollText size={15} /> },
-    { href: `${base}/vendor-request`, label: 'Vendor Request', icon: <Utensils size={15} /> },
-    { href: `${base}/public`, label: 'Schedule & Standings', icon: <ListChecks size={15} /> },
     { href: `${base}/today`, label: 'Game Day', icon: <Zap size={15} /> },
   ].filter(Boolean) as any[]
 
@@ -233,8 +234,9 @@ export default async function TournamentEventPage({ params }: { params: { id: st
     divisions.length > 0 && { icon: <Award size={22} />, label: 'DIVISIONS', value: `${divisions.length} division${divisions.length > 1 ? 's' : ''}`, href: '#fees' },
     minFee && { icon: <DollarSign size={22} />, label: 'TEAM FEE', value: minFee, href: registerHref || '#fees' },
     (c.hotelsUrl || c.hotels) && { icon: <Hotel size={22} />, label: 'HOTELS', value: 'Book hotels', href: c.hotelsUrl || '#hotels' },
+    { icon: <ListChecks size={22} />, label: 'SCHEDULE', value: 'View games', href: `${base}/public` },
   ].filter(Boolean) as any[]
-  const factCols = ({ 1: 'sm:grid-cols-2', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4', 5: 'sm:grid-cols-5' } as any)[quickFacts.length] || 'sm:grid-cols-4' 
+  const factCols = ({ 1: 'sm:grid-cols-2', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4', 5: 'sm:grid-cols-5', 6: 'sm:grid-cols-6' } as any)[quickFacts.length] || 'sm:grid-cols-4' 
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -273,7 +275,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
                 </>
               )
               return f.href
-                ? <a key={i} href={f.href} {...(String(f.href).startsWith('#') || String(f.href).includes('#') ? {} : { target: '_blank', rel: 'noreferrer' })} className="px-4 py-5 text-center block hover:bg-slate-50 transition-colors">{inner}</a>
+                ? <a key={i} href={f.href} {...(String(f.href).startsWith('http') ? { target: '_blank', rel: 'noreferrer' } : {})} className="px-4 py-5 text-center block hover:bg-slate-50 transition-colors">{inner}</a>
                 : <div key={i} className="px-4 py-5 text-center">{inner}</div>
             })}
           </div>

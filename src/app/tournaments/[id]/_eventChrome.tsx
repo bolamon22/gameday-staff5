@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@libsql/client'
-import { ClipboardList, ScrollText, Utensils, ListChecks, CalendarDays, MapPin } from 'lucide-react'
+import { ClipboardList, ScrollText, Utensils, ListChecks, CalendarDays, MapPin, Zap } from 'lucide-react'
 import { OrgHeader, OrgFooter, buildNav } from '@/app/o/[slug]/_chrome'
 import EventInfoNav from '@/components/EventInfoNav'
 
@@ -46,13 +46,13 @@ export default async function EventChrome({ tournamentId, children }: { tourname
     cs.rules && { href: `${base}/rules`, label: 'Rules & policies' },
     (Array.isArray(cs.contacts) && cs.contacts.length) && { href: `${base}/event#contacts`, label: 'Contacts' },
     sponsors.length && { href: `${base}/event#sponsors`, label: 'Sponsors & partners' },
+    { href: `${base}/vendor-request`, label: 'Vendor Request' },
   ].filter(Boolean) as { href: string; label: string }[]
 
   const actions = [
     Number(t.teamRegEnabled) ? { href: `${base}/register`, label: 'Register', icon: <ClipboardList size={15} />, primary: true } : null,
     { href: `${base}/player-waiver`, label: 'Player Waiver', icon: <ScrollText size={15} /> },
-    { href: `${base}/vendor-request`, label: 'Vendor Request', icon: <Utensils size={15} /> },
-    { href: `${base}/public`, label: 'Schedule & Standings', icon: <ListChecks size={15} /> },
+    { href: `${base}/today`, label: 'Game Day', icon: <Zap size={15} /> },
   ].filter(Boolean) as any[]
 
   return (
