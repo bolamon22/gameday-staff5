@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { ClipboardList, Globe, MapPin, ChevronDown, ChevronUp } from 'lucide-react'
+import HelpCenter from '@/components/HelpCenter'
 
 interface Props {
   id: string
@@ -207,10 +208,13 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
               </Link>
             )
           )}
-          <button onClick={toggleCollapsed} title={collapsed ? 'Expand header' : 'Minimize header'}
-            className="ml-auto px-3 py-3 text-slate-400 hover:text-white transition-colors flex items-center">
-            {collapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-          </button>
+          <div className="ml-auto flex items-center">
+            <HelpCenter tournamentId={id} />
+            <button onClick={toggleCollapsed} title={collapsed ? 'Expand header' : 'Minimize header'}
+              className="px-3 py-3 text-slate-400 hover:text-white transition-colors flex items-center">
+              {collapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+            </button>
+          </div>
         </div>
       </div>
     </div>
