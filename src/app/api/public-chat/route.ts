@@ -49,6 +49,22 @@ SCHEDULE (${games.length} games):
 ${sched || 'Schedule not posted yet.'}
 
 To register a team, attendees use the event's Register page. Point people to the event page for full details.`
+
+          // Include the organization's website pages (refund policy, terms, FAQ, etc.) so Chirp can answer policy questions.
+          try {
+            const orgRows: any[] = await prisma.$queryRawUnsafe('SELECT orgId FROM "Tournament" WHERE id = ?', tournamentId)
+            const orgId = orgRows && orgRows[0] && orgRows[0].orgId
+            if (orgId) {
+              const os = await prisma.appSetting.findUnique({ where: { key: `orgSite:${orgId}` } }).catch(() => null)
+              let oc: any = {}
+              try { oc = JSON.parse((os as any)?.value || '{}') } catch {}
+              const pages = Array.isArray(oc.pages) ? oc.pages : []
+              const txt = pages.filter((p: any) => p && p.body).slice(0, 8)
+                .map((p: any) => `### ${p.title || p.slug}\n${String(p.body).slice(0, 1200)}`)
+                .join('\n\n').slice(0, 4500)
+              if (txt) context += `\n\nORGANIZER WEBSITE PAGES (policies & info such as refund policy and terms):\n${txt}`
+            }
+          } catch (e) { console.error('org pages context error:', e) }
         }
       } catch (e) { console.error('public-chat context error:', e) }
     }
