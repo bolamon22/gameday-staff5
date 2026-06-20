@@ -1,5 +1,7 @@
+import Link from 'next/link'
 import { createClient } from '@libsql/client'
-import { Trophy } from 'lucide-react'
+import { Trophy, ChevronLeft } from 'lucide-react'
+import { OrgHeader, OrgFooter, buildNav, PageRec } from '../_chrome'
 import { mdToHtml } from '../_md'
 import WorkForm from '@/components/WorkForm'
 
@@ -13,26 +15,63 @@ const D_AGE = 'I am at least 16 years old (or in high school or older)'
 
 export default async function OrgWorkPage({ params }: { params: { slug: string } }) {
   const client = db()
-  const orgRes = await client.execute({ sql: 'SELECT id, name, logoUrl FROM "Organization" WHERE slug = ?', args: [params.slug] })
-  if (orgRes.rows.length === 0) return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-center px-6"><div><Trophy size={40} className="mx-auto text-slate-300" /><h1 className="mt-3 text-xl font-bold text-slate-800">Form not found</h1></div></div>
+  const orgRes = await client.execute({ sql: 'SELECT id, name, contactEmail, logoUrl FROM "Organization" WHERE slug = ?', args: [params.slug] })
+  if (orgRes.rows.length === 0) return <NotFound slug={params.slug} />
   const org = orgRes.rows[0] as any
+
+  let content: any = {}
+  try { const cr = await client.execute({ sql: 'SELECT value FROM "AppSetting" WHERE key = ?', args: [`orgSite:${org.id}`] }); if (cr.rows.length) content = JSON.parse(((cr.rows[0] as any).value as string) || '{}') } catch {}
+  if (content.logo) org.logoUrl = content.logo
+  const pages: PageRec[] = Array.isArray(content.pages) ? content.pages : []
+  const gallery: any[] = Array.isArray(content.gallery) ? content.gallery : []
+  const contact = content.contact || {}
+  const socials = content.socials || {}
+
   let forms: any = {}
   try { const r = await client.execute({ sql: 'SELECT value FROM "AppSetting" WHERE key = ?', args: [`orgForms:${org.id}`] }); if (r.rows.length) forms = JSON.parse(((r.rows[0] as any).value as string) || '{}') } catch {}
-  try { const s = await client.execute({ sql: 'SELECT value FROM "AppSetting" WHERE key = ?', args: [`orgSite:${org.id}`] }); if (s.rows.length) { const c = JSON.parse(((s.rows[0] as any).value as string) || '{}'); if (c.logo) org.logoUrl = c.logo } } catch {}
   const sf = forms.staff || {}
+  const workHref = (sf.enabled !== false) ? `/o/${params.slug}/work` : undefined
+  const nav = buildNav(params.slug, pages, gallery.length > 0, workHref)
+
+  const tRes = await client.execute({ sql: 'SELECT id, name, startDate, endDate, teamRegEnabled FROM "Tournament" WHERE orgId = ? ORDER BY startDate', args: [org.id as string] })
+  const today = new Date().toISOString().slice(0, 10)
+  const upcoming = (tRes.rows as any[]).filter(t => (t.endDate || t.startDate || '') >= today)
+  const reg = upcoming.find(t => Number(t.teamRegEnabled))
+  const registerHref = reg ? `/tournaments/${reg.id}/register` : undefined
+  const events = upcoming.map(t => ({ id: String(t.id), name: String(t.name || 'Event') }))
+
   const positions = Array.isArray(sf.positions) && sf.positions.length ? sf.positions : D_POSITIONS
   const refLevels = Array.isArray(sf.refLevels) && sf.refLevels.length ? sf.refLevels : D_REF_LEVELS
   const ageLabel = sf.ageLabel !== undefined ? sf.ageLabel : D_AGE
   const introHtml = mdToHtml(sf.intro || D_INTRO)
   const confirmationTitle = sf.confirmationTitle || 'Application received!'
   const confirmationHtml = mdToHtml(sf.confirmationMessage || "Thanks for your interest in working our events! We've received your application and will reach out about open positions.")
-  const today = new Date().toISOString().slice(0, 10)
-  let events: { id: string; name: string }[] = []
-  try { const er = await client.execute({ sql: 'SELECT id, name, startDate, endDate FROM "Tournament" WHERE orgId = ? ORDER BY startDate', args: [org.id as string] }); events = (er.rows as any[]).filter(t => (t.endDate || t.startDate || '') >= today).map(t => ({ id: String(t.id), name: String(t.name || 'Event') })) } catch {}
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-[#0b1220] text-white"><div className="max-w-2xl mx-auto px-6 py-6 flex items-center gap-3">{org.logoUrl && <img src={org.logoUrl} alt="" className="w-12 h-12 rounded-lg object-contain bg-white/95 p-1" />}<div><div className="text-xs uppercase tracking-[0.2em] text-teal-300">Work at our events</div><h1 className="text-xl font-extrabold leading-tight">{org.name}</h1></div></div></header>
-      <WorkForm orgId={org.id} introHtml={introHtml} positions={positions} refLevels={refLevels} ageLabel={ageLabel} confirmationTitle={confirmationTitle} confirmationHtml={confirmationHtml} events={events} />
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <OrgHeader org={org} slug={params.slug} nav={nav} registerHref={registerHref} />
+      <section className="relative bg-gradient-to-br from-[#0b1f3a] via-[#0e7490] to-[#0b1f3a] text-white">
+        <div className="relative max-w-3xl mx-auto px-6 py-14">
+          <Link href={`/o/${params.slug}`} className="text-sm text-teal-200 hover:text-white inline-flex items-center gap-1"><ChevronLeft size={14} /> Back</Link>
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mt-3">Work With Us</h1>
+        </div>
+      </section>
+      <main className="w-full flex-1">
+        <WorkForm orgId={org.id} introHtml={introHtml} positions={positions} refLevels={refLevels} ageLabel={ageLabel} confirmationTitle={confirmationTitle} confirmationHtml={confirmationHtml} events={events} />
+      </main>
+      <OrgFooter org={org} contact={contact} socials={socials} />
+    </div>
+  )
+}
+
+function NotFound({ slug }: { slug: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 text-center px-6">
+      <div>
+        <Trophy size={40} className="mx-auto text-slate-300" />
+        <h1 className="mt-3 text-xl font-bold text-slate-800">Page not found</h1>
+        <Link href={`/o/${slug}`} className="text-teal-700 hover:underline text-sm mt-2 inline-block">Back to home</Link>
+      </div>
     </div>
   )
 }
