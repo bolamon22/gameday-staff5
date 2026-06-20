@@ -17,11 +17,14 @@ export default function PublicChirp({ tournamentId, tournamentName }: { tourname
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [team, setTeam] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, loading])
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 100) }, [open])
+  useEffect(() => { try { setTeam(localStorage.getItem(`chirp-team-${tournamentId}`) || '') } catch {} }, [tournamentId])
+  const saveTeam = (v: string) => { setTeam(v); try { v ? localStorage.setItem(`chirp-team-${tournamentId}`, v) : localStorage.removeItem(`chirp-team-${tournamentId}`) } catch {} }
 
   async function send(text?: string) {
     const content = (text ?? input).trim()
@@ -33,7 +36,7 @@ export default function PublicChirp({ tournamentId, tournamentName }: { tourname
     try {
       const res = await fetch('/api/public-chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, tournamentId }),
+        body: JSON.stringify({ messages: next, tournamentId, userTeam: team || undefined }),
       })
       const data = await res.json()
       setMessages(m => [...m, { role: 'assistant', content: res.ok ? (data.message ?? 'Sorry, something went wrong.') : (data.error || 'Something went wrong.') }])
@@ -72,6 +75,11 @@ export default function PublicChirp({ tournamentId, tournamentName }: { tourname
                   {SUGGESTIONS.map(s => (
                     <button key={s} onClick={() => send(s)} className="w-full text-left text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 transition-colors">{s}</button>
                   ))}
+                </div>
+                <div className="pt-1">
+                  <label className="text-[11px] text-slate-400">Your team (optional) — I'll remember it</label>
+                  <input value={team} onChange={e => saveTeam(e.target.value)} placeholder="e.g. Lightning U12"
+                    className="mt-1 w-full text-xs border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
                 </div>
               </div>
             ) : messages.map((m, i) => (

@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Assistant not configured.' }, { status: 503 })
   }
   try {
-    const { messages, tournamentId } = await req.json()
+    const { messages, tournamentId, userTeam } = await req.json()
     let context = 'You are Chirp, a friendly assistant for a sports tournament. Be concise and welcoming.'
 
     if (tournamentId) {
@@ -52,6 +52,24 @@ To register a team, attendees use the event's Register page. Point people to the
         }
       } catch (e) { console.error('public-chat context error:', e) }
     }
+
+    if (userTeam && typeof userTeam === 'string' && userTeam.trim()) {
+      context += `\n\nThe person chatting is with team "${userTeam.trim()}". When they ask about "my team", their schedule, or results, focus on that team's games.`
+    }
+
+    // Log the latest attendee question (anonymous) so organizers can see what's asked.
+    try {
+      const lastUser = Array.isArray(messages) ? [...messages].reverse().find((m: any) => m.role === 'user') : null
+      if (tournamentId && lastUser && lastUser.content) {
+        const key = `chirpLog:${tournamentId}`
+        const row = await prisma.appSetting.findUnique({ where: { key } }).catch(() => null)
+        let log: any[] = []
+        try { log = JSON.parse((row as any)?.value || '[]'); if (!Array.isArray(log)) log = [] } catch {}
+        log.push({ q: String(lastUser.content).slice(0, 300), at: Date.now(), team: (userTeam && String(userTeam).slice(0, 60)) || undefined })
+        if (log.length > 500) log = log.slice(-500)
+        await prisma.appSetting.upsert({ where: { key }, create: { key, value: JSON.stringify(log) }, update: { value: JSON.stringify(log) } })
+      }
+    } catch (e) { console.error('chirp log error:', e) }
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const response = await client.messages.create({

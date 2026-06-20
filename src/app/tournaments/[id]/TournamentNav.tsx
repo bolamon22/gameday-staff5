@@ -78,6 +78,7 @@ export default function TournamentNav({ id, name, logoUrl, stats }: Props) {
       { href: `${base}/scores`,         label: 'Post scores' },
       { href: `${base}/assignments`,    label: 'Assignments' },
       { href: `${base}/communications`, label: 'Communications' },
+      { href: `${base}/chirp-insights`, label: 'Chirp insights' },
     ]},
     { label: 'Financials', href: `${base}/financials` },
     { label: 'Settings',   href: `${base}/settings` },
