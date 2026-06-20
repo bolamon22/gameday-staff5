@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
+import PublicChirp from '@/components/PublicChirp'
 import toast, { Toaster } from 'react-hot-toast'
 import { parsePricing, calcFee, feeScheduleLines, DEFAULT_REG_PRICING, type RegPricing } from '@/lib/regPricing'
 import { loadStripe } from '@stripe/stripe-js'
@@ -549,6 +550,7 @@ export default function RegisterPage() {
         </div>
       </div>
       </div>
+      <PublicChirp tournamentId={tournamentId as string} tournamentName={tournamentName} />
     </div>
   )
 }

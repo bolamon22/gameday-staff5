@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import PublicChirp from '@/components/PublicChirp'
 import Link from 'next/link'
 import { Star, Clock, MapPin, Navigation, AlertTriangle, Megaphone, Map, ParkingCircle, Calendar, ChevronRight, CalendarDays, Users, ScrollText, ShoppingBag } from 'lucide-react'
 import { Game } from '@/lib/standings'
@@ -127,6 +128,7 @@ export default function TodayPage() {
           </div>
         </div>
       </div>
+      <PublicChirp tournamentId={id} tournamentName={t?.name} />
     </div>
   )
 }

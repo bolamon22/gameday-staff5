@@ -6,6 +6,7 @@ import { mdToHtml } from '@/app/o/[slug]/_md'
 import FieldMap from '@/components/FieldMap'
 import EventInfoNav from '@/components/EventInfoNav'
 import EventTabs from '@/components/EventTabs'
+import PublicChirp from '@/components/PublicChirp'
 import EventSection from '@/components/EventSection'
 import CountdownBlock from '@/components/CountdownBlock'
 import FaqBlock from '@/components/FaqBlock'
@@ -300,6 +301,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
 
       <EventTabs tabs={eventTabs} panels={eventPanels} defaultId={eventDefaultId} panelLabels={eventPanelLabels} />
       {org.slug && <OrgFooter org={orgForChrome} contact={contact} socials={socials} />}
+      <PublicChirp tournamentId={params.id} tournamentName={t.name} />
     </div>
   )
 }

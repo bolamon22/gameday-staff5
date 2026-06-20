@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, useMemo, useContext, createContext, Fragment } from 'react'
 import { useParams } from 'next/navigation'
+import PublicChirp from '@/components/PublicChirp'
 
 const LogosContext = createContext<Record<string, string>>({})
 import Link from 'next/link'
@@ -1111,6 +1112,7 @@ export default function PublicTournamentPage() {
         <p className="text-xs text-slate-400">{tournament?.name ? `${tournament.name} · ` : ''}Sunshine Events Group</p>
         <p className="text-xs text-slate-400 mt-1">Powered by <span className="font-semibold text-slate-500">Whistle Ready</span></p>
       </footer>
+      <PublicChirp tournamentId={id as string} tournamentName={tournament?.name} />
     </div>
     </LogosContext.Provider>
   )
