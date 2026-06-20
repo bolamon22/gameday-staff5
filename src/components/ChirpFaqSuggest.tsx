@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { Sparkles, Copy, Check } from 'lucide-react'
+import { Sparkles, Copy, Check, Plus } from 'lucide-react'
 
 type Faq = { question: string; answer: string }
 
@@ -9,6 +9,7 @@ export default function ChirpFaqSuggest({ tournamentId, disabled }: { tournament
   const [items, setItems] = useState<Faq[] | null>(null)
   const [err, setErr] = useState('')
   const [copied, setCopied] = useState<number | null>(null)
+  const [added, setAdded] = useState<Record<number, 'loading' | 'done' | 'error'>>({})
 
   async function run() {
     setLoading(true); setErr(''); setItems(null)
@@ -21,6 +22,13 @@ export default function ChirpFaqSuggest({ tournamentId, disabled }: { tournament
     setLoading(false)
   }
   const copy = (i: number, f: Faq) => { try { navigator.clipboard.writeText(`${f.question}\n${f.answer}`); setCopied(i); setTimeout(() => setCopied(null), 1500) } catch {} }
+  async function addToPage(i: number, f: Faq) {
+    setAdded(a => ({ ...a, [i]: 'loading' }))
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/add-faq`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: f.question, answer: f.answer }) })
+      setAdded(a => ({ ...a, [i]: res.ok ? 'done' : 'error' }))
+    } catch { setAdded(a => ({ ...a, [i]: 'error' })) }
+  }
 
   return (
     <div>
@@ -42,6 +50,17 @@ export default function ChirpFaqSuggest({ tournamentId, disabled }: { tournament
                 </button>
               </div>
               <p className="text-sm text-slate-600 mt-1.5 leading-relaxed">{f.answer}</p>
+              <div className="mt-2.5">
+                {added[i] === 'done' ? (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-teal-700"><Check size={14} /> Added to event page</span>
+                ) : (
+                  <button type="button" onClick={() => addToPage(i, f)} disabled={added[i] === 'loading'}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-teal-700 hover:text-teal-900 disabled:opacity-50">
+                    <Plus size={14} /> {added[i] === 'loading' ? 'Adding…' : 'Add to event page'}
+                  </button>
+                )}
+                {added[i] === 'error' && <span className="text-xs text-red-600 ml-2">Couldn't add — try again.</span>}
+              </div>
             </div>
           ))}
         </div>
