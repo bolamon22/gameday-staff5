@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@libsql/client'
 import { Trophy } from 'lucide-react'
 import { OrgHeader, OrgFooter, buildNav, PageRec } from '../_chrome'
+import PublicGallery from '@/components/PublicGallery'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,28 +28,19 @@ export default async function GalleryPage({ params }: { params: { slug: string }
   const pages: PageRec[] = Array.isArray(content.pages) ? content.pages : []
   const nav = buildNav(params.slug, pages, gallery.length > 0)
 
-  const tRes = await client.execute({ sql: 'SELECT id, startDate, endDate, teamRegEnabled FROM "Tournament" WHERE orgId = ? ORDER BY startDate', args: [org.id as string] })
+  const tRes = await client.execute({ sql: 'SELECT id, name, startDate, endDate, teamRegEnabled FROM "Tournament" WHERE orgId = ? ORDER BY startDate', args: [org.id as string] })
   const today = new Date().toISOString().slice(0, 10)
   const reg = (tRes.rows as any[]).filter(t => (t.endDate || t.startDate || '') >= today).find(t => Number(t.teamRegEnabled))
   const registerHref = reg ? `/tournaments/${reg.id}/register` : undefined
+  const tournaments = (tRes.rows as any[]).map(t => ({ id: String(t.id), name: String(t.name || 'Tournament') }))
+  const photos = gallery.map((p: any, i: number) => ({ ...p, id: p.id || `p${i}` }))
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <OrgHeader org={org} slug={params.slug} nav={nav} registerHref={registerHref} />
       <main className="max-w-6xl mx-auto px-6 py-14 w-full flex-1">
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 mb-8">Gallery</h1>
-        {gallery.length === 0
-          ? <p className="text-slate-400">No photos yet — check back soon.</p>
-          : <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {gallery.map((ph, i) => (
-                <a key={i} href={ph.url} target="_blank" rel="noreferrer" className="group block rounded-2xl overflow-hidden border border-slate-200 bg-white">
-                  <div className="aspect-square overflow-hidden">
-                    <img src={ph.url} alt={ph.caption || ''} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                  </div>
-                  {ph.caption && <p className="text-xs text-slate-500 px-3 py-2 truncate">{ph.caption}</p>}
-                </a>
-              ))}
-            </div>}
+        <PublicGallery photos={photos} tournaments={tournaments} />
       </main>
       <OrgFooter org={org} contact={contact} socials={socials} />
     </div>

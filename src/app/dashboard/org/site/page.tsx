@@ -11,7 +11,7 @@ import AiGenerateButton from '@/components/AiGenerateButton'
 
 type Sponsor = { name: string; logoUrl: string; url: string }
 type Page = { title: string; slug: string; body: string; group: string; heroImage?: string }
-type Photo = { url: string; caption: string }
+type Photo = { id?: string; url: string; caption: string; credit?: string; tournamentId?: string }
 type Insta = { username: string; token: string }
 type Content = {
   logo: string
@@ -67,6 +67,8 @@ async function uploadImage(file: File): Promise<string | null> {
   } catch { return null }
 }
 
+function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36) }
+
 function Sec({ title, summary, isOpen, onToggle, children }: { title: string; summary?: string; isOpen: boolean; onToggle: () => void; children: React.ReactNode }) {
   return (
     <section className="card mb-4 overflow-hidden">
@@ -96,6 +98,9 @@ function OrgSiteEditorInner() {
   const [openPages, setOpenPages] = useState<Record<number, boolean>>({})
   const [openSec, setOpenSec] = useState<Record<string, boolean>>({ events: true })
   const [tournaments, setTournaments] = useState<any[]>([])
+  const [galSel, setGalSel] = useState<Set<string>>(new Set())
+  const [bulkCredit, setBulkCredit] = useState('')
+  const [bulkTourn, setBulkTourn] = useState('')
 
   useEffect(() => {
     if (status === 'loading') return
@@ -107,7 +112,7 @@ function OrgSiteEditorInner() {
         else { const o = await fetch('/api/org').then(r => r.ok ? r.json() : null); if (o) setOrg({ name: o.name, slug: o.slug }) }
         const d = await fetch(`/api/org-site${apiQ}`).then(r => r.ok ? r.json() : {})
         fetch(`/api/tournaments${qOrg ? `?viewOrgId=${encodeURIComponent(qOrg)}` : ''}`).then(r => r.ok ? r.json() : []).then(ts => setTournaments(Array.isArray(ts) ? ts : [])).catch(() => {})
-        setC({ ...EMPTY, ...d, logo: d.logo || '', hero: { ...EMPTY.hero, ...(d.hero || {}) }, about: { ...EMPTY.about, ...(d.about || {}) }, contact: { ...EMPTY.contact, ...(d.contact || {}) }, socials: { ...EMPTY.socials, ...(d.socials || {}) }, sponsors: Array.isArray(d.sponsors) ? d.sponsors : [], pages: Array.isArray(d.pages) ? d.pages : [], gallery: Array.isArray(d.gallery) ? d.gallery : [], instagram: { ...EMPTY.instagram, ...(d.instagram || {}) } })
+        setC({ ...EMPTY, ...d, logo: d.logo || '', hero: { ...EMPTY.hero, ...(d.hero || {}) }, about: { ...EMPTY.about, ...(d.about || {}) }, contact: { ...EMPTY.contact, ...(d.contact || {}) }, socials: { ...EMPTY.socials, ...(d.socials || {}) }, sponsors: Array.isArray(d.sponsors) ? d.sponsors : [], pages: Array.isArray(d.pages) ? d.pages : [], gallery: Array.isArray(d.gallery) ? d.gallery.map((g: any) => ({ caption: '', credit: '', tournamentId: '', ...g, id: g.id || uid() })) : [], instagram: { ...EMPTY.instagram, ...(d.instagram || {}) } })
       } catch {} finally { setLoading(false) }
     })()
   }, [status, session, role])
@@ -127,7 +132,10 @@ function OrgSiteEditorInner() {
 
   const logoImg = async (f?: File | null) => { if (!f) return; const u = await uploadImage(f); if (u) setC(v => ({ ...v, logo: u })); else toast.error('Upload failed') }
   const heroImg = async (f?: File | null) => { if (!f) return; const u = await uploadImage(f); if (u) setC(v => ({ ...v, hero: { ...v.hero, imageUrl: u } })); else toast.error('Upload failed') }
-  const galleryAdd = async (files?: FileList | null) => { if (!files || !files.length) return; for (const f of Array.from(files)) { const u = await uploadImage(f); if (u) setC(v => ({ ...v, gallery: [...v.gallery, { url: u, caption: '' }] })); else toast.error('Upload failed') } }
+  const galleryAdd = async (files?: FileList | null) => { if (!files || !files.length) return; for (const f of Array.from(files)) { const u = await uploadImage(f); if (u) setC(v => ({ ...v, gallery: [...v.gallery, { id: uid(), url: u, caption: '', credit: '', tournamentId: '' }] })); else toast.error('Upload failed') } }
+  const galPatch = (id: string, patch: Partial<Photo>) => setC(v => ({ ...v, gallery: v.gallery.map(g => g.id === id ? { ...g, ...patch } : g) }))
+  const galToggle = (id: string) => setGalSel(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const galApply = (patch: Partial<Photo>) => { setC(v => ({ ...v, gallery: v.gallery.map(g => (g.id && galSel.has(g.id)) ? { ...g, ...patch } : g) })) }
   const sponLogo = async (i: number, f?: File | null) => { if (!f) return; const u = await uploadImage(f); if (u) setC(v => ({ ...v, sponsors: v.sponsors.map((s, j) => j === i ? { ...s, logoUrl: u } : s) })); else toast.error('Upload failed') }
   const pageHeroImg = async (i: number, f?: File | null) => { if (!f) return; const u = await uploadImage(f); if (u) setC(v => ({ ...v, pages: v.pages.map((x, j) => j === i ? { ...x, heroImage: u } : x) })); else toast.error('Upload failed') }
 
@@ -266,16 +274,43 @@ function OrgSiteEditorInner() {
           <label className="text-sm text-teal-700 hover:text-teal-900 inline-flex items-center gap-1 cursor-pointer"><Plus size={14} /> Add photos<input type="file" accept="image/*" multiple className="hidden" onChange={e => galleryAdd(e.target.files)} /></label>
         </div>
         {c.gallery.length === 0 && <p className="text-sm text-slate-400">No photos yet.</p>}
+        {galSel.size > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-3 p-2.5 rounded-xl bg-teal-50 border border-teal-200">
+            <span className="text-xs font-semibold text-teal-800">{galSel.size} selected</span>
+            <input className="input py-1 text-xs w-40" value={bulkCredit} onChange={e => setBulkCredit(e.target.value)} placeholder="Photo credit…" />
+            <button type="button" onClick={() => galApply({ credit: bulkCredit })} className="text-xs border border-slate-300 rounded-lg px-2 py-1 bg-white hover:bg-slate-50">Apply credit</button>
+            <select className="input py-1 text-xs w-44" value={bulkTourn} onChange={e => setBulkTourn(e.target.value)}>
+              <option value="">No tournament</option>
+              {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+            <button type="button" onClick={() => galApply({ tournamentId: bulkTourn })} className="text-xs border border-slate-300 rounded-lg px-2 py-1 bg-white hover:bg-slate-50">Apply tournament</button>
+            <button type="button" onClick={() => setGalSel(new Set())} className="text-xs text-slate-500 hover:text-slate-800 ml-auto">Clear</button>
+          </div>
+        )}
+        {c.gallery.length > 0 && (
+          <div className="flex items-center gap-3 mb-2 text-xs text-slate-500">
+            <button type="button" onClick={() => setGalSel(new Set(c.gallery.map(g => g.id!).filter(Boolean)))} className="hover:text-slate-800">Select all</button>
+            {galSel.size > 0 && <button type="button" onClick={() => setGalSel(new Set())} className="hover:text-slate-800">Deselect all</button>}
+          </div>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {c.gallery.map((ph, i) => (
-            <div key={i} className="border border-slate-200 rounded-xl overflow-hidden">
+          {c.gallery.map((ph) => { const id = ph.id || ''; const sel = !!id && galSel.has(id); return (
+            <div key={id} className={`border rounded-xl overflow-hidden relative ${sel ? 'border-teal-500 ring-2 ring-teal-200' : 'border-slate-200'}`}>
+              <label className="absolute top-1.5 left-1.5 z-10 bg-white/90 rounded p-0.5 cursor-pointer flex"><input type="checkbox" checked={sel} onChange={() => galToggle(id)} /></label>
               <img src={ph.url} alt="" className="w-full h-28 object-cover" />
-              <div className="p-2 flex items-center gap-1">
-                <input className="input py-1 text-xs flex-1" value={ph.caption} onChange={e => setC(v => ({ ...v, gallery: v.gallery.map((x, j) => j === i ? { ...x, caption: e.target.value } : x) }))} placeholder="Caption (optional)" />
-                <button onClick={() => setC(v => ({ ...v, gallery: v.gallery.filter((_, j) => j !== i) }))} className="text-slate-400 hover:text-red-600"><Trash2 size={14} /></button>
+              <div className="p-2 space-y-1.5">
+                <div className="flex items-center gap-1">
+                  <input className="input py-1 text-xs flex-1" value={ph.caption} onChange={e => galPatch(id, { caption: e.target.value })} placeholder="Caption (optional)" />
+                  <button onClick={() => setC(v => ({ ...v, gallery: v.gallery.filter(x => x.id !== id) }))} className="text-slate-400 hover:text-red-600"><Trash2 size={14} /></button>
+                </div>
+                <input className="input py-1 text-xs w-full" value={ph.credit || ''} onChange={e => galPatch(id, { credit: e.target.value })} placeholder="Photo credit (optional)" />
+                <select className="input py-1 text-xs w-full" value={ph.tournamentId || ''} onChange={e => galPatch(id, { tournamentId: e.target.value })}>
+                  <option value="">No tournament</option>
+                  {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       </Sec>
 
