@@ -118,10 +118,28 @@ function OrgSiteEditorInner() {
     })()
   }, [status, session, role])
 
+  // Rehost any inline (data:) image URL to a short /api/img URL so the saved JSON
+  // stays small enough to commit (large galleries would otherwise exceed limits).
+  async function rehost(url?: string): Promise<string | undefined> {
+    if (!url || !url.startsWith('data:')) return url
+    try {
+      const blob = await (await fetch(url)).blob()
+      const u = await uploadImage(new File([blob], 'photo.jpg', { type: blob.type || 'image/jpeg' }))
+      return u || url
+    } catch { return url }
+  }
+
   async function save() {
     setSaving(true)
     try {
-      const res = await fetch(`/api/org-site${apiQ}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) })
+      let payload: Content = c
+      if (c.gallery.some(g => typeof g.url === 'string' && g.url.startsWith('data:'))) {
+        const gallery: Photo[] = []
+        for (const g of c.gallery) gallery.push({ ...g, url: (await rehost(g.url)) || g.url })
+        payload = { ...c, gallery }
+        setC(payload)
+      }
+      const res = await fetch(`/api/org-site${apiQ}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       if (res.ok) toast.success('Website saved')
       else { const e = await res.json().catch(() => ({})); toast.error(e.error || 'Save failed') }
     } catch { toast.error('Save failed') } finally { setSaving(false) }
