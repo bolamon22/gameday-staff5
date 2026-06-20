@@ -26,7 +26,10 @@ export default async function GalleryPage({ params }: { params: { slug: string }
   const contact = content.contact || {}
   const socials = content.socials || {}
   const pages: PageRec[] = Array.isArray(content.pages) ? content.pages : []
-  const nav = buildNav(params.slug, pages, gallery.length > 0)
+  let forms: any = {}
+  try { const fr = await client.execute({ sql: 'SELECT value FROM "AppSetting" WHERE key = ?', args: [`orgForms:${org.id}`] }); if (fr.rows.length) forms = JSON.parse(((fr.rows[0] as any).value as string) || '{}') } catch {}
+  const workHref = (forms.staff && forms.staff.enabled !== false) ? `/o/${params.slug}/work` : undefined
+  const nav = buildNav(params.slug, pages, gallery.length > 0, workHref)
 
   const tRes = await client.execute({ sql: 'SELECT id, name, startDate, endDate, teamRegEnabled FROM "Tournament" WHERE orgId = ? ORDER BY startDate', args: [org.id as string] })
   const today = new Date().toISOString().slice(0, 10)

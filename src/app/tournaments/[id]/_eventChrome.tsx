@@ -47,6 +47,7 @@ export default async function EventChrome({ tournamentId, children }: { tourname
     (Array.isArray(cs.contacts) && cs.contacts.length) && { href: `${base}/event#contacts`, label: 'Contacts' },
     sponsors.length && { href: `${base}/event#sponsors`, label: 'Sponsors & partners' },
     { href: `${base}/vendor-request`, label: 'Vendor Request' },
+    { href: `${base}/work`, label: 'Work at our event' },
   ].filter(Boolean) as { href: string; label: string }[]
 
   const actions = [

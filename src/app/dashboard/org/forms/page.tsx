@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
-import { ChevronLeft, ChevronDown, FileText, ClipboardList, Save, ExternalLink, Link2, Inbox, Pencil, X } from 'lucide-react'
+import { ChevronLeft, ChevronDown, FileText, ClipboardList, Save, ExternalLink, Link2, Inbox, Pencil, X, Users } from 'lucide-react'
 import MarkdownField from '@/components/MarkdownField'
 
 const DEFAULT_WAIVER = `## 1. Acknowledgment of Risk
@@ -36,7 +36,12 @@ type VendorForm = {
   disclaimer: string; levels: string[]; paymentOptions: string[]
   confirmationTitle: string; confirmationMessage: string; emailConfirmation: boolean
 }
-type Forms = { player: PlayerForm; vendor: VendorForm }
+type StaffForm = {
+  enabled: boolean
+  intro: string; positions: string[]; refLevels: string[]; ageLabel: string
+  confirmationTitle: string; confirmationMessage: string; emailConfirmation: boolean
+}
+type Forms = { player: PlayerForm; vendor: VendorForm; staff: StaffForm }
 
 const EMPTY: Forms = {
   player: {
@@ -52,6 +57,16 @@ const EMPTY: Forms = {
     paymentOptions: ['Check', 'Venmo', 'Zelle', 'Invoice me'],
     confirmationTitle: 'Vendor request received!',
     confirmationMessage: "Thanks! We've received your vendor request and will be in touch about next steps and payment.",
+    emailConfirmation: true,
+  },
+  staff: {
+    enabled: true,
+    intro: "We're looking for officials, scorekeepers, trainers, and event staff to help us run a great event. Tell us about yourself and we'll be in touch about open positions.",
+    positions: ['Referee / Official', 'Scorekeeper', 'Field / Event staff', 'Athletic trainer / Medical'],
+    refLevels: ['Level 1 / Local', 'Level 2', 'Level 3', 'Regional', 'National', 'Other'],
+    ageLabel: 'I am at least 16 years old (or in high school or older)',
+    confirmationTitle: 'Application received!',
+    confirmationMessage: "Thanks for your interest in working our events! We've received your application and will reach out about open positions.",
     emailConfirmation: true,
   },
 }
@@ -95,10 +110,11 @@ function FormsInner() {
       try {
         if (!qOrg) { const o = await fetch('/api/org').then(r => r.ok ? r.json() : null); if (o) { setOrgName(o.name); setSlug(o.slug) } }
         const d = await fetch(`/api/org-forms${apiQ}`).then(r => r.ok ? r.json() : {})
-        const p = d.player || {}; const vv = d.vendor || {}
+        const p = d.player || {}; const vv = d.vendor || {}; const st = d.staff || {}
         const merged: Forms = {
           player: { ...EMPTY.player, ...p, fields: { ...EMPTY.player.fields, ...(p.fields || {}) } },
           vendor: { ...EMPTY.vendor, ...vv, levels: Array.isArray(vv.levels) ? vv.levels : EMPTY.vendor.levels, paymentOptions: Array.isArray(vv.paymentOptions) ? vv.paymentOptions : EMPTY.vendor.paymentOptions },
+          staff: { ...EMPTY.staff, ...st, positions: Array.isArray(st.positions) ? st.positions : EMPTY.staff.positions, refLevels: Array.isArray(st.refLevels) ? st.refLevels : EMPTY.staff.refLevels },
         }
         setF(merged); setSnap(merged)
         const sj = await fetch(`/api/org-forms/submit${apiQ}`).then(r => r.ok ? r.json() : { submissions: [] })
@@ -120,11 +136,13 @@ function FormsInner() {
   const toggle = (key: string) => setOpen(o => ({ ...o, [key]: !o[key] }))
 
   if (loading) return <div className="text-slate-400 text-center py-16">Loading…</div>
-  const pf = f.player, vf = f.vendor
-  const playerSubs = subs.filter(s => s.formType !== 'vendor')
+  const pf = f.player, vf = f.vendor, stf = f.staff
+  const playerSubs = subs.filter(s => s.formType !== 'vendor' && s.formType !== 'staff')
   const vendorSubs = subs.filter(s => s.formType === 'vendor')
+  const staffSubs = subs.filter(s => s.formType === 'staff')
   const playerPath = slug ? `/o/${slug}/register/player` : ''
   const vendorPath = slug ? `/o/${slug}/register/vendor` : ''
+  const staffPath = slug ? `/o/${slug}/work` : ''
   const copy = (path: string) => { if (!path) return; navigator.clipboard?.writeText(`${window.location.origin}${path}`).then(() => toast.success('Link copied')).catch(() => toast.error('Copy failed')) }
   const enabledFields = FIELD_LABELS.filter(fl => pf.fields[fl.key]).map(fl => fl.label)
 
@@ -251,6 +269,52 @@ function FormsInner() {
               </div>
             )}
             <div className="mt-5 pt-3 border-t border-slate-100 text-sm text-slate-500 inline-flex items-center gap-1.5"><Inbox size={15} className="text-slate-400" /> {vendorSubs.length} vendor request{vendorSubs.length === 1 ? '' : 's'}</div>
+          </div>
+        )}
+      </section>
+
+      {/* WORK AT OUR EVENT */}
+      <section className="card mb-4 overflow-hidden">
+        <Header k="staff" icon={<Users size={16} />} title="Work at our event" desc="Referees, scorekeepers, trainers & event staff apply to work your events." summary={stf.enabled === false ? 'Hidden' : `${stf.positions.length} roles`} />
+        {open.staff && (
+          <div className="px-4 pb-4 border-t border-slate-100 pt-4">
+            <LinkRow path={staffPath} />
+            <div className="flex justify-end mb-3"><EditBar k="staff" /></div>
+            {editing.staff ? (
+              <>
+                <label className="flex items-start gap-2 cursor-pointer mb-1">
+                  <input type="checkbox" className="mt-0.5 accent-teal-500" checked={stf.enabled !== false} onChange={e => setF(v => ({ ...v, staff: { ...v.staff, enabled: e.target.checked } }))} />
+                  <span className="text-sm text-slate-700">Show a &ldquo;Work With Us&rdquo; link on your public site</span>
+                </label>
+                <label className={labelCls}>Intro text</label>
+                <MarkdownField value={stf.intro} onChange={val => setF(v => ({ ...v, staff: { ...v.staff, intro: val } }))} minHeight={90} />
+                <label className={labelCls}>Positions (comma separated)</label>
+                <input className={inputCls} value={stf.positions.join(', ')} onChange={e => setF(v => ({ ...v, staff: { ...v.staff, positions: e.target.value.split(',').map(x => x.trim()).filter(Boolean) } }))} />
+                <label className={labelCls}>Officiating certification levels (comma separated)</label>
+                <input className={inputCls} value={stf.refLevels.join(', ')} onChange={e => setF(v => ({ ...v, staff: { ...v.staff, refLevels: e.target.value.split(',').map(x => x.trim()).filter(Boolean) } }))} />
+                <p className="text-xs text-slate-400 mt-1">Shown (with a Boys / Girls / Both question) when an applicant selects a referee/official role.</p>
+                <label className={labelCls}>Age confirmation (leave blank to hide)</label>
+                <input className={inputCls} value={stf.ageLabel} onChange={e => setF(v => ({ ...v, staff: { ...v.staff, ageLabel: e.target.value } }))} />
+                <label className={labelCls}>Confirmation title</label>
+                <input className={inputCls} value={stf.confirmationTitle} onChange={e => setF(v => ({ ...v, staff: { ...v.staff, confirmationTitle: e.target.value } }))} />
+                <label className={labelCls}>Confirmation message</label>
+                <MarkdownField value={stf.confirmationMessage} onChange={val => setF(v => ({ ...v, staff: { ...v.staff, confirmationMessage: val } }))} minHeight={80} />
+                <label className="flex items-start gap-2 mt-3 cursor-pointer">
+                  <input type="checkbox" className="mt-0.5 accent-teal-500" checked={stf.emailConfirmation} onChange={e => setF(v => ({ ...v, staff: { ...v.staff, emailConfirmation: e.target.checked } }))} />
+                  <span className="text-sm text-slate-700">Email a confirmation to the applicant</span>
+                </label>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <div><div className={labelCls}>Public link</div><div className="text-sm text-slate-600">{stf.enabled === false ? 'Hidden from site nav (form still works by direct link)' : 'Shown as “Work With Us”'}</div></div>
+                <div><div className={labelCls}>Positions</div><div className="flex flex-wrap gap-1.5">{stf.positions.map(l => <span key={l} className="text-xs bg-teal-50 text-teal-700 rounded-full px-2.5 py-1">{l}</span>)}</div></div>
+                <div><div className={labelCls}>Officiating levels</div><div className="flex flex-wrap gap-1.5">{stf.refLevels.map(l => <span key={l} className="text-xs bg-slate-100 text-slate-600 rounded-full px-2.5 py-1">{l}</span>)}</div></div>
+                <div><div className={labelCls}>Intro</div>{ro(stf.intro)}</div>
+                <div><div className={labelCls}>Confirmation</div>{ro(stf.confirmationTitle)}<div className="text-sm text-slate-500 mt-0.5">{stf.confirmationMessage}</div></div>
+                <div className="text-sm text-slate-600">Email confirmation: <span className="font-medium">{stf.emailConfirmation ? 'On' : 'Off'}</span></div>
+              </div>
+            )}
+            <div className="mt-5 pt-3 border-t border-slate-100 text-sm text-slate-500 inline-flex items-center gap-1.5"><Inbox size={15} className="text-slate-400" /> {staffSubs.length} application{staffSubs.length === 1 ? '' : 's'}</div>
           </div>
         )}
       </section>

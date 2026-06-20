@@ -25,7 +25,10 @@ export default async function OrgInfoPage({ params }: { params: { slug: string; 
   const pages: PageRec[] = Array.isArray(content.pages) ? content.pages : []
   const gallery: any[] = Array.isArray(content.gallery) ? content.gallery : []
   const page = pages.find(p => p.slug === params.page)
-  const nav = buildNav(params.slug, pages, gallery.length > 0)
+  let forms: any = {}
+  try { const fr = await client.execute({ sql: 'SELECT value FROM "AppSetting" WHERE key = ?', args: [`orgForms:${org.id}`] }); if (fr.rows.length) forms = JSON.parse(((fr.rows[0] as any).value as string) || '{}') } catch {}
+  const workHref = (forms.staff && forms.staff.enabled !== false) ? `/o/${params.slug}/work` : undefined
+  const nav = buildNav(params.slug, pages, gallery.length > 0, workHref)
   const contact = content.contact || {}
   const socials = content.socials || {}
 

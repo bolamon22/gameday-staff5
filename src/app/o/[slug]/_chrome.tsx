@@ -6,7 +6,7 @@ export type NavLink = { title: string; href: string }
 export type NavItem = { type: 'link'; title: string; href: string } | { type: 'group'; label: string; children: NavLink[] }
 
 // Build the ordered nav (with dropdown groups) from the org's pages.
-export function buildNav(slug: string, pages: PageRec[], hasGallery: boolean): NavItem[] {
+export function buildNav(slug: string, pages: PageRec[], hasGallery: boolean, workHref?: string): NavItem[] {
   const items: NavItem[] = [{ type: 'link', title: 'Tournaments', href: `/o/${slug}` }]
   if (hasGallery) items.push({ type: 'link', title: 'Gallery', href: `/o/${slug}/gallery` })
   const groupAt: Record<string, number> = {}
@@ -21,6 +21,7 @@ export function buildNav(slug: string, pages: PageRec[], hasGallery: boolean): N
       items.push({ type: 'link', title: p.title, href })
     }
   }
+  if (workHref) items.push({ type: 'link', title: 'Work With Us', href: workHref })
   return items
 }
 
