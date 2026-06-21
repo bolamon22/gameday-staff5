@@ -176,7 +176,7 @@ export default function EventPageEditor() {
           <input className={inputCls} value={c.ageChartUrl} onChange={e => setC(v => ({ ...v, ageChartUrl: e.target.value }))} placeholder="https://…" />
         </Sec>
 
-        <Sec title="Locations & field maps" summary={`${c.locations.length}`} isOpen={!!open.locations} onToggle={() => toggle('locations')}>
+        <Sec title="Location" summary={`${c.locations.length}`} isOpen={!!open.locations} onToggle={() => toggle('locations')}>
           <div className="flex justify-end mb-2"><button onClick={() => setC(v => ({ ...v, locations: [...v.locations, { name: '', address: '', mapUrl: '', fieldMapUrl: '' }] }))} className="text-sm text-teal-700 hover:text-teal-900 inline-flex items-center gap-1"><Plus size={14} /> Add location</button></div>
           {c.locations.length === 0 && <p className="text-sm text-slate-400">No locations yet.</p>}
           <div className="space-y-3">
@@ -210,7 +210,7 @@ export default function EventPageEditor() {
           <p className="text-xs text-slate-400 mt-1">Supports Markdown, including [links](https://…).</p>
         </Sec>
 
-        <Sec title="Rules & policies" summary={c.rulesSourceId ? (ruleSets.find(r => r.id === c.rulesSourceId)?.name || 'Linked') : (c.rules ? 'Custom' : 'Empty')} isOpen={!!open.rules} onToggle={() => toggle('rules')}>
+        <Sec title="Rules" summary={c.rulesSourceId ? (ruleSets.find(r => r.id === c.rulesSourceId)?.name || 'Linked') : (c.rules ? 'Custom' : 'Empty')} isOpen={!!open.rules} onToggle={() => toggle('rules')}>
           {ruleSets.length > 0 && (
             <div className="mb-3">
               <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Rules source</label>

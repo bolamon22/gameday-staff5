@@ -6,10 +6,10 @@ export type SectionKey = typeof SECTION_KEYS[number]
 
 export const SECTION_LABELS: Record<string, string> = {
   overview: 'Overview',
-  fees: 'Fees & divisions',
-  locations: 'Locations & field maps',
+  fees: 'Divisions',
+  locations: 'Location',
   hotels: 'Hotels',
-  rules: 'Rules & policies',
+  rules: 'Rules',
   contacts: 'Contacts',
   sponsors: 'Sponsors & partners',
 }

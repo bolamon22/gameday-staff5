@@ -108,7 +108,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
       </EventSection>
     ) : null,
     fees: (c.feesText || divisions.length > 0) ? (
-      <EventSection id="fees" title="Fees & divisions">
+      <EventSection id="fees" title="Divisions">
         <div className="grid sm:grid-cols-2 gap-4">
           {c.feesText && (
             <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
@@ -127,7 +127,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
       </EventSection>
     ) : null,
     locations: locations.length > 0 ? (
-      <EventSection id="locations" title="Locations & field maps">
+      <EventSection id="locations" title="Location">
         <div className="grid sm:grid-cols-2 gap-5">
           {locations.map((l, i) => (
             <div key={i} className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
@@ -156,7 +156,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
       <Link href={`${base}/rules`} className="flex items-center gap-3 bg-white border border-slate-200 rounded-2xl px-5 py-4 hover:bg-slate-50/60 transition-colors">
         <ScrollText size={18} className="text-slate-400 shrink-0" />
         <div className="flex-1">
-          <h2 className="text-lg font-extrabold tracking-tight text-slate-900">Rules &amp; policies</h2>
+          <h2 className="text-lg font-extrabold tracking-tight text-slate-900">Rules</h2>
           <p className="text-sm text-slate-500">Read the full tournament rules, format and policies</p>
         </div>
         <span className="text-teal-700 text-sm font-semibold inline-flex items-center gap-1 shrink-0">View <ExternalLink size={14} /></span>

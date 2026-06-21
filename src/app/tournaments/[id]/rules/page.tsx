@@ -13,7 +13,7 @@ function db() { return createClient({ url: process.env.TURSO_DATABASE_URL!, auth
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const client = db(); let name = 'Tournament'
   try { const r = await client.execute({ sql: 'SELECT name FROM "Tournament" WHERE id = ?', args: [params.id] }); if (r.rows.length) name = (r.rows[0] as any).name } catch {}
-  const title = `Rules & policies — ${name}`; const description = clip(`Official tournament rules and policies for ${name}.`); const url = abs(`/tournaments/${params.id}/rules`)
+  const title = `Rules — ${name}`; const description = clip(`Official tournament rules and policies for ${name}.`); const url = abs(`/tournaments/${params.id}/rules`)
   return { title: { absolute: title }, description, alternates: { canonical: url }, openGraph: { title, description, url }, twitter: { title, description } }
 }
 
@@ -34,10 +34,10 @@ export default async function TournamentRulesPage({ params }: { params: { id: st
   return (
     <main className="max-w-3xl mx-auto px-6 py-12">
       <Link href={`${base}/event`} className="inline-flex items-center gap-1.5 text-teal-700 hover:text-teal-900 text-sm font-semibold mb-4"><ArrowLeft size={15} /> Back to event page</Link>
-      <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 inline-flex items-center gap-2 mb-6"><ScrollText size={22} className="text-slate-400" /> Rules &amp; policies</h1>
+      <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 inline-flex items-center gap-2 mb-6"><ScrollText size={22} className="text-slate-400" /> Rules</h1>
       {rulesBody
         ? <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 prose-body" dangerouslySetInnerHTML={{ __html: mdToHtml(rulesBody) }} />
-        : <p className="text-slate-500">Rules &amp; policies haven&apos;t been posted yet.</p>}
+        : <p className="text-slate-500">Rules haven&apos;t been posted yet.</p>}
     </main>
   )
 }
