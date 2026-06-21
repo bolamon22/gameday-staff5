@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { GripVertical, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus, ImagePlus } from 'lucide-react'
 import MarkdownField from '@/components/MarkdownField'
 import AiGenerateButton from '@/components/AiGenerateButton'
+import GalleryPicker from '@/components/GalleryPicker'
 import { Block, blockTypeLabel, isBuiltin, newBlock, CUSTOM_BLOCK_LABELS, CUSTOM_TYPES } from '@/lib/eventBlocks'
 
 async function compressImage(file: File, maxDim = 1400, quality = 0.82): Promise<Blob> {
@@ -125,6 +126,7 @@ function Editor({ b, updateProps }: { b: Block; updateProps: (id: string, patch:
           {p.url ? 'Replace' : 'Upload'}
           <input type="file" accept="image/*" className="hidden" onChange={async e => { const f = e.target.files?.[0]; if (!f) return; const u = await uploadImage(f); if (u) updateProps(b.id, { url: u }) }} />
         </label>
+        <GalleryPicker label="From gallery" onPick={(url) => updateProps(b.id, { url })} />
         {p.url && <button type="button" onClick={() => updateProps(b.id, { url: '' })} className="text-sm text-slate-400 hover:text-red-600">Remove</button>}
       </div>
       <label className={lbl}>Caption (optional)</label>
