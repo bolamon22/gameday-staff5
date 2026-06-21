@@ -1,5 +1,6 @@
 'use client'
 import React from 'react'
+import GalleryPicker from '@/components/GalleryPicker'
 
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
@@ -1294,7 +1295,8 @@ export default function RegistrationsPage() {
                       <input type="file" accept="image/*" className="hidden" disabled={clubLogoUploading}
                         onChange={e => e.target.files?.[0] && uploadClubLogo(e.target.files[0])} />
                     </label>
-                    {clubLogoUrl && <button type="button" onClick={() => { setClubLogoUrl(''); setTeams(prev => prev.map(t => t.logoUrl === clubLogoUrl ? { ...t, logoUrl: '' } : t)) }} className="text-xs text-red-400 hover:text-red-600">Remove</button>}
+                    <GalleryPicker accept="image" label="From library" triggerClassName="border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 inline-flex items-center gap-1.5" onPick={(url) => { setClubLogoUrl(url); setTeams(prev => prev.map(t => t.logoUrl ? t : { ...t, logoUrl: url })) }} />
+                                        {clubLogoUrl && <button type="button" onClick={() => { setClubLogoUrl(''); setTeams(prev => prev.map(t => t.logoUrl === clubLogoUrl ? { ...t, logoUrl: '' } : t)) }} className="text-xs text-red-400 hover:text-red-600">Remove</button>}
                   </div>
                 </div>
 
@@ -1335,6 +1337,7 @@ export default function RegistrationsPage() {
                             <input type="file" accept="image/*" className="hidden" disabled={logoUploading === i}
                               onChange={e => { const f = e.target.files?.[0]; if (f) uploadTeamLogo(i, f) }} />
                           </label>
+                          <GalleryPicker accept="image" label="Library" triggerClassName="inline-flex items-center gap-1 text-xs text-teal-600 border border-teal-200 hover:bg-teal-50 rounded-lg px-2.5 py-1.5 font-medium" onPick={(url) => setTeams(prev => prev.map((t, idx) => idx === i ? { ...t, logoUrl: url } : t))} />
                           {team.logoUrl && (
                             <button type="button" onClick={() => setTeams(prev => prev.map((t, idx) => idx === i ? { ...t, logoUrl: '' } : t))}
                               className="text-xs text-red-400 hover:text-red-600">Remove</button>

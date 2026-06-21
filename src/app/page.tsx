@@ -5,6 +5,7 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { formatDate } from '@/lib/utils'
 import { useSession } from 'next-auth/react'
+import GalleryPicker from '@/components/GalleryPicker'
 
 interface Tournament {
   id:string; name:string; sport:string; startDate:string; endDate:string
@@ -367,6 +368,7 @@ export default function HomePage() {
                   {createLogoUploading ? 'Uploading…' : 'Upload tournament logo'}
                   <input type="file" accept="image/*" className="hidden" disabled={createLogoUploading} onChange={handleCreateLogoUpload} />
                 </label>
+                <GalleryPicker accept="image" label="From library" triggerClassName="text-xs font-medium text-teal-600 hover:text-teal-700 border border-teal-300 hover:border-teal-500 px-3 py-1.5 rounded-lg inline-flex items-center gap-1" onPick={(url) => setCreateLogoUrl(url)} />
                 {createLogoUrl && <button type="button" onClick={()=>setCreateLogoUrl('')} className="text-xs text-red-500 hover:text-red-600">Remove</button>}
               </div>
             </div>
@@ -474,6 +476,7 @@ export default function HomePage() {
                       className="btn-secondary btn-sm" disabled={logoUploading}>
                       {logoUploading ? 'Uploading…' : editLogoUrl ? '🔄 Replace Logo' : '📁 Upload Logo'}
                     </button>
+                    <GalleryPicker accept="image" label="Use from library" triggerClassName="btn-secondary btn-sm inline-flex items-center justify-center gap-1" onPick={(url) => setEditLogoUrl(url)} />
                     {editLogoUrl && (
                       <button type="button" onClick={() => setEditLogoUrl('')}
                         className="text-xs text-red-500 hover:text-red-700 text-left">Remove logo</button>

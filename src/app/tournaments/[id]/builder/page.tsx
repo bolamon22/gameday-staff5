@@ -5,6 +5,7 @@ import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import TournamentNav from '../TournamentNav'
 import RegPricingEditor from '@/components/RegPricingEditor'
+import GalleryPicker from '@/components/GalleryPicker'
 import { parsePricing, serializePricing, baseFee, DEFAULT_REG_PRICING, type RegPricing } from '@/lib/regPricing'
 import { Trophy, Award, MapPin, DollarSign, Banknote, Clock, X, Calendar, ChevronUp, ChevronDown, Check, Circle, ArrowRight, ClipboardList } from 'lucide-react'
 
@@ -423,6 +424,7 @@ export default function BuilderPage({ params }: { params: { id: string } }) {
                 className="btn-secondary btn-sm" disabled={logoUploading}>
                 {logoUploading ? 'Uploading…' : logoUrl ? '🔄 Replace Logo' : '📁 Upload Logo'}
               </button>
+              <GalleryPicker accept="image" label="Use from library" triggerClassName="btn-secondary btn-sm inline-flex items-center justify-center gap-1" onPick={(url) => setLogoUrl(url)} />
               {logoUrl && <button type="button" onClick={() => setLogoUrl('')} className="block text-xs text-red-400 hover:text-red-600">Remove</button>}
             </div>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />

@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import TournamentNav from '../TournamentNav'
 import BracketBuilder from './BracketBuilder'
+import GalleryPicker from '@/components/GalleryPicker'
 import { ArrowRight, Check, X, AlertTriangle, Pencil, Sparkles, Zap, ArrowLeftRight, GripVertical, Trash2, Calendar } from 'lucide-react'
 
 const PALETTE = [
@@ -1221,6 +1222,7 @@ if (loading) return (
                               <input type="file" accept="image/*" className="hidden" disabled={teamLogoUploading}
                                 onChange={e => { const fl = e.target.files?.[0]; if (fl) pickTeamLogo(fl) }} />
                             </label>
+                            <GalleryPicker accept="image" label="From library" triggerClassName="border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 inline-flex items-center gap-1.5" onPick={(url) => setTeamForm(f => ({ ...f, logoUrl: url }))} />
                             {teamForm.logoUrl && <button type="button" onClick={() => setTeamForm(f => ({ ...f, logoUrl: '' }))} className="text-xs text-red-400 hover:text-red-600">Remove</button>}
                           </div>
                           <p className="text-[11px] text-slate-400 mt-1">PNG or JPG recommended.</p>
