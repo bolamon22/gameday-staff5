@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   return { title: { absolute: title }, description, alternates: { canonical: url }, openGraph: { title, description, url }, twitter: { title, description } }
 }
 
-export default async function TournamentRulesPage({ params }: { params: { id: string } }) {
+export default async function TournamentRulesPage({ params, searchParams }: { params: { id: string }; searchParams?: { [k: string]: string } }) {
   const client = db()
   const tRes = await client.execute({ sql: 'SELECT id, name, orgId FROM "Tournament" WHERE id = ?', args: [params.id] })
   if (tRes.rows.length === 0) {
@@ -29,6 +29,10 @@ export default async function TournamentRulesPage({ params }: { params: { id: st
   let ruleSets: any[] = []
   try { if (tRow.orgId) { const rr = await client.execute({ sql: 'SELECT value FROM "AppSetting" WHERE key = ?', args: [`orgRules:${tRow.orgId}`] }); if (rr.rows.length) { const v = JSON.parse(((rr.rows[0] as any).value as string) || '{}'); ruleSets = Array.isArray(v.sets) ? v.sets : [] } } } catch {}
   const rulesBody = resolveRules(c, ruleSets).body
+  if (searchParams?.debug === '1') {
+    const dbg = { tRowOrgId: tRow.orgId ?? null, orgIdType: typeof tRow.orgId, ruleSetsCount: ruleSets.length, ruleSetIds: ruleSets.map((x: any) => x.id), rulesSourceId: c.rulesSourceId ?? null, rulesBodyLen: (rulesBody || '').length }
+    return <pre style={{ padding: 20, fontSize: 12, whiteSpace: 'pre-wrap' }}>{JSON.stringify(dbg, null, 2)}</pre>
+  }
   const base = `/tournaments/${params.id}`
 
   return (
