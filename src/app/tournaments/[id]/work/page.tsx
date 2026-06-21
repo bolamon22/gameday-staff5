@@ -4,6 +4,8 @@ import { mdToHtml } from '@/app/o/[slug]/_md'
 import WorkForm from '@/components/WorkForm'
 
 export const dynamic = 'force-dynamic'
+import type { Metadata } from 'next'
+import { abs, clip, stripMd } from '@/lib/seo'
 
 function db() { return createClient({ url: process.env.TURSO_DATABASE_URL!, authToken: process.env.TURSO_AUTH_TOKEN }) }
 const D_POSITIONS = ['Referee / Official', 'Scorekeeper', 'Field / Event staff', 'Athletic trainer / Medical']
@@ -19,6 +21,13 @@ function dayRange(start?: string, end?: string): string[] {
     for (let dt = new Date(s); dt <= e && out.length < 14; dt.setDate(dt.getDate() + 1)) out.push(dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }))
     return out
   } catch { return [] }
+}
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const client = db(); let name = 'our event'
+  try { const r = await client.execute({ sql: 'SELECT name FROM "Tournament" WHERE id = ?', args: [params.id] }); if (r.rows.length) name = (r.rows[0] as any).name } catch {}
+  const title = `Work at ${name}`; const description = clip(`Apply to work ${name} as a referee, scorekeeper, athletic trainer or event staff.`); const url = abs(`/tournaments/${params.id}/work`)
+  return { title: { absolute: title }, description, alternates: { canonical: url }, openGraph: { title, description, url }, twitter: { title, description } }
 }
 
 export default async function TournamentWork({ params }: { params: { id: string } }) {

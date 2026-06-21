@@ -4,8 +4,17 @@ import { Trophy, ScrollText, ArrowLeft } from 'lucide-react'
 import { mdToHtml } from '@/app/o/[slug]/_md'
 
 export const dynamic = 'force-dynamic'
+import type { Metadata } from 'next'
+import { abs, clip, stripMd } from '@/lib/seo'
 
 function db() { return createClient({ url: process.env.TURSO_DATABASE_URL!, authToken: process.env.TURSO_AUTH_TOKEN }) }
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const client = db(); let name = 'Tournament'
+  try { const r = await client.execute({ sql: 'SELECT name FROM "Tournament" WHERE id = ?', args: [params.id] }); if (r.rows.length) name = (r.rows[0] as any).name } catch {}
+  const title = `Rules & policies — ${name}`; const description = clip(`Official tournament rules and policies for ${name}.`); const url = abs(`/tournaments/${params.id}/rules`)
+  return { title: { absolute: title }, description, alternates: { canonical: url }, openGraph: { title, description, url }, twitter: { title, description } }
+}
 
 export default async function TournamentRulesPage({ params }: { params: { id: string } }) {
   const client = db()

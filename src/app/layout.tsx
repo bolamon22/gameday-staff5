@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { SITE_URL } from '@/lib/seo'
 import { Toaster } from 'react-hot-toast'
 import NavBar from './NavBar'
 import DynamicTitle from './DynamicTitle'
@@ -9,8 +10,11 @@ import EnvBadge from './EnvBadge'
 import AppMain from './AppMain'
 
 export const metadata: Metadata = {
-  title: 'Whistle Ready',
+  metadataBase: new URL(SITE_URL),
+  title: { default: 'Whistle Ready', template: '%s · Whistle Ready' },
   description: 'The Sports Management Master Plan',
+  openGraph: { siteName: 'Whistle Ready', type: 'website' },
+  twitter: { card: 'summary_large_image' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

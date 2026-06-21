@@ -16,6 +16,9 @@ import StandingsBlock from '@/components/StandingsBlock'
 import { SECTION_LABELS } from '@/lib/eventSections'
 import { resolveBlocks, isBuiltin } from '@/lib/eventBlocks'
 import { OrgHeader, OrgFooter, buildNav } from '@/app/o/[slug]/_chrome'
+import type { Metadata } from 'next'
+import { abs, clip, stripMd } from '@/lib/seo'
+import JsonLd from '@/components/JsonLd'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,6 +46,24 @@ function shortLocation(loc: string) {
   const m = loc.match(/([A-Za-z .'-]+),\s*([A-Z]{2})(?:\s*\d{5})?/)
   if (m) return `${m[1].trim()}, ${m[2]}`
   return loc.split(',')[0].trim()
+}
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const client = db()
+  let t: any = null
+  try { const r = await client.execute({ sql: 'SELECT id, name, sport, startDate, endDate, location, logoUrl, orgId FROM "Tournament" WHERE id = ?', args: [params.id] }); if (r.rows.length) t = r.rows[0] } catch {}
+  if (!t) return { title: 'Tournament' }
+  let overview = ''; let orgName = ''
+  try { const c = await client.execute({ sql: 'SELECT value FROM "AppSetting" WHERE key = ?', args: [`tournamentSite:${params.id}`] }); if (c.rows.length) { const cc = JSON.parse(((c.rows[0] as any).value as string) || '{}'); overview = cc.overview || '' } } catch {}
+  try { if (t.orgId) { const o = await client.execute({ sql: 'SELECT name FROM "Organization" WHERE id = ?', args: [t.orgId] }); if (o.rows.length) orgName = (o.rows[0] as any).name } } catch {}
+  const loc = shortLocation(t.location || '')
+  const when = fmtRange(t.startDate, t.endDate)
+  const sportName = t.sport || 'Lacrosse'
+  const title = `${t.name} — ${when}${loc ? ` · ${loc}` : ''}`
+  const description = clip(stripMd(overview) || `${t.name}: ${sportName} tournament${loc ? ` in ${loc}` : ''}${when ? `, ${when}` : ''}. Schedule, divisions and online team registration${orgName ? ` from ${orgName}` : ''}.`)
+  const url = abs(`/tournaments/${params.id}/event`)
+  const images = t.logoUrl ? [t.logoUrl] : []
+  return { title: { absolute: title }, description, alternates: { canonical: url }, openGraph: { title, description, url, images, type: 'website' }, twitter: { title, description, images } }
 }
 
 export default async function TournamentEventPage({ params }: { params: { id: string } }) {
@@ -257,8 +278,15 @@ export default async function TournamentEventPage({ params }: { params: { id: st
   const firstPanelTab = eventTabs.find((t: any) => !t.href)
   const eventDefaultId = eventPanels['overview'] ? 'overview' : (firstPanelTab ? firstPanelTab.id : (eventTabs[0] ? eventTabs[0].id : 'overview'))
 
+  const eventUrl = abs(`${base}/event`)
+  const faqItems = rendered.filter((b: any) => b.type === 'faq').flatMap((b: any) => Array.isArray(b.props?.items) ? b.props.items : []).filter((it: any) => it && it.q && it.a)
+  const sportName = t.sport || 'Lacrosse'
+  const sportsEventLd: any = { '@context': 'https://schema.org', '@type': 'SportsEvent', name: t.name, sport: sportName, eventStatus: 'https://schema.org/EventScheduled', eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode', url: eventUrl, ...(t.startDate ? { startDate: t.startDate } : {}), ...(t.endDate ? { endDate: t.endDate } : {}), ...(t.logoUrl ? { image: abs(t.logoUrl) } : {}), ...(t.location ? { location: { '@type': 'Place', name: shortLocation(t.location) || t.location, address: t.location } } : {}), ...(org.name ? { organizer: { '@type': 'Organization', name: org.name, ...(org.slug ? { url: abs(`/o/${org.slug}`) } : {}) } } : {}), ...(Number(t.teamRegEnabled) ? { offers: { '@type': 'Offer', url: abs(`${base}/register`), availability: 'https://schema.org/InStock', category: 'Team registration' } } : {}) }
+  const breadcrumbLd = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [...(org.slug ? [{ '@type': 'ListItem', position: 1, name: org.name, item: abs(`/o/${org.slug}`) }] : []), { '@type': 'ListItem', position: org.slug ? 2 : 1, name: t.name, item: eventUrl }] }
+  const faqLd = faqItems.length ? { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faqItems.slice(0, 20).map((it: any) => ({ '@type': 'Question', name: String(it.q), acceptedAnswer: { '@type': 'Answer', text: stripMd(String(it.a)) } })) } : null
   return (
     <div className="min-h-screen bg-slate-50">
+      <JsonLd data={[sportsEventLd, breadcrumbLd, ...(faqLd ? [faqLd] : [])]} />
       {org.slug && <OrgHeader org={orgForChrome} slug={org.slug} nav={nav} registerHref={registerHref} />}
       <section className="relative text-white bg-gradient-to-br from-[#0b1f3a] via-[#0e7490] to-[#0b1f3a]">
         {c.heroImage && <div className="absolute inset-0 bg-center bg-cover" style={{ backgroundImage: `url(${c.heroImage})` }} aria-hidden />}

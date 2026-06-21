@@ -5,9 +5,18 @@ import { OrgHeader, OrgFooter, buildNav, PageRec } from '../_chrome'
 import PublicGallery from '@/components/PublicGallery'
 
 export const dynamic = 'force-dynamic'
+import type { Metadata } from 'next'
+import { abs, clip, stripMd } from '@/lib/seo'
 
 function db() {
   return createClient({ url: process.env.TURSO_DATABASE_URL!, authToken: process.env.TURSO_AUTH_TOKEN })
+}
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const client = db(); let name = params.slug
+  try { const r = await client.execute({ sql: 'SELECT name FROM "Organization" WHERE slug = ?', args: [params.slug] }); if (r.rows.length) name = (r.rows[0] as any).name } catch {}
+  const title = `Photo gallery — ${name}`; const description = clip(`Action photos from ${name} tournaments and events.`); const url = abs(`/o/${params.slug}/gallery`)
+  return { title: { absolute: title }, description, alternates: { canonical: url }, openGraph: { title, description, url }, twitter: { title, description } }
 }
 
 export default async function GalleryPage({ params }: { params: { slug: string } }) {

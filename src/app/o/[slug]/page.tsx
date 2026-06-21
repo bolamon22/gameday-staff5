@@ -3,6 +3,9 @@ import { createClient } from '@libsql/client'
 import { MapPin, CalendarDays, ArrowRight, Trophy, Instagram } from 'lucide-react'
 import { OrgHeader, OrgFooter, buildNav, PageRec } from './_chrome'
 import { fetchInstagram } from './_instagram'
+import type { Metadata } from 'next'
+import { SITE_URL, abs, clip, stripMd } from '@/lib/seo'
+import JsonLd from '@/components/JsonLd'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,6 +57,20 @@ function Card({ t }: { t: Tourn }) {
   )
 }
 
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const client = db()
+  let org: any = null
+  try { const r = await client.execute({ sql: 'SELECT id, name, logoUrl FROM "Organization" WHERE slug = ?', args: [params.slug] }); if (r.rows.length) org = r.rows[0] } catch {}
+  if (!org) return { title: 'Organization' }
+  let about = ''
+  try { const cr = await client.execute({ sql: 'SELECT value FROM "AppSetting" WHERE key = ?', args: [`orgSite:${org.id}`] }); if (cr.rows.length) { const c = JSON.parse(((cr.rows[0] as any).value as string) || '{}'); about = c.hero?.subtext || c.about?.body || ''; if (c.logo) org.logoUrl = c.logo } } catch {}
+  const title = `${org.name} — Tournaments, schedules & team registration`
+  const description = clip(stripMd(about) || `${org.name}: upcoming tournaments, live schedules, standings and online team registration — all in one place.`)
+  const url = abs(`/o/${params.slug}`)
+  const images = org.logoUrl ? [org.logoUrl] : []
+  return { title: { absolute: title }, description, alternates: { canonical: url }, openGraph: { title, description, url, images }, twitter: { title, description, images } }
+}
+
 export default async function OrgSite({ params }: { params: { slug: string } }) {
   const client = db()
   const orgRes = await client.execute({ sql: 'SELECT id, name, contactEmail, logoUrl FROM "Organization" WHERE slug = ?', args: [params.slug] })
@@ -103,8 +120,12 @@ export default async function OrgSite({ params }: { params: { slug: string } }) 
 
   const igItems = await fetchInstagram(ig.token || '', 8)
 
+  const orgUrl = abs(`/o/${params.slug}`)
+  const orgLd = { '@context': 'https://schema.org', '@type': 'SportsOrganization', name: org.name, url: orgUrl, ...(org.logoUrl ? { logo: abs(org.logoUrl) } : {}), sameAs: [socials.facebook, socials.instagram, socials.website].filter(Boolean) }
+  const eventsLd = upcoming.length ? { '@context': 'https://schema.org', '@type': 'ItemList', itemListElement: upcoming.map((t, i) => ({ '@type': 'ListItem', position: i + 1, url: abs(`/tournaments/${t.id}/event`), name: t.name })) } : null
   return (
     <div className="min-h-screen bg-slate-50">
+      <JsonLd data={eventsLd ? [orgLd, eventsLd] : orgLd} />
       <OrgHeader org={org} slug={params.slug} nav={nav} registerHref={registerHref} />
 
       {/* Hero */}
