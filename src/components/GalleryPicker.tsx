@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Images, X, FileText } from 'lucide-react'
 
 type Item = { url: string; name?: string; category: string; img: boolean }
@@ -12,12 +13,16 @@ const looksImg = (url: string, mime?: string) => (mime || '').startsWith('image/
 // (action shots) and the brand & media library (logos, documents, maps, promo)
 // so any image/file field can reference a stored asset. `accept` defaults to
 // 'image' (hides documents); pass 'any' for file fields like field maps.
+// The modal is rendered via a portal to <body> so it sits above any parent
+// modal and its clicks can't bubble into a parent backdrop's close handler.
 export default function GalleryPicker({ onPick, label = 'Choose from library', triggerClassName, accept = 'image' }: { onPick: (url: string) => void; label?: string; triggerClassName?: string; accept?: 'image' | 'any' }) {
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<Item[]>([])
   const [cat, setCat] = useState('all')
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
 
   async function load() {
     setOpen(true); setLoading(true); setErr(''); setCat('all')
@@ -35,39 +40,43 @@ export default function GalleryPicker({ onPick, label = 'Choose from library', t
     } catch { setErr('Could not load your library.') } finally { setLoading(false) }
   }
 
+  function choose(e: React.MouseEvent, url: string) { e.preventDefault(); e.stopPropagation(); onPick(url); setOpen(false) }
+
   const cats = CAT_ORDER.filter(k => items.some(i => i.category === k))
   const shown = cat === 'all' ? items : items.filter(i => i.category === cat)
 
+  const modal = (
+    <div className="fixed inset-0 z-[1000] bg-black/50 flex items-center justify-center p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) setOpen(false) }}>
+      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col" onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200">
+          <h3 className="font-bold text-slate-800">Choose from your library</h3>
+          <button type="button" onClick={(e) => { e.stopPropagation(); setOpen(false) }} className="text-slate-400 hover:text-slate-700"><X size={20} /></button>
+        </div>
+        {!loading && !err && cats.length > 1 && (
+          <div className="flex flex-wrap gap-1.5 px-4 pt-3">
+            <button type="button" onClick={() => setCat('all')} className={`text-xs rounded-full px-2.5 py-1 border ${cat === 'all' ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>All</button>
+            {cats.map(k => <button key={k} type="button" onClick={() => setCat(k)} className={`text-xs rounded-full px-2.5 py-1 border ${cat === k ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>{CAT_LABEL[k] || k}</button>)}
+          </div>
+        )}
+        <div className="p-4 overflow-y-auto">
+          {loading ? <p className="text-slate-400 text-center py-10">Loading…</p>
+            : err ? <p className="text-slate-500 text-center py-10">{err}</p>
+              : <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  {shown.map((it, i) => (
+                    <button key={it.url + i} type="button" onClick={(e) => choose(e, it.url)} className="aspect-square rounded-xl overflow-hidden border border-slate-200 hover:ring-2 hover:ring-teal-400 transition flex flex-col items-center justify-center bg-slate-50" title={it.name || ''}>
+                      {it.img ? <img src={it.url} alt={it.name || ''} className="w-full h-full object-contain p-1 pointer-events-none" /> : <><FileText size={28} className="text-slate-300 pointer-events-none" /><span className="text-[10px] text-slate-500 px-1 truncate w-full text-center mt-1 pointer-events-none">{it.name}</span></>}
+                    </button>
+                  ))}
+                </div>}
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <>
-      <button type="button" onClick={load} className={triggerClassName || 'text-sm border border-slate-300 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-50 inline-flex items-center gap-1.5'}><Images size={15} /> {label}</button>
-      {open && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200">
-              <h3 className="font-bold text-slate-800">Choose from your library</h3>
-              <button type="button" onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-700"><X size={20} /></button>
-            </div>
-            {!loading && !err && cats.length > 1 && (
-              <div className="flex flex-wrap gap-1.5 px-4 pt-3">
-                <button onClick={() => setCat('all')} className={`text-xs rounded-full px-2.5 py-1 border ${cat === 'all' ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>All</button>
-                {cats.map(k => <button key={k} onClick={() => setCat(k)} className={`text-xs rounded-full px-2.5 py-1 border ${cat === k ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>{CAT_LABEL[k] || k}</button>)}
-              </div>
-            )}
-            <div className="p-4 overflow-y-auto">
-              {loading ? <p className="text-slate-400 text-center py-10">Loading…</p>
-                : err ? <p className="text-slate-500 text-center py-10">{err}</p>
-                  : <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                      {shown.map((it, i) => (
-                        <button key={it.url + i} type="button" onClick={() => { onPick(it.url); setOpen(false) }} className="aspect-square rounded-xl overflow-hidden border border-slate-200 hover:ring-2 hover:ring-teal-400 transition flex flex-col items-center justify-center bg-slate-50" title={it.name || ''}>
-                          {it.img ? <img src={it.url} alt={it.name || ''} className="w-full h-full object-contain p-1" /> : <><FileText size={28} className="text-slate-300" /><span className="text-[10px] text-slate-500 px-1 truncate w-full text-center mt-1">{it.name}</span></>}
-                        </button>
-                      ))}
-                    </div>}
-            </div>
-          </div>
-        </div>
-      )}
+      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); load() }} className={triggerClassName || 'text-sm border border-slate-300 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-50 inline-flex items-center gap-1.5'}><Images size={15} /> {label}</button>
+      {mounted && open && createPortal(modal, document.body)}
     </>
   )
 }
