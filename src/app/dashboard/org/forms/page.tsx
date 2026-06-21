@@ -5,8 +5,33 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
-import { ChevronLeft, ChevronDown, FileText, ClipboardList, Save, ExternalLink, Link2, Inbox, Pencil, X, Users } from 'lucide-react'
+import { ChevronLeft, ChevronDown, FileText, ClipboardList, Save, ExternalLink, Link2, Inbox, Pencil, X, Users, ImagePlus } from 'lucide-react'
 import MarkdownField from '@/components/MarkdownField'
+
+async function compressImage(file: File, maxDim = 1600, quality = 0.82): Promise<Blob> {
+  if (!/^image\/(jpe?g|png|webp)$/i.test(file.type)) return file
+  if (file.size < 400 * 1024) return file
+  try {
+    const dataUrl = await new Promise<string>((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(file) })
+    const img = await new Promise<HTMLImageElement>((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = dataUrl })
+    let width = img.width, height = img.height
+    if (Math.max(width, height) > maxDim) { const sc = maxDim / Math.max(width, height); width = Math.round(width * sc); height = Math.round(height * sc) }
+    const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height
+    const ctx = canvas.getContext('2d'); if (!ctx) return file
+    ctx.drawImage(img, 0, 0, width, height)
+    const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/jpeg', quality))
+    return blob && blob.size < file.size ? blob : file
+  } catch { return file }
+}
+async function uploadImage(file: File): Promise<string | null> {
+  try {
+    const blob = await compressImage(file)
+    const fd = new FormData(); fd.append('file', blob, 'upload.jpg')
+    const r = await fetch('/api/upload', { method: 'POST', body: fd })
+    if (!r.ok) return null
+    const d = await r.json().catch(() => ({})); return d.url || null
+  } catch { return null }
+}
 
 const DEFAULT_WAIVER = `## 1. Acknowledgment of Risk
 I understand that lacrosse is a high-intensity sport involving aggressive play and physical contact. I acknowledge that participation carries inherent risks, including but not limited to:
@@ -37,7 +62,7 @@ type VendorForm = {
   confirmationTitle: string; confirmationMessage: string; emailConfirmation: boolean
 }
 type StaffForm = {
-  enabled: boolean
+  enabled: boolean; heroImage: string
   intro: string; positions: string[]; refLevels: string[]; ageLabel: string
   confirmationTitle: string; confirmationMessage: string; emailConfirmation: boolean
 }
@@ -60,7 +85,7 @@ const EMPTY: Forms = {
     emailConfirmation: true,
   },
   staff: {
-    enabled: true,
+    enabled: true, heroImage: '',
     intro: "We're looking for officials, scorekeepers, trainers, and event staff to help us run a great event. Tell us about yourself and we'll be in touch about open positions.",
     positions: ['Referee / Official', 'Scorekeeper', 'Field / Event staff', 'Athletic trainer / Medical'],
     refLevels: ['Level 1 / Local', 'Level 2', 'Level 3', 'Regional', 'National', 'Other'],
@@ -134,6 +159,7 @@ function FormsInner() {
   const startEdit = (key: string) => { setSnap(f); setEditing(e => ({ ...e, [key]: true })); setOpen(o => ({ ...o, [key]: true })) }
   const cancelEdit = (key: string) => { setF(snap); setEditing(e => ({ ...e, [key]: false })) }
   const toggle = (key: string) => setOpen(o => ({ ...o, [key]: !o[key] }))
+  const staffHero = async (f?: File | null) => { if (!f) return; const u = await uploadImage(f); if (u) setF(v => ({ ...v, staff: { ...v.staff, heroImage: u } })); else toast.error('Upload failed') }
 
   if (loading) return <div className="text-slate-400 text-center py-16">Loading…</div>
   const pf = f.player, vf = f.vendor, stf = f.staff
@@ -286,6 +312,15 @@ function FormsInner() {
                   <input type="checkbox" className="mt-0.5 accent-teal-500" checked={stf.enabled !== false} onChange={e => setF(v => ({ ...v, staff: { ...v.staff, enabled: e.target.checked } }))} />
                   <span className="text-sm text-slate-700">Show a &ldquo;Work With Us&rdquo; link on your public site</span>
                 </label>
+                <label className={labelCls}>Banner image</label>
+                <div className="flex items-center gap-3 mb-1">
+                  {stf.heroImage ? <img src={stf.heroImage} alt="" className="h-12 w-24 object-cover rounded-lg border border-slate-200" /> : <div className="h-12 w-24 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400"><ImagePlus size={16} /></div>}
+                  <div>
+                    <label className="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-600 hover:bg-slate-50 cursor-pointer inline-block">Upload image<input type="file" accept="image/*" className="hidden" onChange={e => staffHero(e.target.files?.[0])} /></label>
+                    {stf.heroImage && <button onClick={() => setF(v => ({ ...v, staff: { ...v.staff, heroImage: '' } }))} className="text-xs text-slate-400 hover:text-red-600 ml-2">Remove</button>}
+                    <p className="text-[11px] text-slate-400 mt-1">Shown behind the page title on the public Work page.</p>
+                  </div>
+                </div>
                 <label className={labelCls}>Intro text</label>
                 <MarkdownField value={stf.intro} onChange={val => setF(v => ({ ...v, staff: { ...v.staff, intro: val } }))} minHeight={90} />
                 <label className={labelCls}>Positions (comma separated)</label>

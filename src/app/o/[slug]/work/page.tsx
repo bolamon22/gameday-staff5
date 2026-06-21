@@ -46,11 +46,14 @@ export default async function OrgWorkPage({ params }: { params: { slug: string }
   const introHtml = mdToHtml(sf.intro || D_INTRO)
   const confirmationTitle = sf.confirmationTitle || 'Application received!'
   const confirmationHtml = mdToHtml(sf.confirmationMessage || "Thanks for your interest in working our events! We've received your application and will reach out about open positions.")
+  const heroImage = sf.heroImage || ''
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <OrgHeader org={org} slug={params.slug} nav={nav} registerHref={registerHref} />
       <section className="relative bg-gradient-to-br from-[#0b1f3a] via-[#0e7490] to-[#0b1f3a] text-white">
+        {heroImage && <div className="absolute inset-0 bg-center bg-cover" style={{ backgroundImage: `url(${heroImage})` }} aria-hidden />}
+        {heroImage && <div className="absolute inset-0 bg-[#0b1f3a]/55" aria-hidden />}
         <div className="relative max-w-3xl mx-auto px-6 py-14">
           <Link href={`/o/${params.slug}`} className="text-sm text-teal-200 hover:text-white inline-flex items-center gap-1"><ChevronLeft size={14} /> Back</Link>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mt-3">Work With Us</h1>
