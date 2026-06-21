@@ -91,6 +91,7 @@ function SectionCard({ title, description, icon: Icon, open, onToggle, children,
 
 export default function SettingsPage({ params }: { params: { id: string } }) {
   const [name, setName] = useState('')
+  const [tagline, setTagline] = useState('')
   const [rates, setRates] = useState<PayRates>(DEFAULT_PAY_RATES)
   const [divRules, setDivRules] = useState<Record<string, number>>({})
   const [poolTb, setPoolTb] = useState<string[]>(pad6(DEFAULT_TB))
@@ -160,7 +161,7 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     fetch(`/api/tournaments/${params.id}`).then(r => r.json()).then(t => {
-      setName(t.name); setTName(t.name)
+      setName(t.name); setTName(t.name); setTagline(t.tagline || '')
       // Build list of tournament dates
       if (t.startDate && t.endDate) {
         const dates: string[] = []
@@ -225,7 +226,7 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
       fetch(`/api/tournaments/${params.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name, payRates: rates, divisionRules: divRules, tiebreakers: { pool: poolTb.filter(Boolean), division: divTb.filter(Boolean) },
+          name, tagline, payRates: rates, divisionRules: divRules, tiebreakers: { pool: poolTb.filter(Boolean), division: divTb.filter(Boolean) },
           registrationPricing: serializePricing(pricing),
           registrationDivisions: JSON.stringify(divisions),
           teamRegEnabled,
@@ -347,6 +348,12 @@ export default function SettingsPage({ params }: { params: { id: string } }) {
               <label className="block text-sm font-medium text-slate-700 mb-1">Tournament Name</label>
               <input className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                 value={name} onChange={e => setName(e.target.value)} required />
+            </div>
+            <div className="mt-3">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Short description</label>
+              <input className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                value={tagline} maxLength={70} onChange={e => setTagline(e.target.value)} placeholder="e.g. Sixes tournament · boys & girls" />
+              <p className="text-xs text-slate-400 mt-1">One line shown under the name on your website's tournament cards.</p>
             </div>
           </SectionCard>
 

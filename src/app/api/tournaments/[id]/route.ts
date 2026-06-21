@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 export async function GET(_: Request, { params }: { params:{id:string} }) {
   try { await prisma.$executeRawUnsafe(`ALTER TABLE "Tournament" ADD COLUMN "tiebreakers" TEXT NOT NULL DEFAULT '{}'`) } catch {}
+  try { await prisma.$executeRawUnsafe(`ALTER TABLE "Tournament" ADD COLUMN "tagline" TEXT DEFAULT ''`) } catch {}
   const t = await prisma.tournament.findUnique({ where:{id:params.id}, include:{_count:{select:{games:true}}} })
   if (!t) return NextResponse.json({ error:'Not found' }, { status:404 })
   // Effective tiebreakers: the tournament's own, otherwise the saved global default.
@@ -14,7 +15,9 @@ export async function GET(_: Request, { params }: { params:{id:string} }) {
       if (def && def.value) tiebreakers = def.value
     }
   } catch {}
-  return NextResponse.json({ ...t, tiebreakers })
+  let tagline = ''
+  try { const tr = await prisma.$queryRawUnsafe<any[]>('SELECT tagline FROM "Tournament" WHERE id = ?', params.id); tagline = (tr?.[0]?.tagline) || '' } catch {}
+  return NextResponse.json({ ...t, tiebreakers, tagline })
 }
 export async function PATCH(req: Request, { params }: { params:{id:string} }) {
   const b = await req.json()
@@ -43,6 +46,7 @@ export async function PATCH(req: Request, { params }: { params:{id:string} }) {
   if (b.individualRegTiers!==undefined) raw.push(['individualRegTiers', "TEXT DEFAULT '[]'", String(b.individualRegTiers ?? '[]')])
   if (b.individualRegPositions!==undefined) raw.push(['individualRegPositions', "TEXT DEFAULT '[]'", String(b.individualRegPositions ?? '[]')])
   if (b.individualRegSizes!==undefined) raw.push(['individualRegSizes', "TEXT DEFAULT '[]'", String(b.individualRegSizes ?? '[]')])
+  if (b.tagline!==undefined) raw.push(['tagline', "TEXT DEFAULT ''", String(b.tagline ?? '')])
   for (const [col, type] of raw) { try { await prisma.$executeRawUnsafe(`ALTER TABLE "Tournament" ADD COLUMN "${col}" ${type}`) } catch {} }
   for (const [col, , val] of raw) { try { await prisma.$executeRawUnsafe(`UPDATE "Tournament" SET "${col}" = ? WHERE id = ?`, val, params.id) } catch {} }
   const out = Object.keys(data).length

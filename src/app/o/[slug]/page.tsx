@@ -6,7 +6,7 @@ import { fetchInstagram } from './_instagram'
 
 export const dynamic = 'force-dynamic'
 
-interface Tourn { id: string; name: string; startDate: string; endDate: string; location: string; logoUrl: string; sport: string; teamRegEnabled: number }
+interface Tourn { id: string; name: string; tagline?: string; startDate: string; endDate: string; location: string; logoUrl: string; sport: string; teamRegEnabled: number }
 
 function db() {
   return createClient({ url: process.env.TURSO_DATABASE_URL!, authToken: process.env.TURSO_AUTH_TOKEN })
@@ -23,25 +23,31 @@ function initials(name: string) {
   return name.split(' ').filter(w => w.length > 2).slice(0, 2).map(w => w[0].toUpperCase()).join('') || name.slice(0, 2).toUpperCase()
 }
 
+const ACCENTS = ['#0e7490', '#b45309', '#9f1239', '#1d4ed8', '#6d28d9', '#047857']
+function accentFor(str: string) { let h = 0; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0; return ACCENTS[h % ACCENTS.length] }
+
 function Card({ t }: { t: Tourn }) {
+  const accent = accentFor(t.name)
   return (
     <div className="group bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex flex-col">
+      <div className="h-2" style={{ backgroundColor: accent }} />
       <div className="p-5 flex items-start gap-4">
         {t.logoUrl
-          ? <img src={t.logoUrl} alt="" className="w-16 h-16 rounded-xl object-contain bg-white border border-slate-100 flex-shrink-0" />
-          : <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-teal-500 to-teal-700 text-white flex items-center justify-center font-bold text-lg flex-shrink-0">{initials(t.name)}</div>}
-        <div className="min-w-0">
-          <h3 className="font-bold text-slate-900 leading-tight">{t.name}</h3>
-          <p className="text-sm text-teal-700 font-medium mt-1 inline-flex items-center gap-1"><CalendarDays size={14} /> {fmtRange(t.startDate, t.endDate)}</p>
-          {t.location && <p className="text-sm text-slate-500 mt-0.5 inline-flex items-center gap-1"><MapPin size={14} /> {t.location}</p>}
+          ? <img src={t.logoUrl} alt="" className="w-24 h-24 rounded-2xl object-contain bg-white border border-slate-100 flex-shrink-0" />
+          : <div className="w-24 h-24 rounded-2xl text-white flex items-center justify-center font-bold text-2xl flex-shrink-0" style={{ backgroundColor: accent }}>{initials(t.name)}</div>}
+        <div className="min-w-0 flex-1">
+          <h3 className="font-bold text-slate-900 text-lg leading-tight">{t.name}</h3>
+          {t.tagline && <p className="text-sm text-slate-500 mt-1 truncate">{t.tagline}</p>}
+          <p className="text-sm font-medium text-teal-700 bg-teal-50 rounded-full px-2.5 py-1 mt-2 inline-flex items-center gap-1"><CalendarDays size={14} /> {fmtRange(t.startDate, t.endDate)}</p>
+          {t.location && <p className="text-sm text-slate-500 mt-1.5 inline-flex items-center gap-1"><MapPin size={14} /> {t.location}</p>}
         </div>
       </div>
       <div className="mt-auto border-t border-slate-100 flex">
-        <Link href={`/tournaments/${t.id}/event`} className="flex-1 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50 py-3 transition-colors inline-flex items-center justify-center gap-1">
+        <Link href={`/tournaments/${t.id}/event`} className="flex-1 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50 py-3.5 transition-colors inline-flex items-center justify-center gap-1">
           Details <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
         </Link>
         {t.teamRegEnabled ? (
-          <Link href={`/tournaments/${t.id}/register`} className="flex-1 text-center text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 py-3 transition-colors">Register</Link>
+          <Link href={`/tournaments/${t.id}/register`} className="flex-[1.4] text-center text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 py-3.5 transition-colors">Register</Link>
         ) : null}
       </div>
     </div>
@@ -85,7 +91,7 @@ export default async function OrgSite({ params }: { params: { slug: string } }) 
   const nav = buildNav(params.slug, pages, gallery.length > 0, workHref)
 
   const tRes = await client.execute({
-    sql: 'SELECT id, name, startDate, endDate, location, logoUrl, sport, teamRegEnabled FROM "Tournament" WHERE orgId = ? ORDER BY startDate',
+    sql: 'SELECT id, name, tagline, startDate, endDate, location, logoUrl, sport, teamRegEnabled FROM "Tournament" WHERE orgId = ? ORDER BY startDate',
     args: [org.id as string],
   })
   const all = (tRes.rows as any[]).map(r => ({ ...r, teamRegEnabled: Number(r.teamRegEnabled) })) as Tourn[]
@@ -166,14 +172,15 @@ export default async function OrgSite({ params }: { params: { slug: string } }) 
         <section className="bg-slate-50 border-t border-slate-200">
           <div className="max-w-6xl mx-auto px-6 py-14">
             <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400 text-center">Sponsors &amp; partners</h2>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-12 gap-y-8">
+            <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
               {sponsors.map((s, i) => {
-                const img = s.logoUrl
-                  ? <img src={s.logoUrl} alt={s.name || ''} title={s.name || ''} className="h-14 object-contain grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition" />
-                  : <span className="text-slate-500 font-semibold whitespace-nowrap">{s.name}</span>
+                const inner = s.logoUrl
+                  ? <img src={s.logoUrl} alt={s.name || ''} title={s.name || ''} className="max-h-20 max-w-full object-contain" />
+                  : <span className="text-slate-600 font-bold text-lg whitespace-nowrap">{s.name}</span>
+                const tile = <div className="bg-white border border-slate-200 rounded-2xl h-28 flex items-center justify-center px-5">{inner}</div>
                 return s.url
-                  ? <a key={i} href={s.url} target="_blank" rel="noreferrer">{img}</a>
-                  : <div key={i}>{img}</div>
+                  ? <a key={i} href={s.url} target="_blank" rel="noreferrer" className="block rounded-2xl hover:shadow-md transition-shadow">{tile}</a>
+                  : <div key={i}>{tile}</div>
               })}
             </div>
           </div>
