@@ -1,13 +1,12 @@
-// Custom domains → org slug. To connect a new org domain:
-//   1) add the host(s) here (apex + www),
-//   2) add the domain in Vercel (Project → Settings → Domains),
-//   3) point DNS at Vercel (A record for apex / CNAME for subdomain).
-// Middleware rewrites the apex to the org's /o/[slug] pages and the org chrome
-// emits root-relative links so the address bar stays clean.
-export const ORG_DOMAINS: Record<string, string> = {
-  'sunshinelax.com': 'sunshine-events-group',
-  'www.sunshinelax.com': 'sunshine-events-group',
-}
+// Custom domains → org slug, for serving an org's pages AT a custom domain root
+// (host-based routing in middleware + root-relative org chrome links).
+//
+// NOTE: Sunshine Events Group uses a simpler GoDaddy 302 *forward*
+// (sunshinelax.com → whistleready.app/o/sunshine-events-group), so it is NOT
+// listed here — a forwarded domain never reaches the app as its own host.
+// Add an entry here only to host an org's pages directly under its domain
+// (then add the domain in Vercel + point DNS at Vercel).
+export const ORG_DOMAINS: Record<string, string> = {}
 
 export function hostOnly(host?: string | null): string {
   return (host || '').toLowerCase().split(':')[0]
