@@ -37,10 +37,11 @@ function fmtRangeShort(s: string, e: string) {
   if (!s) return 'TBA'
   if (e && e !== s) {
     const [sy, sm] = s.split('-'); const [ey, em] = e.split('-')
-    if (sy === ey && sm === em) return `${fmtDayShort(s)}–${parseInt(e.split('-')[2])}`
-    return `${fmtDayShort(s)} – ${fmtDayShort(e)}`
+    if (sy === ey && sm === em) return `${fmtDayShort(s)}–${parseInt(e.split('-')[2])}, ${ey}`
+    if (sy === ey) return `${fmtDayShort(s)} – ${fmtDayShort(e)}, ${ey}`
+    return `${fmtDayShort(s)}, ${sy} – ${fmtDayShort(e)}, ${ey}`
   }
-  return fmtDayShort(s)
+  return `${fmtDayShort(s)}, ${s.split('-')[0]}`
 }
 function shortLocation(loc: string) {
   if (!loc) return ''
