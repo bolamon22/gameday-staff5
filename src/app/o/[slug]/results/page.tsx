@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@libsql/client'
-import { Trophy, MapPin, CalendarDays, ArrowRight, BarChart3 } from 'lucide-react'
+import { Trophy, MapPin, CalendarDays, BarChart3 } from 'lucide-react'
 import { OrgHeader, OrgFooter, buildNav, orgBase, PageRec } from '../_chrome'
 import type { Metadata } from 'next'
 import { abs, clip } from '@/lib/seo'
@@ -70,7 +70,8 @@ export default async function ResultsPage({ params }: { params: { slug: string }
               {past.map(t => {
                 const accent = accentFor(t.name)
                 return (
-                  <div key={t.id} className="group bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex flex-col">
+                  <div key={t.id} className="group relative bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex flex-col">
+                    <Link href={`/tournaments/${t.id}/public`} className="absolute inset-0 z-10" aria-label={`View ${t.name} schedule & standings`} />
                     <div className="h-2" style={{ backgroundColor: accent }} />
                     <div className="p-5 flex items-start gap-4">
                       {t.logoUrl
@@ -82,10 +83,7 @@ export default async function ResultsPage({ params }: { params: { slug: string }
                         {t.location && <p className="text-sm text-slate-500 mt-0.5 inline-flex items-center gap-1"><MapPin size={14} /> {t.location}</p>}
                       </div>
                     </div>
-                    <div className="mt-auto border-t border-slate-100 flex">
-                      <Link href={`/tournaments/${t.id}/event`} className="flex-1 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50 py-3 transition-colors inline-flex items-center justify-center gap-1">Event <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" /></Link>
-                      <Link href={`/tournaments/${t.id}/public`} className="flex-[1.4] text-center text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 py-3 transition-colors inline-flex items-center justify-center gap-1.5"><BarChart3 size={15} /> Results & standings</Link>
-                    </div>
+                    <div className="mt-auto border-t border-slate-100 bg-teal-600 group-hover:bg-teal-700 transition-colors py-3 flex items-center justify-center gap-1.5 text-sm font-semibold text-white"><BarChart3 size={15} /> Results &amp; standings</div>
                   </div>
                 )
               })}
