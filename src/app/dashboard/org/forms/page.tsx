@@ -7,6 +7,8 @@ import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import { ChevronLeft, ChevronDown, FileText, ClipboardList, Save, ExternalLink, Link2, Inbox, Pencil, X, Users, ImagePlus } from 'lucide-react'
 import MarkdownField from '@/components/MarkdownField'
+import AiGenerateButton from '@/components/AiGenerateButton'
+import { DEFAULT_REG_CONFIRMATION, type RegConfirmation } from '@/lib/regConfirmation'
 
 async function compressImage(file: File, maxDim = 1600, quality = 0.82): Promise<Blob> {
   if (!/^image\/(jpe?g|png|webp)$/i.test(file.type)) return file
@@ -66,7 +68,7 @@ type StaffForm = {
   intro: string; positions: string[]; refLevels: string[]; ageLabel: string
   confirmationTitle: string; confirmationMessage: string; emailConfirmation: boolean
 }
-type Forms = { player: PlayerForm; vendor: VendorForm; staff: StaffForm }
+type Forms = { player: PlayerForm; vendor: VendorForm; staff: StaffForm; registration: RegConfirmation }
 
 const EMPTY: Forms = {
   player: {
@@ -94,6 +96,7 @@ const EMPTY: Forms = {
     confirmationMessage: "Thanks for your interest in working our events! We've received your application and will reach out about open positions.",
     emailConfirmation: true,
   },
+  registration: DEFAULT_REG_CONFIRMATION,
 }
 
 const FIELD_LABELS: { key: keyof PlayerForm['fields']; label: string; hint: string }[] = [
@@ -140,6 +143,7 @@ function FormsInner() {
           player: { ...EMPTY.player, ...p, fields: { ...EMPTY.player.fields, ...(p.fields || {}) } },
           vendor: { ...EMPTY.vendor, ...vv, levels: Array.isArray(vv.levels) ? vv.levels : EMPTY.vendor.levels, paymentOptions: Array.isArray(vv.paymentOptions) ? vv.paymentOptions : EMPTY.vendor.paymentOptions },
           staff: { ...EMPTY.staff, ...st, positions: Array.isArray(st.positions) ? st.positions : EMPTY.staff.positions, refLevels: Array.isArray(st.refLevels) ? st.refLevels : EMPTY.staff.refLevels },
+          registration: { ...EMPTY.registration, ...(d.registration || {}) },
         }
         setF(merged); setSnap(merged)
         const sj = await fetch(`/api/org-forms/submit${apiQ}`).then(r => r.ok ? r.json() : { submissions: [] })
@@ -162,7 +166,7 @@ function FormsInner() {
   const staffHero = async (f?: File | null) => { if (!f) return; const u = await uploadImage(f); if (u) setF(v => ({ ...v, staff: { ...v.staff, heroImage: u } })); else toast.error('Upload failed') }
 
   if (loading) return <div className="text-slate-400 text-center py-16">Loading…</div>
-  const pf = f.player, vf = f.vendor, stf = f.staff
+  const pf = f.player, vf = f.vendor, stf = f.staff, rf = f.registration
   const playerSubs = subs.filter(s => s.formType !== 'vendor' && s.formType !== 'staff')
   const vendorSubs = subs.filter(s => s.formType === 'vendor')
   const staffSubs = subs.filter(s => s.formType === 'staff')
@@ -214,6 +218,42 @@ function FormsInner() {
         <h1 className="text-2xl font-bold text-slate-900 mt-1">Forms</h1>
         <p className="text-sm text-slate-500">Reusable forms for {orgName || 'your organization'}. New tournaments copy these as their starting point.</p>
       </div>
+
+{/* REGISTRATION CONFIRMATION */}
+      <section className="card mb-4 overflow-hidden">
+        <Header k="reg" icon={<ClipboardList size={16} />} title="Registration Confirmation" desc="The letter teams see after registering — and the email they receive." summary={rf.enabled ? 'Email on' : 'Email off'} />
+        {open.reg && (
+          <div className="px-4 pb-4 border-t border-slate-100 pt-4">
+            <p className="text-xs text-slate-500 mb-3">Shown on the confirmation screen and emailed to the club contact. Use <code className="bg-slate-100 px-1 rounded">{'{club}'}</code>, <code className="bg-slate-100 px-1 rounded">{'{tournament}'}</code>, <code className="bg-slate-100 px-1 rounded">{'{dates}'}</code>, <code className="bg-slate-100 px-1 rounded">{'{location}'}</code>, <code className="bg-slate-100 px-1 rounded">{'{org}'}</code> — these fill in automatically. The teams, fees and links are added for you.</p>
+            <div className="flex justify-end mb-3"><EditBar k="reg" /></div>
+            {editing.reg ? (
+              <div className="space-y-1">
+                <label className="inline-flex items-start gap-2 text-sm text-slate-600 mb-2">
+                  <input type="checkbox" className="mt-0.5 accent-teal-500" checked={rf.enabled} onChange={e => setF(v => ({ ...v, registration: { ...v.registration, enabled: e.target.checked } }))} />
+                  <span>Email a copy to the club contact</span>
+                </label>
+                <div className={labelCls}>Email subject</div>
+                <input className={inputCls} value={rf.subject} onChange={e => setF(v => ({ ...v, registration: { ...v.registration, subject: e.target.value } }))} />
+                <div className={labelCls}>Welcome message</div>
+                <MarkdownField value={rf.welcome} onChange={val => setF(v => ({ ...v, registration: { ...v.registration, welcome: val } }))} minHeight={90} />
+                <AiGenerateButton kind="reg-welcome" current={rf.welcome} onResult={t => setF(v => ({ ...v, registration: { ...v.registration, welcome: t } }))} />
+                <div className={labelCls}>What&apos;s next</div>
+                <MarkdownField value={rf.nextSteps} onChange={val => setF(v => ({ ...v, registration: { ...v.registration, nextSteps: val } }))} minHeight={90} />
+                <AiGenerateButton kind="reg-next" current={rf.nextSteps} onResult={t => setF(v => ({ ...v, registration: { ...v.registration, nextSteps: t } }))} />
+                <div className={labelCls}>Sign-off</div>
+                <MarkdownField value={rf.signoff} onChange={val => setF(v => ({ ...v, registration: { ...v.registration, signoff: val } }))} minHeight={60} />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div><div className={labelCls}>Welcome</div>{ro(rf.welcome)}</div>
+                <div><div className={labelCls}>What&apos;s next</div>{ro(rf.nextSteps)}</div>
+                <div><div className={labelCls}>Sign-off</div>{ro(rf.signoff)}</div>
+                <div className="text-sm text-slate-600">Email confirmation: <span className="font-medium">{rf.enabled ? 'On' : 'Off'}</span></div>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* PLAYER WAIVER */}
       <section className="card mb-4 overflow-hidden">

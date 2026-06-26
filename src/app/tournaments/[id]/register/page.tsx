@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import PublicChirp from '@/components/PublicChirp'
 import toast, { Toaster } from 'react-hot-toast'
 import { parsePricing, calcFee, feeScheduleLines, DEFAULT_REG_PRICING, type RegPricing } from '@/lib/regPricing'
+import { mdToHtml } from '@/app/o/[slug]/_md'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 
@@ -140,6 +141,7 @@ export default function RegisterPage() {
   const [org, setOrg] = useState<any>(null)
   const [divisions, setDivisions] = useState<string[]>(DEFAULT_DIVISIONS)
   const [submitted, setSubmitted] = useState(false)
+  const [conf, setConf] = useState<any>(null)
   const paid = searchParams.get('paid') === '1'
   const [loading, setLoading] = useState(false)
 
@@ -233,6 +235,7 @@ export default function RegisterPage() {
       })
       if (!res.ok) throw new Error('Registration failed')
       const registration = await res.json()
+      setConf(registration.confirmation || null)
 
       if (paymentMethod === 'credit_card') {
         const baseAmount = calcInvoice(teams, pricing)
@@ -271,13 +274,38 @@ export default function RegisterPage() {
   }
 
   if (submitted || paid || step === 'success') {
+    const L = conf?.letter
+    const D = conf?.data
+    const donePaid = paid || step === 'success'
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl shadow p-10 max-w-lg text-center">
-          {tournamentLogo && <img src={tournamentLogo} alt="logo" className="h-20 w-20 object-contain mx-auto mb-4 rounded-xl" />}
-          <div className="text-5xl mb-4">🎉</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">{(paid || step === 'success') ? 'Payment Complete!' : 'Registration Received!'}</h2>
-          <p className="text-gray-600">Thank you for registering for <strong>{tournamentName}</strong>. {(paid || step === 'success') ? 'Your payment was successful and ' : ''}We will be in touch soon with confirmation details.</p>
+      <div className="min-h-screen bg-gray-50 py-10 px-4">
+        <div className="bg-white rounded-2xl shadow border border-slate-100 p-8 max-w-xl mx-auto">
+          {tournamentLogo && <img src={tournamentLogo} alt="" className="h-16 w-16 object-contain mx-auto mb-3 rounded-xl" />}
+          <div className="mx-auto mb-3 w-12 h-12 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+          </div>
+          <h2 className="text-2xl font-bold text-center text-slate-900 mb-1">{donePaid ? 'Payment complete!' : 'Registration received!'}</h2>
+          {L ? (
+            <div className="mt-4 text-left">
+              <p className="font-semibold text-slate-800">{L.greeting}</p>
+              <div className="text-slate-600 text-sm mt-1 leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(L.welcome) }} />
+              <div className="mt-4 border border-slate-200 rounded-xl overflow-hidden text-sm">
+                <div className="flex justify-between px-4 py-2 bg-slate-50"><span className="text-slate-500">Club</span><span className="font-semibold text-slate-800">{D?.clubName}</span></div>
+                {L.teams.map((t: any, i: number) => <div key={i} className="flex justify-between px-4 py-2 border-t border-slate-100"><span className="text-slate-700">{t.team}</span><span className="text-slate-500">{t.division}</span></div>)}
+                <div className="flex justify-between px-4 py-2 border-t border-slate-100"><span className="text-slate-500">Teams</span><span className="font-semibold text-slate-800">{L.numTeams}</span></div>
+              </div>
+              {(donePaid || L.payment) && <p className="mt-3 text-sm bg-teal-50 border border-teal-100 text-teal-800 rounded-lg px-3 py-2">{donePaid ? "Payment received — you're all set." : L.payment}</p>}
+              <div className="text-slate-600 text-sm mt-4 leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(L.nextSteps) }} />
+              <div className="text-slate-600 text-sm mt-3 leading-relaxed" dangerouslySetInnerHTML={{ __html: mdToHtml(L.signoff) }} />
+              <div className="mt-5 flex flex-wrap gap-2 justify-center">
+                {D?.eventUrl && <a href={D.eventUrl} className="text-sm font-semibold bg-teal-600 hover:bg-teal-700 text-white rounded-full px-4 py-2">Event page</a>}
+                {D?.gameDayUrl && <a href={D.gameDayUrl} className="text-sm font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-full px-4 py-2">Game day</a>}
+              </div>
+              {conf?.emailed && <p className="text-xs text-slate-400 text-center mt-4">A copy was emailed to {contactEmail}.</p>}
+            </div>
+          ) : (
+            <p className="text-gray-600 text-center mt-2">Thank you for registering for <strong>{tournamentName}</strong>. {donePaid ? 'Your payment was successful. ' : ''}We will be in touch soon with confirmation details.</p>
+          )}
         </div>
       </div>
     )
