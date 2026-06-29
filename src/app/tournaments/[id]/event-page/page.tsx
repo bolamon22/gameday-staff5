@@ -15,12 +15,12 @@ import { resolveBlocks, Block } from '@/lib/eventBlocks'
 type Loc = { name: string; address: string; mapUrl: string; fieldMapUrl: string }
 type Contact = { name: string; role: string; phone: string; email: string }
 type Content = {
-  overview: string; feesText: string; divisionsText: string; ageChartUrl: string; heroImage: string
+  overview: string; ageChartUrl: string; heroImage: string
   locations: Loc[]; hotels: string; hotelsUrl: string; rules: string; rulesSourceId?: string; contacts: Contact[]
   sectionOrder?: string[]; hiddenSections?: string[]
   blocks?: Block[]
 }
-const EMPTY: Content = { overview: '', feesText: '', divisionsText: '', ageChartUrl: '', heroImage: '', locations: [], hotels: '', hotelsUrl: '', rules: '', rulesSourceId: '', contacts: [], sectionOrder: [], hiddenSections: [], blocks: [] }
+const EMPTY: Content = { overview: '', ageChartUrl: '', heroImage: '', locations: [], hotels: '', hotelsUrl: '', rules: '', rulesSourceId: '', contacts: [], sectionOrder: [], hiddenSections: [], blocks: [] }
 
 const labelCls = 'block text-xs font-semibold uppercase tracking-wide text-slate-500 mt-3 mb-1'
 const inputCls = 'w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400'
@@ -85,7 +85,7 @@ export default function EventPageEditor() {
       }
     }).catch(() => {})
     fetch(`/api/tournaments/${id}/site`).then(r => r.ok ? r.json() : {}).then(d => {
-      setC(prev => ({ ...EMPTY, ...d, locations: Array.isArray(d.locations) ? d.locations : [], contacts: Array.isArray(d.contacts) ? d.contacts : [], divisionsText: d.divisionsText || prev.divisionsText }))
+      setC(prev => ({ ...EMPTY, ...d, locations: Array.isArray(d.locations) ? d.locations : [], contacts: Array.isArray(d.contacts) ? d.contacts : [] }))
     }).catch(() => {}).finally(() => setLoading(false))
   }, [id])
 
@@ -105,7 +105,7 @@ export default function EventPageEditor() {
       const d = await res.json().catch(() => ({}))
       if (res.ok) {
         const fresh = await fetch(`/api/tournaments/${id}/site`).then(r => r.ok ? r.json() : null)
-        if (fresh) setC(prev => ({ ...EMPTY, ...fresh, locations: Array.isArray(fresh.locations) ? fresh.locations : [], contacts: Array.isArray(fresh.contacts) ? fresh.contacts : [], divisionsText: fresh.divisionsText || prev.divisionsText }))
+        if (fresh) setC(prev => ({ ...EMPTY, ...fresh, locations: Array.isArray(fresh.locations) ? fresh.locations : [], contacts: Array.isArray(fresh.contacts) ? fresh.contacts : [] }))
         toast.success(d.added ? `Added ${d.added} FAQ${d.added === 1 ? '' : 's'} from event details` : 'FAQs already up to date')
       } else toast.error(d.error || 'Could not generate FAQs')
     } catch { toast.error('Could not generate FAQs') } finally { setGenFaq(false) }

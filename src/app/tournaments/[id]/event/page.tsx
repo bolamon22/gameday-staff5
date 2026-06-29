@@ -97,8 +97,7 @@ export default async function TournamentEventPage({ params }: { params: { id: st
   const base = `/tournaments/${params.id}`
 
   const setupDivisions: string[] = (() => { try { const d = JSON.parse(t.registrationDivisions || '[]'); return Array.isArray(d) ? d.filter(Boolean) : [] } catch { return [] } })()
-  const manualDivisions: string[] = String(c.divisionsText || '').split('\n').map((x: string) => x.trim()).filter(Boolean)
-  const divisions: string[] = setupDivisions.length ? setupDivisions : manualDivisions
+  const divisions: string[] = setupDivisions
   const pricing = parsePricing(t.registrationPricing)
   const feeLines: string[] = Number(t.teamRegEnabled) ? feeScheduleLines(pricing) : []
   const locations: any[] = Array.isArray(c.locations) ? c.locations : []
